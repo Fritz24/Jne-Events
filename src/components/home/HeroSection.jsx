@@ -10,7 +10,7 @@ export default function HeroSection() {
       {/* Background photo */}
       <div className="absolute inset-0">
         <img
-          src="https://images.unsplash.com/photo-1542204172-132777174665?q=80&w=2670&auto=format&fit=crop"
+          src="https://images.unsplash.com/photo-1485846234645-a62644f84728?q=80&w=2670&auto=format&fit=crop"
           alt="Outdoor cinema"
           className="w-full h-full object-cover opacity-45"
         />

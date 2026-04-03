@@ -7,6 +7,9 @@ export const translations = {
     // Nav
     home: "Home",
     events: "Events",
+    login: "Login",
+    logout: "Logout",
+    dashboard: "Dashboard",
     // Hero
     everyWeekend: "Every Weekend",
     heroSubtitle: "Movie Nights & Live Music",
@@ -52,6 +55,9 @@ export const translations = {
     // Nav
     home: "Accueil",
     events: "Événements",
+    login: "Connexion",
+    logout: "Déconnexion",
+    dashboard: "Tableau de bord",
     // Hero
     everyWeekend: "Chaque Week-end",
     heroSubtitle: "Soirées Cinéma & Musique Live",

@@ -4,6 +4,7 @@ import HeroSection from "../components/home/HeroSection";
 import FeaturedEvents from "../components/home/FeaturedEvents";
 import UpcomingPreview from "../components/home/UpcomingPreview";
 import GallerySection from "../components/home/GallerySection";
+import NewsletterSection from "../components/home/NewsletterSection";
 
 export default function Home() {
   const { data: events = [], isLoading } = useQuery({
@@ -34,6 +35,7 @@ export default function Home() {
       <FeaturedEvents events={displayFeatured} isLoading={isLoading} />
       <UpcomingPreview events={nextUpEvents} />
       <GallerySection />
+      <NewsletterSection />
     </div>
   );
 }

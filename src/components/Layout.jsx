@@ -3,11 +3,14 @@ import { Film, Music, Calendar, Menu, X } from "lucide-react";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLang } from "@/lib/LanguageContext";
+import { useAuth } from "@/lib/AuthContext";
+import { LogOut, LayoutDashboard, LogIn } from "lucide-react";
 
 export default function Layout() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
   const { lang, t, toggleLang } = useLang();
+  const { user, signOut } = useAuth();
 
   const navLinks = [
     { to: "/Home", label: t.home, icon: Calendar },
@@ -42,11 +45,10 @@ export default function Layout() {
                 <Link
                   key={link.to}
                   to={link.to}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                    location.pathname === link.to
-                      ? "bg-white/10 text-white"
-                      : "text-white/60 hover:text-white hover:bg-white/5"
-                  }`}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${location.pathname === link.to
+                    ? "bg-white/10 text-white"
+                    : "text-white/60 hover:text-white hover:bg-white/5"
+                    }`}
                 >
                   {link.label}
                 </Link>
@@ -57,6 +59,35 @@ export default function Layout() {
               >
                 {lang === "en" ? "FR" : "EN"}
               </button>
+
+              <div className="ml-4 h-6 w-px bg-white/10" />
+
+              {user ? (
+                <div className="flex items-center gap-2 ml-4">
+                  <Link
+                    to="/Admin"
+                    className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-white/70 hover:text-white transition-all"
+                    title="Dashboard"
+                  >
+                    <LayoutDashboard className="w-4 h-4" />
+                  </Link>
+                  <button
+                    onClick={signOut}
+                    className="p-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 transition-all"
+                    title="Logout"
+                  >
+                    <LogOut className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                <Link
+                  to="/Login"
+                  className="ml-4 flex items-center gap-2 px-4 py-2 rounded-lg bg-violet-600 hover:bg-violet-500 text-white text-sm font-medium transition-all"
+                >
+                  <LogIn className="w-4 h-4" />
+                  {t.login || "Login"}
+                </Link>
+              )}
             </div>
 
             {/* Lang toggle (mobile) */}
@@ -92,16 +123,43 @@ export default function Layout() {
                     key={link.to}
                     to={link.to}
                     onClick={() => setMobileOpen(false)}
-                    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                      location.pathname === link.to
-                        ? "bg-white/10 text-white"
-                        : "text-white/60 hover:text-white hover:bg-white/5"
-                    }`}
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${location.pathname === link.to
+                      ? "bg-white/10 text-white"
+                      : "text-white/60 hover:text-white hover:bg-white/5"
+                      }`}
                   >
                     <link.icon className="w-4 h-4" />
                     {link.label}
                   </Link>
                 ))}
+                {user ? (
+                  <>
+                    <Link
+                      to="/Admin"
+                      onClick={() => setMobileOpen(false)}
+                      className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/60 hover:text-white"
+                    >
+                      <LayoutDashboard className="w-4 h-4" />
+                      {t.dashboard}
+                    </Link>
+                    <button
+                      onClick={() => { signOut(); setMobileOpen(false); }}
+                      className="flex w-full items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-red-400 hover:text-red-300"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      {t.logout}
+                    </button>
+                  </>
+                ) : (
+                  <Link
+                    to="/Login"
+                    onClick={() => setMobileOpen(false)}
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-violet-400 hover:text-violet-300"
+                  >
+                    <LogIn className="w-4 h-4" />
+                    {t.login}
+                  </Link>
+                )}
               </div>
             </motion.div>
           )}

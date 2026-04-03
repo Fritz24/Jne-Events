@@ -1,7 +1,7 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { supabase } from './supabase';
 
-const AuthContext = createContext();
+const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -59,14 +59,29 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const logout = async () => {
-    await supabase.auth.signOut();
+  const loginWithEmail = async (email, password) => {
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) throw error;
+    return data;
+  };
+
+  const signUp = async (email, password, metadata) => {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { data: metadata }
+    });
+    if (error) throw error;
+    return data;
+  };
+
+  const signOut = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) throw error;
   };
 
   const navigateToLogin = () => {
-    // Navigate to a login page or trigger Supabase Auth UI
-    // In many Supabase apps, you might have a dedicated /login route
-    window.location.href = '/Home'; // Fallback
+    window.location.href = '/Login';
   };
 
   return (
@@ -75,7 +90,10 @@ export const AuthProvider = ({ children }) => {
       isAuthenticated,
       isLoadingAuth,
       authError,
-      logout,
+      loginWithEmail,
+      signUp,
+      signOut,
+      logout: signOut,
       navigateToLogin
     }}>
       {children}

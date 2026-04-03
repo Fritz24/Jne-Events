@@ -12,6 +12,8 @@ import Home from './pages/Home';
 import Events from './pages/Events';
 import Admin from './pages/Admin';
 import ScanTicket from './pages/ScanTicket';
+import Login from './pages/Login';
+import SignUp from './pages/SignUp';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -45,6 +47,8 @@ const AuthenticatedApp = () => {
         <Route path="/Events" element={<Events />} />
         <Route path="/Admin" element={<Admin />} />
         <Route path="/ScanTicket" element={<ScanTicket />} />
+        <Route path="/Login" element={<Login />} />
+        <Route path="/SignUp" element={<SignUp />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>
