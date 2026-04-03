@@ -10,6 +10,14 @@ import { Save, X, Loader2, Plus, Trash2 } from "lucide-react";
 
 const DRAFT_KEY = "event_form_draft";
 
+const getLocalDatetimeLocal = (dateString) => {
+  if (!dateString) return;
+  const d = new Date(dateString);
+  // Get components in local time and format them with padStart wrapper
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+};
+
 const emptyTier = () => ({
   label: "", price: "", description: "",
   headphones_included: false,
@@ -23,7 +31,7 @@ function buildInitialForm(event) {
     title: event?.title || "",
     type: event?.type || "movie_night",
     description: event?.description || "",
-    date: event?.date ? new Date(event.date).toISOString().slice(0, 16) : (() => { const d = new Date(); d.setHours(18, 30, 0, 0); return d.toISOString().slice(0, 16); })(),
+    date: event?.date ? getLocalDatetimeLocal(event.date) : (() => { const d = new Date(); d.setHours(18, 30, 0, 0); return getLocalDatetimeLocal(d); })(),
     venue: event?.venue || "",
     price: event?.price || "",
     currency: event?.currency || "XAF",
