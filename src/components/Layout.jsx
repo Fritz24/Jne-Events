@@ -13,8 +13,8 @@ export default function Layout() {
   const { user, signOut } = useAuth();
 
   const navLinks = [
-    { to: "/Home", label: t.home, icon: Calendar },
-    { to: "/Events", label: t.events, icon: Film },
+    { to: "/home", label: t.home, icon: Calendar },
+    { to: "/events", label: t.events, icon: Film },
   ];
 
   return (
@@ -65,7 +65,7 @@ export default function Layout() {
               {user ? (
                 <div className="flex items-center gap-2 ml-4">
                   <Link
-                    to="/Admin"
+                    to="/admin"
                     className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-white/70 hover:text-white transition-all"
                     title="Dashboard"
                   >
@@ -135,7 +135,7 @@ export default function Layout() {
                 {user ? (
                   <>
                     <Link
-                      to="/Admin"
+                      to="/admin"
                       onClick={() => setMobileOpen(false)}
                       className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/60 hover:text-white"
                     >
@@ -152,7 +152,7 @@ export default function Layout() {
                   </>
                 ) : (
                   <Link
-                    to="/Login"
+                    to="/login"
                     onClick={() => setMobileOpen(false)}
                     className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-violet-400 hover:text-violet-300"
                   >

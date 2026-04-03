@@ -14,7 +14,7 @@ export default function SignUp() {
     const [error, setError] = useState("");
 
     if (user) {
-        navigate("/Admin");
+        navigate("/admin");
     }
 
     const handleSignUp = async (e) => {
@@ -26,7 +26,7 @@ export default function SignUp() {
             // Supabase by default requires email confirmation, 
             // but if disabled it will log user in.
             // Redirecting to login for now if not auto-logged in
-            navigate("/Admin");
+            navigate("/admin");
         } catch (err) {
             setError(err.message || "Failed to create account. Please try again.");
             setLoading(false);
@@ -113,7 +113,7 @@ export default function SignUp() {
                     <div className="mt-8 pt-8 border-t border-white/5 text-center">
                         <p className="text-white/40 text-sm">
                             Already have an account?{" "}
-                            <Link to="/Login" className="text-amber-400 font-semibold hover:text-amber-300">Log in</Link>
+                            <Link to="/login" className="text-amber-400 font-semibold hover:text-amber-300">Log in</Link>
                         </p>
                     </div>
                 </div>
