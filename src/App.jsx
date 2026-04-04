@@ -44,11 +44,16 @@ const AuthenticatedApp = () => {
       <Route element={<Layout />}>
         <Route path="/" element={<Navigate to="/home" replace />} />
         <Route path="/home" element={<Home />} />
+        <Route path="/Home" element={<Navigate to="/home" replace />} />
         <Route path="/events" element={<Events />} />
+        <Route path="/Events" element={<Navigate to="/events" replace />} />
         <Route path="/admin" element={<Admin />} />
+        <Route path="/Admin" element={<Navigate to="/admin" replace />} />
         <Route path="/scanticket" element={<ScanTicket />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/Login" element={<Navigate to="/login" replace />} />
         <Route path="/signup" element={<SignUp />} />
+        <Route path="/SignUp" element={<Navigate to="/signup" replace />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>

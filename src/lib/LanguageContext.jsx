@@ -50,6 +50,9 @@ export const translations = {
     allEvents: "All Events",
     movieNights: "Movie Nights",
     music: "Music",
+    searchEvents: "Search events...",
+    allGenres: "All Genres",
+    allLocations: "All Locations",
   },
   fr: {
     // Nav
@@ -98,6 +101,9 @@ export const translations = {
     allEvents: "Tous les Événements",
     movieNights: "Soirées Cinéma",
     music: "Musique",
+    searchEvents: "Rechercher...",
+    allGenres: "Tous les Genres",
+    allLocations: "Tous les Lieux",
   },
 };
 

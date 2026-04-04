@@ -10,7 +10,13 @@ import { useAuth } from "@/lib/AuthContext";
 import { useLang } from "@/lib/LanguageContext";
 
 export default function Events() {
-  const [filter, setFilter] = useState("all");
+  const [activeFilters, setActiveFilters] = useState({
+    type: "all",
+    genre: "all",
+    location: "all",
+    search: ""
+  });
+
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
   const { t } = useLang();
@@ -21,7 +27,7 @@ export default function Events() {
       const { data, error } = await supabase
         .from('Event')
         .select('*')
-        .order('date', { ascending: false });
+        .order('date', { ascending: true });
       if (error) throw error;
       return data || [];
     },
@@ -43,9 +49,20 @@ export default function Events() {
   const soldOut = isSoldOut(bookings);
   const usedSlots = countUsedSlots(bookings);
 
-  const filtered = filter === "all"
-    ? events
-    : events.filter((e) => e.type === filter);
+  // Get unique genres and locations from events
+  const allGenres = ["all", ...new Set(events.map(e => e.genre).filter(Boolean))];
+  const allLocations = ["all", ...new Set(events.map(e => e.venue).filter(Boolean))];
+
+  const filtered = events.filter(e => {
+    const matchesType = activeFilters.type === "all" || e.type === activeFilters.type;
+    const matchesGenre = activeFilters.genre === "all" || e.genre === activeFilters.genre;
+    const matchesLocation = activeFilters.location === "all" || e.venue === activeFilters.location;
+    const matchesSearch = !activeFilters.search ||
+      e.title.toLowerCase().includes(activeFilters.search.toLowerCase()) ||
+      e.artist_or_movie?.toLowerCase().includes(activeFilters.search.toLowerCase());
+
+    return matchesType && matchesGenre && matchesLocation && matchesSearch;
+  });
 
   const upcoming = filtered.filter(e => e.status === "upcoming" || e.status === "ongoing" || !e.status);
   const past = filtered.filter(e => e.status === "completed" || e.status === "cancelled");
@@ -60,7 +77,12 @@ export default function Events() {
       {soldOut && <div className="mb-6"><SoldOutBanner /></div>}
 
 
-      <EventFilters activeFilter={filter} onFilterChange={setFilter} />
+      <EventFilters
+        filters={activeFilters}
+        onFilterChange={setActiveFilters}
+        genres={allGenres}
+        locations={allLocations}
+      />
 
       {isLoading ? (
         <div className="flex justify-center py-20">
