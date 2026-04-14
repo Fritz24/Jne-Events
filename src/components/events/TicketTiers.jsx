@@ -15,8 +15,8 @@ export default function TicketTiers({ event, compact = false }) {
   const tiers = event?.ticket_tiers?.length
     ? event.ticket_tiers
     : event?.price
-    ? [{ label: "Standard Ticket", price: event.price, description: "" }]
-    : [];
+      ? [{ label: "Standard Ticket", price: event.price, description: "" }]
+      : [];
 
   const [quantities, setQuantities] = useState(() =>
     Object.fromEntries(tiers.map((_, i) => [i, 0]))
@@ -44,10 +44,21 @@ export default function TicketTiers({ event, compact = false }) {
 
   const buildWhatsAppMessage = () => {
     const ticketLines = tiers
-      .map((tier, i) => quantities[i] > 0
-        ? `• ${quantities[i]}x ${tier.label} @ ${(tier.price || 0).toLocaleString()} ${currency} = ${(quantities[i] * tier.price).toLocaleString()} ${currency}`
-        : null
-      )
+      .map((tier, i) => {
+        if (!(quantities[i] > 0)) return null;
+
+        const included = [];
+        if (tier.headphones_included) included.push("Headphones 🎧");
+        if (tier.seat_included) included.push("Seat/Blanket 💺");
+        if (tier.snack_included) included.push("Snack/Popcorn 🍿");
+        if (tier.drink_included) included.push("Drink 🥤");
+
+        let line = `• ${quantities[i]}x ${tier.label} @ ${(tier.price || 0).toLocaleString()} ${currency} = ${(quantities[i] * tier.price).toLocaleString()} ${currency}`;
+        if (included.length > 0) {
+          line += `\n  (Includes: ${included.join(", ")})`;
+        }
+        return line;
+      })
       .filter(Boolean);
 
     const addonLines = tiers.flatMap((tier, i) => {
@@ -86,11 +97,10 @@ export default function TicketTiers({ event, compact = false }) {
           return (
             <div
               key={i}
-              className={`relative rounded-2xl p-5 flex flex-col gap-4 transition-all border ${
-                isHighlight
+              className={`relative rounded-2xl p-5 flex flex-col gap-4 transition-all border ${isHighlight
                   ? "bg-violet-600/15 border-violet-500/40 ring-1 ring-violet-500/30"
                   : "bg-white/[0.03] border-white/[0.07] hover:border-white/10 hover:bg-white/[0.05]"
-              }`}
+                }`}
             >
               <div>
                 <h4 className={`font-bold text-base ${isHighlight ? "text-violet-200" : "text-white"}`}>
