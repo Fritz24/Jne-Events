@@ -109,3 +109,24 @@ CREATE POLICY "Admins have full access" ON public.Event TO authenticated
   WITH CHECK (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
 
 -- Repeat similar policies for other tables if needed.
+
+-- 8. Storage Policies (Run these in the SQL Editor)
+-- First, ensure the 'events' bucket exists
+INSERT INTO storage.buckets (id, name, public) 
+VALUES ('events', 'events', true)
+ON CONFLICT (id) DO NOTHING;
+
+-- Policy to allow authenticated users to upload images
+CREATE POLICY "Authenticated Upload" ON storage.objects FOR INSERT TO authenticated 
+WITH CHECK (bucket_id = 'events');
+
+-- Policy to allow anyone to see the images
+CREATE POLICY "Public View" ON storage.objects FOR SELECT TO public 
+USING (bucket_id = 'events');
+
+-- Policy to allow authenticated users to update/delete (clean up)
+CREATE POLICY "Authenticated Update" ON storage.objects FOR UPDATE TO authenticated 
+USING (bucket_id = 'events');
+
+CREATE POLICY "Authenticated Delete" ON storage.objects FOR DELETE TO authenticated 
+USING (bucket_id = 'events');

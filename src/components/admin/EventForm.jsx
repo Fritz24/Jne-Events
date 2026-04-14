@@ -111,19 +111,45 @@ export default function EventForm({ event, onSave, onCancel }) {
     }
 
     setUploading(true);
-    // Note: This assumes a 'events' bucket in Supabase Storage
-    const fileName = `${Date.now()}_${file.name}`;
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from('events')
-      .upload(fileName, file);
 
-    if (uploadError) {
-      setUploadError("Upload failed: " + uploadError.message);
+    const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+    const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
+
+    // Use Cloudinary if configured
+    if (cloudName && uploadPreset) {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("upload_preset", uploadPreset);
+
+      try {
+        const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+          method: "POST",
+          body: formData,
+        });
+        const data = await res.json();
+        if (data.secure_url) {
+          handleChange("image_url", data.secure_url);
+        } else {
+          throw new Error(data.error?.message || "Cloudinary upload failed");
+        }
+      } catch (err) {
+        setUploadError(err.message);
+      }
     } else {
-      const { data: { publicUrl } } = supabase.storage
+      // Fallback: Supabase Storage
+      const fileName = `${Date.now()}_${file.name}`;
+      const { data: uploadData, error: uploadError } = await supabase.storage
         .from('events')
-        .getPublicUrl(fileName);
-      handleChange("image_url", publicUrl);
+        .upload(fileName, file);
+
+      if (uploadError) {
+        setUploadError("Upload failed: " + uploadError.message);
+      } else {
+        const { data: { publicUrl } } = supabase.storage
+          .from('events')
+          .getPublicUrl(fileName);
+        handleChange("image_url", publicUrl);
+      }
     }
     setUploading(false);
   };
