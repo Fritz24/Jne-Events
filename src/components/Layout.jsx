@@ -62,7 +62,7 @@ export default function Layout() {
 
               <div className="ml-4 h-6 w-px bg-white/10" />
 
-              {user ? (
+              {user?.role === 'admin' && (
                 <div className="flex items-center gap-2 ml-4">
                   <Link
                     to="/admin"
@@ -71,6 +71,10 @@ export default function Layout() {
                   >
                     <LayoutDashboard className="w-4 h-4" />
                   </Link>
+                </div>
+              )}
+              {user && (
+                <div className="ml-4 flex items-center gap-2">
                   <button
                     onClick={signOut}
                     className="p-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 transition-all"
@@ -79,7 +83,8 @@ export default function Layout() {
                     <LogOut className="w-4 h-4" />
                   </button>
                 </div>
-              ) : (
+              )}
+              {!user && (
                 <Link
                   to="/Login"
                   className="ml-4 flex items-center gap-2 px-4 py-2 rounded-lg bg-violet-600 hover:bg-violet-500 text-white text-sm font-medium transition-all"
@@ -134,14 +139,16 @@ export default function Layout() {
                 ))}
                 {user ? (
                   <>
-                    <Link
-                      to="/admin"
-                      onClick={() => setMobileOpen(false)}
-                      className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/60 hover:text-white"
-                    >
-                      <LayoutDashboard className="w-4 h-4" />
-                      {t.dashboard}
-                    </Link>
+                    {user.role === 'admin' && (
+                      <Link
+                        to="/admin"
+                        onClick={() => setMobileOpen(false)}
+                        className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/60 hover:text-white"
+                      >
+                        <LayoutDashboard className="w-4 h-4" />
+                        {t.dashboard}
+                      </Link>
+                    )}
                     <button
                       onClick={() => { signOut(); setMobileOpen(false); }}
                       className="flex w-full items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-red-400 hover:text-red-300"

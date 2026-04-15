@@ -14,7 +14,7 @@ export default function SignUp() {
     const [error, setError] = useState("");
 
     if (user) {
-        navigate("/admin");
+        navigate(user.role === 'admin' ? "/admin" : "/home");
     }
 
     const handleSignUp = async (e) => {
@@ -23,10 +23,8 @@ export default function SignUp() {
         setError("");
         try {
             await signUp(email, password, { full_name: fullName });
-            // Supabase by default requires email confirmation, 
-            // but if disabled it will log user in.
-            // Redirecting to login for now if not auto-logged in
-            navigate("/admin");
+            // New users are customers by default
+            navigate("/home");
         } catch (err) {
             setError(err.message || "Failed to create account. Please try again.");
             setLoading(false);

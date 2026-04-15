@@ -13,7 +13,7 @@ export default function Login() {
     const [error, setError] = useState("");
 
     if (user) {
-        navigate("/admin");
+        navigate(user.role === 'admin' ? "/admin" : "/home");
     }
 
     const handleLogin = async (e) => {
@@ -21,8 +21,8 @@ export default function Login() {
         setLoading(true);
         setError("");
         try {
-            await loginWithEmail(email, password);
-            navigate("/admin");
+            const { user: loggedInUser } = await loginWithEmail(email, password);
+            navigate(loggedInUser?.role === 'admin' ? "/admin" : "/home");
         } catch (err) {
             setError(err.message || "Failed to login. Please check your credentials.");
             setLoading(false);
