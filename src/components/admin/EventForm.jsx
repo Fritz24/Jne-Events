@@ -171,13 +171,13 @@ export default function EventForm({ event, onSave, onCancel }) {
 
     if (isEdit) {
       const { error } = await supabase
-        .from('Event')
+        .from('jne_events')
         .update(data)
         .eq('id', event.id);
       if (error) throw error;
     } else {
       const { error } = await supabase
-        .from('Event')
+        .from('jne_events')
         .insert([data]);
       if (error) throw error;
     }
@@ -319,11 +319,14 @@ export default function EventForm({ event, onSave, onCancel }) {
               </div>
 
               {/* Inclusions toggles */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
-                <TierToggle tier={tier} index={i} field="headphones_included" label="Headphones" />
-                <TierToggle tier={tier} index={i} field="seat_included" label="Seat / Blanket" />
-                <TierToggle tier={tier} index={i} field="snack_included" label="Snack" />
-                <TierToggle tier={tier} index={i} field="drink_included" label="Drink" />
+              <div className="space-y-2 pt-1">
+                <p className="text-[10px] text-white/30 uppercase font-bold tracking-widest px-1">Included with this tier:</p>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <TierToggle tier={tier} index={i} field="headphones_included" label="Headphones" />
+                  <TierToggle tier={tier} index={i} field="seat_included" label="Seat / Blanket" />
+                  <TierToggle tier={tier} index={i} field="snack_included" label="Snack" />
+                  <TierToggle tier={tier} index={i} field="drink_included" label="Drink" />
+                </div>
               </div>
             </div>
           ))}

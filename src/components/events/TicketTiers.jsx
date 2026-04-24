@@ -1,16 +1,31 @@
 import { useState } from "react";
-import { Headphones, ExternalLink, Armchair, Cookie, Coffee, Plus, Minus, Drumstick, Leaf } from "lucide-react";
+import { Headphones, ExternalLink, Armchair, Cookie, Coffee, Plus, Minus, Loader2, Ticket, Utensils, GlassWater } from "lucide-react";
 import { format } from "date-fns";
-
-const ADDONS = [
-  { key: "wings", label: "Chicken Wings 🍗", price: 5000, icon: "🍗" },
-  { key: "juice", label: "Natural Juice 🥤", price: 2000, icon: "🥤" },
-];
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/lib/supabase";
 
 export default function TicketTiers({ event, compact = false }) {
   const whatsappBase = event?.whatsapp_number?.replace(/[^0-9]/g, "") || "237681770020";
   const currency = event?.currency || "XAF";
   const dateStr = event?.date ? format(new Date(event.date), "EEE, MMM d") : "";
+
+  // Dynamic Add-ons from DB
+  const { data: dynamicAddons = [] } = useQuery({
+    queryKey: ["shop_items_available"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('jne_shop_items')
+        .select('*')
+        .eq('available', true);
+      if (error) throw error;
+      return data.map(item => ({
+        id: item.id,
+        label: item.label,
+        price: item.price,
+        category: item.category
+      }));
+    }
+  });
 
   const tiers = event?.ticket_tiers?.length
     ? event.ticket_tiers
@@ -38,8 +53,10 @@ export default function TicketTiers({ event, compact = false }) {
 
   const totalTickets = Object.values(quantities).reduce((s, q) => s + q, 0);
   const ticketPrice = tiers.reduce((s, tier, i) => s + (quantities[i] || 0) * (tier.price || 0), 0);
+
   const addonPrice = tiers.reduce((s, _, i) =>
-    s + ADDONS.reduce((as, a) => as + (addonQty[`${i}_${a.key}`] || 0) * a.price, 0), 0);
+    s + dynamicAddons.reduce((as, a) => as + (addonQty[`${i}_${a.id}`] || 0) * a.price, 0), 0);
+
   const totalPrice = ticketPrice + addonPrice;
 
   const buildWhatsAppMessage = () => {
@@ -63,14 +80,14 @@ export default function TicketTiers({ event, compact = false }) {
 
     const addonLines = tiers.flatMap((tier, i) => {
       if (!quantities[i]) return [];
-      return ADDONS
-        .filter(a => addonQty[`${i}_${a.key}`] > 0)
-        .map(a => `  ↳ ${addonQty[`${i}_${a.key}`]}x ${a.label} (${tier.label}) = ${(addonQty[`${i}_${a.key}`] * a.price).toLocaleString()} ${currency}`);
+      return dynamicAddons
+        .filter(a => addonQty[`${i}_${a.id}`] > 0)
+        .map(a => `  ↳ ${addonQty[`${i}_${a.id}`]}x ${a.label} (${tier.label}) = ${(addonQty[`${i}_${a.id}`] * a.price).toLocaleString()} ${currency}`);
     });
 
     const sections = [...ticketLines];
     if (addonLines.length) {
-      sections.push("", "Add-ons:", ...addonLines);
+      sections.push("", "Extras:", ...addonLines);
     }
 
     return [
@@ -84,8 +101,6 @@ export default function TicketTiers({ event, compact = false }) {
     ].join("\n");
   };
 
-  const whatsappUrl = `https://wa.me/${whatsappBase}?text=${encodeURIComponent(buildWhatsAppMessage())}`;
-
   return (
     <div className="space-y-4">
       {/* Tier rows */}
@@ -98,8 +113,8 @@ export default function TicketTiers({ event, compact = false }) {
             <div
               key={i}
               className={`relative rounded-2xl p-5 flex flex-col gap-4 transition-all border ${isHighlight
-                  ? "bg-violet-600/15 border-violet-500/40 ring-1 ring-violet-500/30"
-                  : "bg-white/[0.03] border-white/[0.07] hover:border-white/10 hover:bg-white/[0.05]"
+                ? "bg-violet-600/15 border-violet-500/40 ring-1 ring-violet-500/30"
+                : "bg-white/[0.03] border-white/[0.07] hover:border-white/10 hover:bg-white/[0.05]"
                 }`}
             >
               <div>
@@ -115,27 +130,28 @@ export default function TicketTiers({ event, compact = false }) {
               </div>
 
               {(tier.headphones_included || tier.seat_included || tier.snack_included || tier.drink_included) && (
-                <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+                <div className="flex flex-wrap gap-x-4 gap-y-1.5 border-b border-white/5 pb-3 mb-1">
+                  <p className="w-full text-[10px] text-white/30 uppercase font-bold tracking-widest mb-1">Included free with ticket:</p>
                   {tier.headphones_included && (
-                    <div className="flex items-center gap-1.5 text-xs text-white/60">
-                      <Headphones className={`w-3.5 h-3.5 shrink-0 ${isHighlight ? "text-violet-300" : "text-amber-400"}`} />
+                    <div className="flex items-center gap-1.5 text-xs text-white/60 bg-white/5 px-2 py-1 rounded-md">
+                      <Headphones className={`w-3.5 h-3.5 shrink-0 ${isHighlight ? "text-violet-300" : "text-violet-400"}`} />
                       Headphones
                     </div>
                   )}
                   {tier.seat_included && (
-                    <div className="flex items-center gap-1.5 text-xs text-white/60">
+                    <div className="flex items-center gap-1.5 text-xs text-white/60 bg-white/5 px-2 py-1 rounded-md">
                       <Armchair className={`w-3.5 h-3.5 shrink-0 ${isHighlight ? "text-violet-300" : "text-sky-400"}`} />
                       Seat / Blanket
                     </div>
                   )}
                   {tier.snack_included && (
-                    <div className="flex items-center gap-1.5 text-xs text-white/60">
+                    <div className="flex items-center gap-1.5 text-xs text-white/60 bg-white/5 px-2 py-1 rounded-md">
                       <Cookie className={`w-3.5 h-3.5 shrink-0 ${isHighlight ? "text-violet-300" : "text-orange-400"}`} />
-                      {i >= tiers.length - 2 ? "Popcorn 🍿" : "Snack"}
+                      Popcorn / Snack
                     </div>
                   )}
                   {tier.drink_included && (
-                    <div className="flex items-center gap-1.5 text-xs text-white/60">
+                    <div className="flex items-center gap-1.5 text-xs text-white/60 bg-white/5 px-2 py-1 rounded-md">
                       <Coffee className={`w-3.5 h-3.5 shrink-0 ${isHighlight ? "text-violet-300" : "text-emerald-400"}`} />
                       Drink
                     </div>
@@ -167,20 +183,27 @@ export default function TicketTiers({ event, compact = false }) {
               </div>
 
               {/* Add-ons + Book button per tier */}
-              {qty > 0 && (
+              {qty > 0 && dynamicAddons.length > 0 && (
                 <div className="border-t border-white/10 pt-3 space-y-3">
-                  <p className="text-xs font-semibold text-white/30 uppercase tracking-wider">Add-ons</p>
-                  {ADDONS.map(addon => {
-                    const aqty = addonQty[`${i}_${addon.key}`] || 0;
+                  <p className="text-xs font-semibold text-violet-400 uppercase tracking-wider">Add Paid Extras:</p>
+                  {dynamicAddons.map(addon => {
+                    const aqty = addonQty[`${i}_${addon.id}`] || 0;
+                    const Icon = addon.category === "Food" ? Utensils : GlassWater;
+
                     return (
-                      <div key={addon.key} className="flex items-center justify-between gap-2">
-                        <div>
-                          <p className="text-white/80 text-xs font-medium">{addon.label}</p>
-                          <p className="text-white/30 text-xs">{addon.price.toLocaleString()} {currency}</p>
+                      <div key={addon.id} className="flex items-center justify-between p-2 rounded-lg bg-white/5 border border-white/5 group hover:border-violet-500/30 transition-colors">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-full bg-violet-500/10 flex items-center justify-center text-violet-500">
+                            <Icon className="w-4 h-4" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-white">{addon.label}</p>
+                            <p className="text-[10px] text-white/40">{addon.price.toLocaleString()} {currency}</p>
+                          </div>
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
                           <button
-                            onClick={() => setAddon(`${i}_${addon.key}`, -1)}
+                            onClick={() => setAddon(`${i}_${addon.id}`, -1)}
                             disabled={aqty === 0}
                             className="w-6 h-6 rounded-md bg-white/10 hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center transition-all"
                           >
@@ -188,7 +211,7 @@ export default function TicketTiers({ event, compact = false }) {
                           </button>
                           <span className="text-white font-bold w-4 text-center text-xs">{aqty}</span>
                           <button
-                            onClick={() => setAddon(`${i}_${addon.key}`, 1)}
+                            onClick={() => setAddon(`${i}_${addon.id}`, 1)}
                             className="w-6 h-6 rounded-md bg-white/10 hover:bg-white/20 flex items-center justify-center transition-all"
                           >
                             <Plus className="w-3 h-3 text-white" />
@@ -201,9 +224,9 @@ export default function TicketTiers({ event, compact = false }) {
                   {/* Book button */}
                   <div className="pt-1">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-white/40 text-xs">{qty} ticket{qty !== 1 ? "s" : ""}{(() => { const ap = ADDONS.reduce((s, a) => s + (addonQty[`${i}_${a.key}`] || 0) * a.price, 0); return ap > 0 ? ` + add-ons` : ""; })()}</span>
+                      <span className="text-white/40 text-xs">{qty} ticket{qty !== 1 ? "s" : ""}{(() => { const ap = dynamicAddons.reduce((s, a) => s + (addonQty[`${i}_${a.id}`] || 0) * a.price, 0); return ap > 0 ? ` + extras` : ""; })()}</span>
                       <span className="text-white font-bold text-sm">
-                        {(qty * tier.price + ADDONS.reduce((s, a) => s + (addonQty[`${i}_${a.key}`] || 0) * a.price, 0)).toLocaleString()} {currency}
+                        {(qty * tier.price + dynamicAddons.reduce((s, a) => s + (addonQty[`${i}_${a.id}`] || 0) * a.price, 0)).toLocaleString()} {currency}
                       </span>
                     </div>
                     <a
@@ -216,6 +239,20 @@ export default function TicketTiers({ event, compact = false }) {
                       <ExternalLink className="w-3.5 h-3.5" />
                     </a>
                   </div>
+                </div>
+              )}
+              {/* Fallback book button if no addons available */}
+              {qty > 0 && dynamicAddons.length === 0 && (
+                <div className="pt-3">
+                  <a
+                    href={`https://wa.me/${whatsappBase}?text=${encodeURIComponent(buildWhatsAppMessage())}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold transition-all shadow-lg shadow-emerald-500/20"
+                  >
+                    Book on WhatsApp
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
                 </div>
               )}
             </div>

@@ -66,10 +66,10 @@ export default function Layout() {
                 <div className="flex items-center gap-2 ml-4">
                   <Link
                     to="/admin"
-                    className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-white/70 hover:text-white transition-all"
-                    title="Dashboard"
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-500/20 border border-amber-500/30 text-amber-400 hover:bg-amber-500/30 transition-all font-semibold text-xs"
                   >
                     <LayoutDashboard className="w-4 h-4" />
+                    ADMIN PANEL
                   </Link>
                 </div>
               )}

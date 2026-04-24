@@ -29,7 +29,7 @@ export default function ScanTicket() {
 
   const verify = async (ticketId) => {
     const { data: results, error: fetchError } = await supabase
-      .from('Booking')
+      .from('jne_bookings')
       .select('*')
       .eq('ticket_id', ticketId);
 
@@ -49,7 +49,7 @@ export default function ScanTicket() {
 
     // Mark as checked in
     const { error: updateError } = await supabase
-      .from('Booking')
+      .from('jne_bookings')
       .update({ status: "checked_in" })
       .eq('id', b.id);
 

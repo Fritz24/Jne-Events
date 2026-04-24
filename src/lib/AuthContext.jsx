@@ -36,21 +36,35 @@ export const AuthProvider = ({ children }) => {
   const fetchUserProfile = async (authUser) => {
     try {
       setIsLoadingAuth(true);
+      // In the ecosystem, the central users table is 'users' and links via 'auth_id'
       const { data: profile, error } = await supabase
-        .from('profiles')
+        .from('users')
         .select('*')
-        .eq('id', authUser.id)
+        .eq('auth_id', authUser.id)
         .single();
 
-      if (error && error.code !== 'PGRST116') { // PGRST116 is not found
-        console.error('Error fetching profile:', error);
+      console.log('DEBUG: Auth User ID:', authUser.id);
+      console.log('DEBUG: Ecosystem Profile:', profile);
+
+      if (error && error.code !== 'PGRST116') {
+        console.error('DEBUG: Ecosystem Profile Error:', error);
       }
+
+      // Map ecosystem properties to app user object
+      // is_super_admin grants 'admin' role in JnE Events
+      const isAdmin = profile?.is_super_admin === true || String(profile?.is_super_admin) === 'true';
+      const assignedRole = isAdmin ? 'admin' : 'customer';
+
+      console.log('DEBUG: Is Super Admin?', profile?.is_super_admin);
+      console.log('DEBUG: Assigned Role:', assignedRole);
 
       setUser({
         ...authUser,
-        role: profile?.role || 'customer',
-        full_name: profile?.full_name || authUser.user_metadata?.full_name
+        role: assignedRole,
+        full_name: profile?.name || authUser.user_metadata?.full_name,
+        profile_data: profile
       });
+
       setIsAuthenticated(true);
     } catch (err) {
       console.error('Profile fetch failed:', err);

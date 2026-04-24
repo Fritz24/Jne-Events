@@ -26,7 +26,7 @@ export default function BookingManager() {
     queryKey: ["bookings"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('Booking')
+        .from('jne_bookings')
         .select('*')
         .order('created_date', { ascending: false });
       if (error) throw error;
@@ -37,7 +37,7 @@ export default function BookingManager() {
   const updateStatus = useMutation({
     mutationFn: async ({ id, status }) => {
       const { error } = await supabase
-        .from('Booking')
+        .from('jne_bookings')
         .update({ status })
         .eq('id', id);
       if (error) throw error;

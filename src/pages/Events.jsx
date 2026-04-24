@@ -37,7 +37,7 @@ export default function Events() {
     queryKey: ["bookings"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('Booking')
+        .from('jne_bookings')
         .select('*')
         .order('created_date', { ascending: false })
         .limit(200);

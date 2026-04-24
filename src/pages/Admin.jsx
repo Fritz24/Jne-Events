@@ -2,15 +2,17 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
-import { Plus, CalendarDays, Ticket, ShieldOff } from "lucide-react";
+import { Plus, CalendarDays, Ticket, ShieldOff, ShoppingBag } from "lucide-react";
 import EventForm from "../components/admin/EventForm";
 import EventTable from "../components/admin/EventTable";
 import BookingManager from "../components/admin/BookingManager";
+import ShopManager from "../components/admin/ShopManager";
 import { useAuth } from "@/lib/AuthContext";
 
 const TABS = [
   { id: "events", label: "Events", icon: CalendarDays },
   { id: "bookings", label: "Bookings", icon: Ticket },
+  { id: "shop", label: "Extras", icon: ShoppingBag },
 ];
 
 export default function Admin() {
@@ -24,7 +26,7 @@ export default function Admin() {
     queryKey: ["events"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('Event')
+        .from('jne_events')
         .select('*')
         .order('date', { ascending: false });
       if (error) throw error;
@@ -35,7 +37,7 @@ export default function Admin() {
   const deleteMutation = useMutation({
     mutationFn: async (id) => {
       const { error } = await supabase
-        .from('Event')
+        .from('jne_events')
         .delete()
         .eq('id', id);
       if (error) throw error;
@@ -104,8 +106,8 @@ export default function Admin() {
               key={t.id}
               onClick={() => setTab(t.id)}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${tab === t.id
-                  ? "bg-violet-600 text-white shadow"
-                  : "text-white/50 hover:text-white hover:bg-white/5"
+                ? "bg-violet-600 text-white shadow"
+                : "text-white/50 hover:text-white hover:bg-white/5"
                 }`}
             >
               <Icon className="w-4 h-4" />
@@ -144,6 +146,12 @@ export default function Admin() {
       {tab === "bookings" && (
         <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-4 sm:p-6">
           <BookingManager />
+        </div>
+      )}
+
+      {tab === "shop" && (
+        <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-4 sm:p-6">
+          <ShopManager />
         </div>
       )}
     </div>

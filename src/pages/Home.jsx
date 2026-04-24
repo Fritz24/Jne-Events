@@ -11,7 +11,7 @@ export default function Home() {
     queryKey: ["events"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('Event')
+        .from('jne_events')
         .select('*')
         .order('date', { ascending: true });
       if (error) throw error;
