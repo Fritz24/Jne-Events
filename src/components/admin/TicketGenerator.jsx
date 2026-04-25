@@ -196,7 +196,6 @@ export default function TicketGenerator({ event, onClose }) {
                 style={{
                   position: "absolute",
                   top: 0, left: 0,
-                  position: "relative",
                   width: "1080px",
                   height: "540px",
                   transformOrigin: "top left",
