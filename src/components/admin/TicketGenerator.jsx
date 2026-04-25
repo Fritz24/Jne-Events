@@ -91,7 +91,7 @@ export default function TicketGenerator({ event, onClose }) {
   const handleSaveBooking = async () => {
     setSaving(true);
     const { error } = await supabase
-      .from('Booking')
+      .from('jne_bookings')
       .insert([{
         ticket_id: ticketId,
         event_id: event.id,

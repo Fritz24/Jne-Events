@@ -48,7 +48,7 @@ export default function BookingManager() {
   const deleteBooking = useMutation({
     mutationFn: async (id) => {
       const { error } = await supabase
-        .from('Booking')
+        .from('jne_bookings')
         .delete()
         .eq('id', id);
       if (error) throw error;
