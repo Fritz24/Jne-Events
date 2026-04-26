@@ -6,7 +6,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/lib/supabase";
-import { Save, X, Loader2, Plus, Trash2 } from "lucide-react";
+import { Save, X, Loader2, Plus, Trash2, MoreVertical, Check, Star, Users } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuLabel,
+  DropdownMenuSeparator
+} from "@/components/ui/dropdown-menu";
 
 const DRAFT_KEY = "event_form_draft";
 
@@ -83,6 +91,67 @@ export default function EventForm({ event, onSave, onCancel }) {
 
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [whatsappContacts, setWhatsappContacts] = useState([]); // Array of { number, label, isDefault }
+
+  // Fetch saved numbers and set default
+  useEffect(() => {
+    async function fetchContacts() {
+      const { data } = await supabase
+        .from('jne_settings')
+        .select('value')
+        .eq('key', 'whatsapp_contacts')
+        .single();
+
+      const contacts = data?.value ? JSON.parse(data.value) : [];
+      setWhatsappContacts(contacts);
+
+      if (!isEdit && !form.whatsapp_number) {
+        const defaultContact = contacts.find(c => c.isDefault) || contacts[0];
+        if (defaultContact) {
+          handleChange("whatsapp_number", defaultContact.number);
+        }
+      }
+    }
+    fetchContacts();
+  }, [isEdit]);
+
+  const handleAddNumber = async (number) => {
+    if (!number || whatsappContacts.some(c => c.number === number)) return;
+    const newContacts = [...whatsappContacts, { number, label: number, isDefault: whatsappContacts.length === 0 }];
+    const { error } = await supabase
+      .from('jne_settings')
+      .upsert({ key: 'whatsapp_contacts', value: JSON.stringify(newContacts), updated_at: new Date().toISOString() });
+    if (!error) setWhatsappContacts(newContacts);
+  };
+
+  const handleRemoveNumber = async (number) => {
+    const newContacts = whatsappContacts.filter(c => c.number !== number);
+    const { error } = await supabase
+      .from('jne_settings')
+      .upsert({ key: 'whatsapp_contacts', value: JSON.stringify(newContacts), updated_at: new Date().toISOString() });
+    if (!error) setWhatsappContacts(newContacts);
+    if (form.whatsapp_number === number) handleChange("whatsapp_number", "");
+  };
+
+  const setAsDefault = async (number) => {
+    const newContacts = whatsappContacts.map(c => ({ ...c, isDefault: c.number === number }));
+    const { error } = await supabase
+      .from('jne_settings')
+      .upsert({ key: 'whatsapp_contacts', value: JSON.stringify(newContacts), updated_at: new Date().toISOString() });
+    if (!error) setWhatsappContacts(newContacts);
+  };
+
+  // Auto-generate WhatsApp message behind the scenes
+  useEffect(() => {
+    const dateObj = form.date ? new Date(form.date) : null;
+    const dateStr = dateObj && !isNaN(dateObj) ? dateObj.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }) : "";
+    const typeLabel = form.type === "movie_night" ? "Movie Night" : "Music Event";
+    const newMsg = `Hi! I'd like to book tickets for *${form.title || "your event"}* (${typeLabel})${dateStr ? ` on ${dateStr}` : ""}. Please let me know how to proceed. 🎟️`;
+
+    if (form.whatsapp_message !== newMsg) {
+      setForm(prev => ({ ...prev, whatsapp_message: newMsg }));
+    }
+  }, [form.title, form.date, form.type]);
 
   // Auto-save draft to localStorage on every change
   useEffect(() => {
@@ -240,10 +309,6 @@ export default function EventForm({ event, onSave, onCancel }) {
           <Label className="text-white/70">Main Description (SEO & Website)</Label>
           <Textarea className={inputClass} rows={3} value={form.description} onChange={e => handleChange("description", e.target.value)} />
         </div>
-        <div className="space-y-2">
-          <Label className="text-white/70">Venue Description (Shows on Ticket)</Label>
-          <Textarea className={inputClass} rows={3} value={form.venue_description} onChange={e => handleChange("venue_description", e.target.value)} placeholder="e.g. Next to the main entrance, 2nd Floor..." />
-        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -265,14 +330,10 @@ export default function EventForm({ event, onSave, onCancel }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label className="text-white/70">Base Price (fallback)</Label>
-          <Input type="number" step="0.01" className={inputClass} value={form.price} onChange={e => handleChange("price", e.target.value)} />
-        </div>
-        <div className="space-y-2">
-          <Label className="text-white/70">Currency</Label>
-          <Input className={inputClass} value={form.currency} onChange={e => handleChange("currency", e.target.value)} placeholder="XAF" />
+          <Label className="text-white/70">Currency *</Label>
+          <Input className={inputClass} value={form.currency} onChange={e => handleChange("currency", e.target.value)} placeholder="XAF" required />
         </div>
         <div className="space-y-2">
           <Label className="text-white/70">Status</Label>
@@ -345,14 +406,85 @@ export default function EventForm({ event, onSave, onCancel }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label className="text-white/70">WhatsApp Number * (with country code)</Label>
-          <Input className={inputClass} value={form.whatsapp_number} onChange={e => handleChange("whatsapp_number", e.target.value)} placeholder="+1234567890" required />
-        </div>
-        <div className="space-y-2">
-          <Label className="text-white/70">WhatsApp Pre-filled Message</Label>
-          <Input className={inputClass} value={form.whatsapp_message} onChange={e => handleChange("whatsapp_message", e.target.value)} placeholder="Hi! I'd like to book..." />
+      <div className="grid grid-cols-1 gap-4">
+        <div className="space-y-3 p-4 rounded-xl bg-white/[0.02] border border-white/5">
+          <div className="flex justify-between items-center">
+            <Label className="text-white/70">WhatsApp Booking Contact *</Label>
+            {form.whatsapp_number && !whatsappContacts.some(c => c.number === form.whatsapp_number) && (
+              <button
+                type="button"
+                onClick={() => handleAddNumber(form.whatsapp_number)}
+                className="text-[10px] text-violet-400 hover:underline uppercase tracking-tighter"
+              >
+                + Save as a new contact
+              </button>
+            )}
+          </div>
+
+          <div className="flex gap-2">
+            <div className="flex-1">
+              <Input
+                className={inputClass}
+                value={form.whatsapp_number}
+                onChange={e => handleChange("whatsapp_number", e.target.value)}
+                placeholder="+1234567890"
+                required
+              />
+            </div>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="shrink-0 bg-white/5 border-white/10 hover:bg-white/10 border-dashed px-3">
+                  <Users className="w-4 h-4 mr-2" />
+                  Contacts
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56 bg-[#111118] border-white/10 text-white">
+                <DropdownMenuLabel className="text-white/40 text-[10px] uppercase tracking-tighter">Saved Numbers</DropdownMenuLabel>
+                <DropdownMenuSeparator className="bg-white/5" />
+
+                {whatsappContacts.length === 0 && (
+                  <div className="p-3 text-xs text-white/30 italic">No saved contacts yet</div>
+                )}
+
+                {whatsappContacts.map(c => (
+                  <div key={c.number} className="flex items-center group px-1">
+                    <DropdownMenuItem
+                      className="flex-1 focus:bg-violet-500/10 focus:text-white cursor-pointer"
+                      onClick={() => handleChange("whatsapp_number", c.number)}
+                    >
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium">{c.number}</span>
+                        {c.isDefault && <span className="text-[9px] text-emerald-400 flex items-center gap-1"><Star className="w-2 h-2 fill-emerald-400" /> Primary Default</span>}
+                      </div>
+                      {form.whatsapp_number === c.number && <Check className="w-3 h-3 ml-auto text-violet-400" />}
+                    </DropdownMenuItem>
+
+                    <div className="flex opacity-0 group-hover:opacity-100 transition-opacity pr-2 gap-1">
+                      {!c.isDefault && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setAsDefault(c.number); }}
+                          className="p-1.5 rounded hover:bg-white/10 text-amber-500 transition-colors"
+                          title="Set as Default"
+                        >
+                          <Star className="w-3 h-3" />
+                        </button>
+                      )}
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleRemoveNumber(c.number); }}
+                        className="p-1.5 rounded hover:bg-red-500/20 text-red-400 transition-colors"
+                        title="Delete Contact"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+
+          <p className="text-[10px] text-white/20 italic">Select a contact from the dropdown or type a new one manually.</p>
         </div>
       </div>
 

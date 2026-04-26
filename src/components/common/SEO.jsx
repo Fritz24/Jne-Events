@@ -24,6 +24,9 @@ export default function SEO({
 
     const allKeywords = [...new Set([...defaultKeywords, ...keywords])].join(', ');
 
+    const baseUrl = "https://jneevents.bookontransapp.com";
+    const canonicalUrl = url ? (url.startsWith('http') ? url : `${baseUrl}${url}`) : `${baseUrl}${window.location.pathname}`;
+
     return (
         <Helmet>
             {/* Basic Meta Tags */}
@@ -31,12 +34,15 @@ export default function SEO({
             <meta name="description" content={actualDescription} />
             <meta name="keywords" content={allKeywords} />
 
+            {/* Canonical URL - Vital for preventing Vercel URL indexing */}
+            <link rel="canonical" href={canonicalUrl} />
+
             {/* Open Graph / Facebook */}
             <meta property="og:type" content={type} />
             <meta property="og:title" content={fullTitle} />
             <meta property="og:description" content={actualDescription} />
             <meta property="og:image" content={actualImage} />
-            {url && <meta property="og:url" content={url} />}
+            <meta property="og:url" content={canonicalUrl} />
             <meta property="og:site_name" content="JNE Events" />
 
             {/* Twitter */}
@@ -44,9 +50,6 @@ export default function SEO({
             <meta name="twitter:title" content={fullTitle} />
             <meta name="twitter:description" content={actualDescription} />
             <meta name="twitter:image" content={actualImage} />
-
-            {/* Canonical URL */}
-            {url && <link rel="canonical" href={url} />}
         </Helmet>
     );
 }

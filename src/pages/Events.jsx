@@ -50,19 +50,19 @@ export default function Events() {
   const soldOut = isSoldOut(bookings);
   const usedSlots = countUsedSlots(bookings);
 
-  // Get unique genres and locations from events
+  // Get unique genres and cities from events
   const allGenres = ["all", ...new Set(events.map(e => e.genre).filter(Boolean))];
-  const allLocations = ["all", ...new Set(events.map(e => e.venue).filter(Boolean))];
+  const allCities = ["all", ...new Set(events.map(e => e.city).filter(Boolean))];
 
   const filtered = events.filter(e => {
     const matchesType = activeFilters.type === "all" || e.type === activeFilters.type;
     const matchesGenre = activeFilters.genre === "all" || e.genre === activeFilters.genre;
-    const matchesLocation = activeFilters.location === "all" || e.venue === activeFilters.location;
+    const matchesCity = activeFilters.location === "all" || e.city === activeFilters.location;
     const matchesSearch = !activeFilters.search ||
       e.title.toLowerCase().includes(activeFilters.search.toLowerCase()) ||
       e.artist_or_movie?.toLowerCase().includes(activeFilters.search.toLowerCase());
 
-    return matchesType && matchesGenre && matchesLocation && matchesSearch;
+    return matchesType && matchesGenre && matchesCity && matchesSearch;
   });
 
   const upcoming = filtered.filter(e => e.status === "upcoming" || e.status === "ongoing" || !e.status);
@@ -127,7 +127,7 @@ export default function Events() {
         filters={activeFilters}
         onFilterChange={setActiveFilters}
         genres={allGenres}
-        locations={allLocations}
+        cities={allCities}
       />
 
       {isLoading ? (

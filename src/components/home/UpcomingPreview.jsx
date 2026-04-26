@@ -36,9 +36,8 @@ export default function UpcomingPreview({ events }) {
               className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 sm:p-5 rounded-xl bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.05] hover:border-white/10 transition-all"
             >
               <div className="flex items-center gap-4">
-                <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${
-                  isMovie ? "bg-amber-500/10" : "bg-violet-500/10"
-                }`}>
+                <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${isMovie ? "bg-amber-500/10" : "bg-violet-500/10"
+                  }`}>
                   <Icon className={`w-5 h-5 ${isMovie ? "text-amber-400" : "text-violet-400"}`} />
                 </div>
                 <div>
@@ -58,7 +57,10 @@ export default function UpcomingPreview({ events }) {
 
               <div className="flex items-center gap-4 sm:gap-6">
                 <span className="text-lg font-bold text-white">
-                  {event.price?.toLocaleString()} {event.currency || "XAF"}
+                  {(event.ticket_tiers?.length
+                    ? Math.min(...event.ticket_tiers.map(t => t.price || 0))
+                    : (event.price || 0)
+                  ).toLocaleString()} {event.currency || "XAF"}
                 </span>
                 {event.status === "upcoming" && (
                   <a

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Trash2, Edit2, Check, X, Loader2, Package } from "lucide-react";
+import { Plus, Trash2, Edit2, Check, X, Loader2, Package, Utensils, GlassWater } from "lucide-react";
 
 export default function ShopManager() {
     const queryClient = useQueryClient();

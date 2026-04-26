@@ -92,7 +92,12 @@ export default function EventCard({ event, index = 0 }) {
 
           <div className="flex items-center justify-between mb-4">
             <div className="text-sm text-white/40">{t.ticketsFrom}</div>
-            <div className="text-lg font-bold text-white">8,500 XAF</div>
+            <div className="text-lg font-bold text-white">
+              {(event.ticket_tiers?.length
+                ? Math.min(...event.ticket_tiers.map(t => t.price || 0))
+                : (event.price || 0)
+              ).toLocaleString()} {event.currency || "XAF"}
+            </div>
           </div>
 
           {isAvailable ? (

@@ -1,7 +1,7 @@
 import { Film, Music, LayoutGrid, Search, MapPin, Tag } from "lucide-react";
 import { useLang } from "@/lib/LanguageContext";
 
-export default function EventFilters({ filters, onFilterChange, genres, locations }) {
+export default function EventFilters({ filters, onFilterChange, genres, cities }) {
   const { t } = useLang();
 
   const handleTypeChange = (val) => onFilterChange(prev => ({ ...prev, type: val }));
@@ -27,8 +27,8 @@ export default function EventFilters({ filters, onFilterChange, genres, location
               key={f.value}
               onClick={() => handleTypeChange(f.value)}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${filters.type === f.value
-                  ? "bg-violet-600 text-white shadow-lg shadow-violet-500/20"
-                  : "bg-white/5 text-white/50 hover:text-white hover:bg-white/10"
+                ? "bg-violet-600 text-white shadow-lg shadow-violet-500/20"
+                : "bg-white/5 text-white/50 hover:text-white hover:bg-white/10"
                 }`}
             >
               <f.icon className="w-4 h-4" />
@@ -73,11 +73,11 @@ export default function EventFilters({ filters, onFilterChange, genres, location
           </div>
         )}
 
-        {(locations.length > 1) && (
+        {(cities.length > 1) && (
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-2 text-xs font-semibold text-white/30 uppercase tracking-wider">
               <MapPin className="w-3 h-3" />
-              Location
+              City
             </div>
             <div className="relative">
               <select
@@ -85,9 +85,9 @@ export default function EventFilters({ filters, onFilterChange, genres, location
                 onChange={(e) => handleLocationChange(e.target.value)}
                 className={selectClass}
               >
-                {locations.map(loc => (
-                  <option key={loc} value={loc} className="bg-[#0a0a0f] text-white">
-                    {loc === "all" ? t.allLocations || "All Locations" : loc}
+                {cities.map(city => (
+                  <option key={city} value={city} className="bg-[#0a0a0f] text-white">
+                    {city === "all" ? t.allCities || "All Cities" : city}
                   </option>
                 ))}
               </select>

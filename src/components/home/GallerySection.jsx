@@ -5,28 +5,16 @@ import { useLang } from "@/lib/LanguageContext";
 
 const photos = [
   {
-    url: "https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=800&q=80",
-    caption: "Movie Night vibes",
+    url: "/picture1.JPG",
+    caption: "Premium Movie Night",
   },
   {
-    url: "https://images.unsplash.com/photo-1574375927938-d5a98e8ffe85?w=800&q=80",
-    caption: "Live music energy",
+    url: "/picture2.jpg",
+    caption: "Live Performances",
   },
   {
-    url: "https://images.unsplash.com/photo-1478720568477-152d9b164e26?w=800&q=80",
-    caption: "Outdoor cinema",
-  },
-  {
-    url: "https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=800&q=80",
-    caption: "Crowd enjoying the show",
-  },
-  {
-    url: "https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?w=800&q=80",
-    caption: "Night atmosphere",
-  },
-  {
-    url: "https://images.unsplash.com/photo-1563841930606-67e2bce48b78?w=800&q=80",
-    caption: "Silent disco headphones",
+    url: "/picture3.jpg",
+    caption: "Exclusive Gatherings",
   },
 ];
 
@@ -53,9 +41,8 @@ export default function GallerySection() {
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.4, delay: i * 0.07 }}
-            className={`relative overflow-hidden rounded-xl cursor-pointer group ${
-              i === 0 ? "col-span-2 md:col-span-1 row-span-2" : ""
-            }`}
+            className={`relative overflow-hidden rounded-xl cursor-pointer group ${i === 0 ? "col-span-2 md:col-span-1 row-span-2" : ""
+              }`}
             style={{ aspectRatio: i === 0 ? "3/4" : "4/3" }}
             onClick={() => setLightbox(photo)}
           >
