@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/AuthContext";
 import { Mail, Lock, Music, ArrowRight, Loader2, User, AlertCircle } from "lucide-react";
 import { motion } from "framer-motion";
+import SEO from "../components/common/SEO";
 
 export default function SignUp() {
     const { signUp, user } = useAuth();
@@ -33,6 +34,10 @@ export default function SignUp() {
 
     return (
         <div className="min-h-screen flex flex-col items-center pt-8 sm:pt-20 pb-12 px-6">
+            <SEO
+                title="Create Account"
+                description="Join JNE Events to access exclusive ticket tiers, manage your bookings, and get early notifications for upcoming movie nights and live music events."
+            />
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}

@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/AuthContext";
 import { Mail, Lock, Music, ArrowRight, Loader2, AlertCircle } from "lucide-react";
 import { motion } from "framer-motion";
+import SEO from "../components/common/SEO";
 
 export default function Login() {
     const { loginWithEmail, user } = useAuth();
@@ -31,6 +32,10 @@ export default function Login() {
 
     return (
         <div className="min-h-screen flex flex-col items-center pt-8 sm:pt-20 pb-12 px-6">
+            <SEO
+                title="Login"
+                description="Securely log in to JNE Events to manage your event bookings and exclusive ticket access."
+            />
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}

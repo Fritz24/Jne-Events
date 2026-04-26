@@ -3,11 +3,13 @@ import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import TicketTiers from "./TicketTiers";
 import { useLang } from "@/lib/LanguageContext";
 
 export default function EventCard({ event, index = 0 }) {
   const [showTiers, setShowTiers] = useState(false);
+  const navigate = useNavigate();
   const { t } = useLang();
 
   const typeConfig = {
@@ -52,7 +54,10 @@ export default function EventCard({ event, index = 0 }) {
           <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0f] via-transparent to-transparent" />
 
           <div className="absolute top-3 left-3 flex gap-2">
-            <Badge className={`${type.color} border text-xs`}>
+            <Badge
+              className={`${type.color} border text-xs cursor-pointer hover:brightness-110`}
+              onClick={(e) => { e.stopPropagation(); navigate(`/events/category/${event.type}`); }}
+            >
               <TypeIcon className="w-3 h-3 mr-1" />
               {type.label}
             </Badge>
@@ -76,9 +81,12 @@ export default function EventCard({ event, index = 0 }) {
               <Calendar className="w-3.5 h-3.5 shrink-0" />
               {event.date ? format(new Date(event.date), "EEE, MMM d · h:mm a") : "TBA"}
             </div>
-            <div className="flex items-center gap-2 text-sm text-white/50">
+            <div
+              className="flex items-center gap-2 text-sm text-white/50 cursor-pointer hover:text-violet-400 transition-colors"
+              onClick={(e) => { e.stopPropagation(); navigate(`/events/city/${event.city || event.venue}`); }}
+            >
               <MapPin className="w-3.5 h-3.5 shrink-0" />
-              {event.venue}
+              {event.city ? `${event.venue}, ${event.city}` : event.venue}
             </div>
           </div>
 

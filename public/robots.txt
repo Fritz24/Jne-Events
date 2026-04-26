@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+
+# Synonyms for indexing
+# Nightouts, Events, Cinema, Movies, Concerts, Live Shows, Parties
+Sitemap: https://jneevents.bookontransapp.com/sitemap.xml

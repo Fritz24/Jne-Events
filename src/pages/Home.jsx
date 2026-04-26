@@ -5,6 +5,7 @@ import FeaturedEvents from "../components/home/FeaturedEvents";
 import UpcomingPreview from "../components/home/UpcomingPreview";
 import GallerySection from "../components/home/GallerySection";
 import NewsletterSection from "../components/home/NewsletterSection";
+import SEO from "../components/common/SEO";
 
 export default function Home() {
   const { data: events = [], isLoading } = useQuery({
@@ -31,6 +32,11 @@ export default function Home() {
 
   return (
     <div>
+      <SEO
+        title="Exclusive Nightouts & Community Events"
+        description="Experience the best night outs with JNE Events. From premium movie nights to live music and exclusive gatherings, find your next unforgettable experience here."
+        keywords={["social events", "nightlife", "movie tickets", "live entertainment", "weekend plans", "cinema experience", "outdoor cinema", "community gatherings"]}
+      />
       <HeroSection />
       <FeaturedEvents events={displayFeatured} isLoading={isLoading} />
       <UpcomingPreview events={nextUpEvents} />

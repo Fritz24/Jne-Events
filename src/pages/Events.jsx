@@ -8,6 +8,7 @@ import { Loader2 } from "lucide-react";
 import { isSoldOut, countUsedSlots, TICKET_CAPACITY } from "@/utils/ticketCount";
 import { useAuth } from "@/lib/AuthContext";
 import { useLang } from "@/lib/LanguageContext";
+import SEO from "../components/common/SEO";
 
 export default function Events() {
   const [activeFilters, setActiveFilters] = useState({
@@ -67,8 +68,53 @@ export default function Events() {
   const upcoming = filtered.filter(e => e.status === "upcoming" || e.status === "ongoing" || !e.status);
   const past = filtered.filter(e => e.status === "completed" || e.status === "cancelled");
 
+  // JSON-LD Structured Data for Events
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    "itemListElement": upcoming.map((event, index) => ({
+      "@type": "ListItem",
+      "position": index + 1,
+      "item": {
+        "@type": "Event",
+        "name": event.title,
+        "description": event.description || "Premium event by JNE Events",
+        "startDate": event.date,
+        "location": {
+          "@type": "Place",
+          "name": event.venue,
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": event.venue,
+            "addressCountry": "CM"
+          }
+        },
+        "image": event.image_url,
+        "offers": {
+          "@type": "Offer",
+          "url": window.location.href,
+          "price": event.price,
+          "priceCurrency": event.currency || "XAF",
+          "availability": event.status === "sold_out" ? "https://schema.org/SoldOut" : "https://schema.org/InStock"
+        },
+        "performer": {
+          "@type": "Person",
+          "name": event.artist_or_movie || "JNE Team"
+        }
+      }
+    }))
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <SEO
+        title="Browse All Events"
+        description="Find all upcoming JNE events in one place. Register for movie nights, exclusive gatherings, and live performances. Don't miss out on the next big night out."
+        keywords={["event schedule", "ticket portal", "upcoming concerts", "film screenings", "cultural events", "entertainment tickets", "attendance registration"]}
+      />
+      <script type="application/ld+json">
+        {JSON.stringify(structuredData)}
+      </script>
       <div className="mb-10">
         <h1 className="text-3xl sm:text-4xl font-bold text-white mb-2">{t.eventsTitle}</h1>
         <p className="text-white/40">{t.eventsSubtitle}</p>

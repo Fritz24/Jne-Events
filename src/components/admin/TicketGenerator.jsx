@@ -247,12 +247,17 @@ export default function TicketGenerator({ event, onClose }) {
                     {[
                       { label: "Date", value: event.date ? format(new Date(event.date), "EEE, MMM d, yyyy") : "TBA" },
                       { label: "Time", value: event.date ? format(new Date(event.date), "h:mm a") : "TBA" },
-                      { label: "Venue", value: event.venue },
-                      { label: "Attendee", value: attendeeName },
-                    ].map(({ label, value }) => (
+                      { label: "Venue", value: event.venue, sub: event.venue_description },
+                      { label: "City", value: event.city || "Various" },
+                    ].map(({ label, value, sub }) => (
                       <div key={label}>
                         <div style={{ color: "rgba(255,255,255,0.35)", fontSize: "13px", textTransform: "uppercase", letterSpacing: "1.5px" }}>{label}</div>
                         <div style={{ color: "white", fontSize: "17px", fontWeight: "600", marginTop: "4px" }}>{value}</div>
+                        {sub && (
+                          <div style={{ color: "rgba(255,255,255,0.4)", fontSize: "11px", marginTop: "2px", lineHeight: "1.2", fontWeight: "400" }}>
+                            {sub}
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>

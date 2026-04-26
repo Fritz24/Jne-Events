@@ -33,6 +33,8 @@ function buildInitialForm(event) {
     description: event?.description || "",
     date: event?.date ? getLocalDatetimeLocal(event.date) : (() => { const d = new Date(); d.setHours(18, 30, 0, 0); return getLocalDatetimeLocal(d); })(),
     venue: event?.venue || "",
+    city: event?.city || "",
+    venue_description: event?.venue_description || "",
     price: event?.price || "",
     currency: event?.currency || "XAF",
     whatsapp_number: event?.whatsapp_number || "",
@@ -233,15 +235,25 @@ export default function EventForm({ event, onSave, onCancel }) {
         </div>
       </div>
 
-      <div className="space-y-2">
-        <Label className="text-white/70">Description</Label>
-        <Textarea className={inputClass} rows={3} value={form.description} onChange={e => handleChange("description", e.target.value)} />
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label className="text-white/70">Main Description (SEO & Website)</Label>
+          <Textarea className={inputClass} rows={3} value={form.description} onChange={e => handleChange("description", e.target.value)} />
+        </div>
+        <div className="space-y-2">
+          <Label className="text-white/70">Venue Description (Shows on Ticket)</Label>
+          <Textarea className={inputClass} rows={3} value={form.venue_description} onChange={e => handleChange("venue_description", e.target.value)} placeholder="e.g. Next to the main entrance, 2nd Floor..." />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="space-y-2">
           <Label className="text-white/70">Date & Time *</Label>
           <Input type="datetime-local" className={inputClass} value={form.date} onChange={e => handleChange("date", e.target.value)} required />
+        </div>
+        <div className="space-y-2">
+          <Label className="text-white/70">City *</Label>
+          <Input className={inputClass} value={form.city} onChange={e => handleChange("city", e.target.value)} placeholder="e.g. Douala, Yaoundé" required />
         </div>
         <div className="space-y-2">
           <Label className="text-white/70">Venue *</Label>

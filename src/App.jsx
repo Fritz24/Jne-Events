@@ -4,6 +4,7 @@ import { queryClientInstance } from '@/lib/query-client'
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
+import { HelmetProvider } from 'react-helmet-async';
 import { LanguageProvider } from '@/lib/LanguageContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import { Navigate } from 'react-router-dom';
@@ -14,6 +15,9 @@ import Admin from './pages/Admin';
 import ScanTicket from './pages/ScanTicket';
 import Login from './pages/Login';
 import SignUp from './pages/SignUp';
+import ProgrammaticPage from './pages/ProgrammaticPage';
+import Privacy from './pages/Privacy';
+import Terms from './pages/Terms';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -47,6 +51,15 @@ const AuthenticatedApp = () => {
         <Route path="/Home" element={<Navigate to="/home" replace />} />
         <Route path="/events" element={<Events />} />
         <Route path="/Events" element={<Navigate to="/events" replace />} />
+
+        {/* Programmatic SEO Routes */}
+        <Route path="/events/city/:value" element={<ProgrammaticPage type="city" />} />
+        <Route path="/events/category/:value" element={<ProgrammaticPage type="category" />} />
+        <Route path="/discover/:slug" element={<ProgrammaticPage type="discover" />} />
+
+        <Route path="/privacy" element={<Privacy />} />
+        <Route path="/terms" element={<Terms />} />
+
         <Route path="/admin" element={<Admin />} />
         <Route path="/Admin" element={<Navigate to="/admin" replace />} />
         <Route path="/scanticket" element={<ScanTicket />} />
@@ -64,16 +77,18 @@ const AuthenticatedApp = () => {
 function App() {
 
   return (
-    <AuthProvider>
-      <LanguageProvider>
-        <QueryClientProvider client={queryClientInstance}>
-          <Router>
-            <AuthenticatedApp />
-          </Router>
-          <Toaster />
-        </QueryClientProvider>
-      </LanguageProvider>
-    </AuthProvider>
+    <HelmetProvider>
+      <AuthProvider>
+        <LanguageProvider>
+          <QueryClientProvider client={queryClientInstance}>
+            <Router>
+              <AuthenticatedApp />
+            </Router>
+            <Toaster />
+          </QueryClientProvider>
+        </LanguageProvider>
+      </AuthProvider>
+    </HelmetProvider>
   )
 }
 
