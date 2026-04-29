@@ -16,6 +16,22 @@ const photos = [
     url: "/picture3.jpg",
     caption: "Exclusive Gatherings",
   },
+  {
+    url: "/picture4.jpg",
+    caption: "Vibrant Atmosphere",
+  },
+  {
+    url: "/picture5.jpg",
+    caption: "Community Vibes",
+  },
+  {
+    url: "/picture6.jpg",
+    caption: "Social Evenings",
+  },
+  {
+    url: "/picture7.jpg",
+    caption: "Memorable Moments",
+  },
 ];
 
 export default function GallerySection() {

@@ -5,6 +5,12 @@
   <meta charset="UTF-8" />
   <link rel="icon" type="image/jpg" href="/picture1.JPG" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script>
+    // Force redirect to custom domain for SEO consistency
+    if (window.location.hostname.includes('vercel.app')) {
+      window.location.href = 'https://jneevents.bookontransapp.com' + window.location.pathname + window.location.search;
+    }
+  </script>
 
   <!-- Primary Meta Tags -->
   <meta name="title" content="JNE Events | Premium Nightlife in Cameroon" />
