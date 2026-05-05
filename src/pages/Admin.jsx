@@ -2,17 +2,19 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
-import { Plus, CalendarDays, Ticket, ShieldOff, ShoppingBag } from "lucide-react";
+import { Plus, CalendarDays, Ticket, ShieldOff, ShoppingBag, Users } from "lucide-react";
 import EventForm from "../components/admin/EventForm";
 import EventTable from "../components/admin/EventTable";
 import BookingManager from "../components/admin/BookingManager";
 import ShopManager from "../components/admin/ShopManager";
+import UserManager from "../components/admin/UserManager";
 import { useAuth } from "@/lib/AuthContext";
 
 const TABS = [
   { id: "events", label: "Events", icon: CalendarDays },
   { id: "bookings", label: "Bookings", icon: Ticket },
   { id: "shop", label: "Extras", icon: ShoppingBag },
+  { id: "users", label: "Users", icon: Users },
 ];
 
 export default function Admin() {
@@ -31,6 +33,26 @@ export default function Admin() {
         .order('date', { ascending: false });
       if (error) throw error;
       return data || [];
+    },
+  });
+
+  const { data: activeUsersCount = 0 } = useQuery({
+    queryKey: ["active-users"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('jne_bookings')
+        .select('user_id, attendee_name');
+
+      if (error) return 0;
+
+      // Calculate unique users. If user_id exists, use it. Otherwise, fallback to attendee_name.
+      const uniqueUsers = new Set();
+      data.forEach(booking => {
+        if (booking.user_id) uniqueUsers.add(booking.user_id);
+        else if (booking.attendee_name) uniqueUsers.add(booking.attendee_name.toLowerCase().trim());
+      });
+
+      return uniqueUsers.size;
     },
   });
 
@@ -85,7 +107,14 @@ export default function Admin() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-white">Admin Dashboard</h1>
-          <p className="text-white/40 mt-1">{events.length} total events</p>
+          <div className="flex items-center gap-3 mt-2">
+            <span className="text-white/60 bg-white/5 py-1 px-3 rounded-full text-xs font-medium border border-white/10 uppercase tracking-wider">
+              {events.length} Events
+            </span>
+            <span className="text-white/60 bg-violet-500/10 text-violet-300 py-1 px-3 rounded-full text-xs font-medium border border-violet-500/20 uppercase tracking-wider">
+              {activeUsersCount} Active Users
+            </span>
+          </div>
         </div>
         {tab === "events" && !showForm && (
           <Button
@@ -152,6 +181,12 @@ export default function Admin() {
       {tab === "shop" && (
         <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-4 sm:p-6">
           <ShopManager />
+        </div>
+      )}
+
+      {tab === "users" && (
+        <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-4 sm:p-6">
+          <UserManager />
         </div>
       )}
     </div>

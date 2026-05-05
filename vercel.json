@@ -4,17 +4,5 @@
             "source": "/(.*)",
             "destination": "/index.html"
         }
-    ],
-    "headers": [
-        {
-            "source": "/(.*)",
-            "headers": [
-                {
-                    "key": "X-Robots-Tag",
-                    "value": "noindex",
-                    "condition": "hostname.includes('.vercel.app')"
-                }
-            ]
-        }
     ]
 }

@@ -76,6 +76,24 @@ export const AuthProvider = ({ children }) => {
   const loginWithEmail = async (email, password) => {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
+
+    // Safely append "events" to active_platforms on login without wiping out "bus" or "finance"
+    if (data?.user?.id) {
+      const { data: profile } = await supabase
+        .from('users')
+        .select('active_platforms')
+        .eq('auth_id', data.user.id)
+        .single();
+
+      const platforms = profile?.active_platforms || [];
+      if (!platforms.includes('events')) {
+        await supabase
+          .from('users')
+          .update({ active_platforms: [...platforms, 'events'] })
+          .eq('auth_id', data.user.id);
+      }
+    }
+
     return data;
   };
 

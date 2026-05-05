@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/AuthContext";
+import { supabase } from "@/lib/supabase";
 import { Mail, Lock, Music, ArrowRight, Loader2, User, AlertCircle } from "lucide-react";
 import { motion } from "framer-motion";
 import SEO from "../components/common/SEO";
@@ -23,7 +24,25 @@ export default function SignUp() {
         setLoading(true);
         setError("");
         try {
-            await signUp(email, password, { full_name: fullName });
+            const res = await signUp(email, password, { full_name: fullName });
+
+            // Link new the user to the Events platform
+            if (res?.user?.id) {
+                const { data: userRecord } = await supabase
+                    .from('users')
+                    .select('active_platforms')
+                    .eq('auth_id', res.user.id)
+                    .single();
+
+                const platforms = userRecord?.active_platforms || [];
+                if (!platforms.includes('events')) {
+                    await supabase
+                        .from('users')
+                        .update({ active_platforms: [...platforms, 'events'] })
+                        .eq('auth_id', res.user.id);
+                }
+            }
+
             // New users are customers by default
             navigate("/home");
         } catch (err) {

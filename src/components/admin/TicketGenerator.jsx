@@ -262,13 +262,17 @@ export default function TicketGenerator({ event, onClose }) {
                     ))}
                   </div>
 
-                  {/* Tier & Price */}
-                  <div style={{ borderTop: "1px dashed rgba(139, 92, 246, 0.4)", paddingTop: "20px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                    <div>
-                      <div style={{ color: "rgba(255,255,255,0.35)", fontSize: "13px", textTransform: "uppercase", letterSpacing: "1.5px" }}>Ticket Type</div>
-                      <div style={{ color: "#A78BFA", fontWeight: "700", fontSize: "22px", marginTop: "4px" }}>{tier.label}</div>
+                  {/* Attendee, Tier & Price */}
+                  <div style={{ borderTop: "1px dashed rgba(139, 92, 246, 0.4)", paddingTop: "20px", display: "grid", gridTemplateColumns: "1fr 1fr auto", gap: "16px", alignItems: "flex-end" }}>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ color: "rgba(255,255,255,0.35)", fontSize: "12px", textTransform: "uppercase", letterSpacing: "1.5px" }}>Attendee</div>
+                      <div style={{ color: "white", fontWeight: "700", fontSize: "20px", marginTop: "4px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{attendeeName}</div>
                     </div>
-                    <div style={{ color: "rgba(245, 158, 11, 0.95)", fontWeight: "800", fontSize: "28px" }}>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ color: "rgba(255,255,255,0.35)", fontSize: "12px", textTransform: "uppercase", letterSpacing: "1.5px" }}>Ticket Type</div>
+                      <div style={{ color: "#A78BFA", fontWeight: "700", fontSize: "20px", marginTop: "4px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{tier.label}</div>
+                    </div>
+                    <div style={{ color: "rgba(245, 158, 11, 0.95)", fontWeight: "800", fontSize: "26px", textAlign: "right" }}>
                       {tier.price?.toLocaleString()} {event.currency || "XAF"}
                     </div>
                   </div>
