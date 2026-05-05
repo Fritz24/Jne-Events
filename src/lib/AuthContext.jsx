@@ -8,6 +8,7 @@ export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
   const [authError, setAuthError] = useState(null);
+  const isInitialLoadDone = React.useRef(false);
 
   useEffect(() => {
     // 1. Initial session check
@@ -16,6 +17,7 @@ export const AuthProvider = ({ children }) => {
         fetchUserProfile(session.user);
       } else {
         setIsLoadingAuth(false);
+        isInitialLoadDone.current = true;
       }
     });
 
@@ -27,6 +29,7 @@ export const AuthProvider = ({ children }) => {
         setUser(null);
         setIsAuthenticated(false);
         setIsLoadingAuth(false);
+        isInitialLoadDone.current = true;
       }
     });
 
@@ -35,7 +38,11 @@ export const AuthProvider = ({ children }) => {
 
   const fetchUserProfile = async (authUser) => {
     try {
-      setIsLoadingAuth(true);
+      // Prevent throwing a full-page spinner if we're just doing a background token refresh on tab focus
+      if (!isInitialLoadDone.current) {
+        setIsLoadingAuth(true);
+      }
+
       // In the ecosystem, the central users table is 'users' and links via 'auth_id'
       const { data: profile, error } = await supabase
         .from('users')
@@ -70,6 +77,7 @@ export const AuthProvider = ({ children }) => {
       console.error('Profile fetch failed:', err);
     } finally {
       setIsLoadingAuth(false);
+      isInitialLoadDone.current = true;
     }
   };
 

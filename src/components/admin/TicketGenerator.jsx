@@ -38,8 +38,10 @@ export default function TicketGenerator({ event, onClose }) {
       return data || [];
     },
   });
-  const soldOut = isSoldOut(allBookings);
-  const remaining = remainingSlots(allBookings);
+
+  const eventBookings = allBookings.filter(b => b.event_id === event.id);
+  const soldOut = isSoldOut(eventBookings);
+  const remaining = remainingSlots(eventBookings);
   const slotsNeeded = tierSlotCount(tier.label);
   const wrapperRef = useRef(null);
 
