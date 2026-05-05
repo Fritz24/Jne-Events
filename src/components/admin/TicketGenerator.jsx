@@ -14,6 +14,7 @@ import { useQuery } from "@tanstack/react-query";
 
 export default function TicketGenerator({ event, onClose }) {
   const ticketRef = useRef(null);
+  const wrapperRef = useRef(null);
   const [attendeeName, setAttendeeName] = useState("Guest");
   const tiers = event.ticket_tiers?.length
     ? event.ticket_tiers
@@ -43,36 +44,60 @@ export default function TicketGenerator({ event, onClose }) {
   const soldOut = isSoldOut(eventBookings);
   const remaining = remainingSlots(eventBookings);
   const slotsNeeded = tierSlotCount(tier.label);
-  const wrapperRef = useRef(null);
 
-  useEffect(() => {
-    const updateScale = () => {
-      if (wrapperRef.current && ticketRef.current) {
-        const containerWidth = wrapperRef.current.offsetWidth;
-        const scale = containerWidth / 1080;
-        ticketRef.current.style.setProperty("--ticket-scale", scale);
-        ticketRef.current.style.transform = `scale(${scale})`;
-        // Update the padding-bottom of the parent to match scaled height
-        const parent = ticketRef.current.parentElement;
-        if (parent) parent.style.paddingBottom = `${540 * scale}px`;
-      }
-    };
-    updateScale();
-    window.addEventListener("resize", updateScale);
-    return () => window.removeEventListener("resize", updateScale);
-  }, []);
-
+  // ─── Download: temporarily show ticket at native size, capture, restore ───
   const captureTicket = async () => {
-    return html2canvas(ticketRef.current, { backgroundColor: null, scale: 2, useCORS: true });
+    const el = ticketRef.current;
+
+    // Save current styles
+    const savedTransform = el.style.transform;
+    const savedOverflow = el.style.overflow;
+
+    // Temporarily make it full native size with no clipping
+    el.style.transform = "none";
+    el.style.overflow = "visible";
+
+    // Wait for the browser to FULLY reflow + repaint at the new size
+    // Double requestAnimationFrame ensures layout is computed and painted
+    await new Promise(r => {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          setTimeout(r, 500);
+        });
+      });
+    });
+
+    try {
+      const canvas = await html2canvas(el, {
+        backgroundColor: null,
+        scale: 1,
+        useCORS: true,
+        width: 1080,
+        height: 540,
+        scrollX: 0,
+        scrollY: 0,
+        x: 0,
+        y: 0,
+      });
+      return canvas;
+    } finally {
+      // Restore
+      el.style.transform = savedTransform;
+      el.style.overflow = savedOverflow;
+    }
   };
 
   const handleDownload = async () => {
     setDownloading(true);
-    const canvas = await captureTicket();
-    const link = document.createElement("a");
-    link.download = `JNE-Ticket-${event.title.replace(/\s+/g, "-")}.png`;
-    link.href = canvas.toDataURL("image/png");
-    link.click();
+    try {
+      const canvas = await captureTicket();
+      const link = document.createElement("a");
+      link.download = `JNE-Ticket-${event.title.replace(/\s+/g, "-")}.png`;
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+    } catch (err) {
+      console.error("Download failed:", err);
+    }
     setDownloading(false);
   };
 
@@ -113,6 +138,19 @@ export default function TicketGenerator({ event, onClose }) {
     }
     setSaving(false);
   };
+
+  // ─── Scale the ticket preview to fit inside the wrapper ───
+  useEffect(() => {
+    const update = () => {
+      if (!wrapperRef.current || !ticketRef.current) return;
+      const scale = wrapperRef.current.offsetWidth / 1080;
+      ticketRef.current.style.transform = `scale(${scale})`;
+      wrapperRef.current.style.height = `${Math.ceil(540 * scale) + 4}px`;
+    };
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
 
   return (
     <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4" onClick={onClose}>
@@ -188,120 +226,112 @@ export default function TicketGenerator({ event, onClose }) {
           </div>
         </div>
 
-        {/* Ticket Preview — fixed 1080×540 scaled down */}
+        {/* ── Ticket Preview ── */}
         <div className="p-5 flex items-center justify-center bg-[#0a0a0f]">
-          <div ref={wrapperRef} style={{ width: "100%", maxWidth: "720px" }}>
-            {/* Scale wrapper: ticket is always 1080×540 internally, scaled to fit */}
-            <div style={{ position: "relative", paddingBottom: "50%", overflow: "hidden" }}>
-              <div
-                ref={ticketRef}
-                style={{
-                  position: "absolute",
-                  top: 0, left: 0,
-                  width: "1080px",
-                  height: "540px",
-                  transformOrigin: "top left",
-                  transform: "scale(var(--ticket-scale, 0.667))",
-                  display: "flex",
-                  flexDirection: "row",
-                  background: "linear-gradient(135deg, #1a0a2e 0%, #0d0d1a 50%, #1a0a0d 100%)",
-                  border: "1px solid rgba(139, 92, 246, 0.3)",
-                  borderRadius: "24px",
-                  overflow: "hidden",
-                  fontFamily: "system-ui, sans-serif",
-                }}
-              >
-                {/* Full-bleed background image */}
-                {event.image_url && (
-                  <>
-                    <img
-                      src={event.image_url}
-                      alt=""
-                      crossOrigin="anonymous"
-                      style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", objectFit: "cover", objectPosition: "center", display: "block" }}
-                    />
-                    {/* Dark overlay so text is always readable */}
-                    <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to right, rgba(10,10,15,0.82) 0%, rgba(10,10,15,0.72) 60%, rgba(10,10,15,0.88) 100%)" }} />
-                  </>
-                )}
+          <div ref={wrapperRef} style={{ width: "100%", maxWidth: "720px", position: "relative" }}>
 
-                {/* Middle: Event Details */}
-                <div style={{ position: "relative", flex: 1, padding: "40px 36px", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
-                  {/* Brand */}
-                  <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                    <div style={{ width: "44px", height: "44px", borderRadius: "12px", background: "linear-gradient(135deg, #8B5CF6, #F59E0B)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "22px", flexShrink: 0 }}>🎬</div>
-                    <span style={{ color: "rgba(255,255,255,0.6)", fontWeight: "700", fontSize: "18px", letterSpacing: "2px", textTransform: "uppercase" }}>JNE Nightouts</span>
-                  </div>
+            {/* The actual ticket — always 1080×540 native, CSS-scaled to fit */}
+            <div
+              ref={ticketRef}
+              style={{
+                width: "1080px",
+                height: "540px",
+                transformOrigin: "top left",
+                display: "flex",
+                flexDirection: "row",
+                background: "linear-gradient(135deg, #1a0a2e 0%, #0d0d1a 50%, #1a0a0d 100%)",
+                borderRadius: "24px",
+                overflow: "hidden",
+                fontFamily: "system-ui, sans-serif",
+                position: "relative",
+              }}
+            >
+              {/* Background image */}
+              {event.image_url && (
+                <>
+                  <img
+                    src={event.image_url}
+                    alt=""
+                    crossOrigin="anonymous"
+                    style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", objectFit: "cover", objectPosition: "center" }}
+                  />
+                  <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to right, rgba(10,10,15,0.85) 0%, rgba(10,10,15,0.75) 60%, rgba(10,10,15,0.9) 100%)" }} />
+                </>
+              )}
 
-                  {/* Title */}
-                  <div>
-                    <div style={{ color: "rgba(255,255,255,0.4)", fontSize: "16px", textTransform: "uppercase", letterSpacing: "2px", marginBottom: "8px" }}>
-                      {event.type === "movie_night" ? "🎬 Movie Night" : "🎵 Music Event"}
-                    </div>
-                    <div style={{ color: "white", fontWeight: "800", fontSize: "32px", lineHeight: "1.15" }}>{event.title}</div>
-                    {event.artist_or_movie && (
-                      <div style={{ color: "rgba(167, 139, 250, 0.9)", fontSize: "20px", marginTop: "6px" }}>{event.artist_or_movie}</div>
-                    )}
-                  </div>
+              {/* ─── Left: Event info ─── */}
+              <div style={{ position: "relative", flex: 1, display: "flex", flexDirection: "column", justifyContent: "space-between", padding: "24px 30px 22px", boxSizing: "border-box" }}>
 
-                  {/* Info Grid */}
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
-                    {[
-                      { label: "Date", value: event.date ? format(new Date(event.date), "EEE, MMM d, yyyy") : "TBA" },
-                      { label: "Time", value: event.date ? format(new Date(event.date), "h:mm a") : "TBA" },
-                      { label: "Venue", value: event.venue, sub: event.venue_description },
-                      { label: "City", value: event.city || "Various" },
-                    ].map(({ label, value, sub }) => (
-                      <div key={label}>
-                        <div style={{ color: "rgba(255,255,255,0.35)", fontSize: "13px", textTransform: "uppercase", letterSpacing: "1.5px" }}>{label}</div>
-                        <div style={{ color: "white", fontSize: "17px", fontWeight: "600", marginTop: "4px" }}>{value}</div>
-                        {sub && (
-                          <div style={{ color: "rgba(255,255,255,0.4)", fontSize: "11px", marginTop: "2px", lineHeight: "1.2", fontWeight: "400" }}>
-                            {sub}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Attendee, Tier & Price */}
-                  <div style={{ borderTop: "1px dashed rgba(139, 92, 246, 0.4)", paddingTop: "20px", display: "grid", gridTemplateColumns: "1fr 1fr auto", gap: "16px", alignItems: "flex-end" }}>
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{ color: "rgba(255,255,255,0.35)", fontSize: "12px", textTransform: "uppercase", letterSpacing: "1.5px" }}>Attendee</div>
-                      <div style={{ color: "white", fontWeight: "700", fontSize: "20px", marginTop: "4px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{attendeeName}</div>
-                    </div>
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{ color: "rgba(255,255,255,0.35)", fontSize: "12px", textTransform: "uppercase", letterSpacing: "1.5px" }}>Ticket Type</div>
-                      <div style={{ color: "#A78BFA", fontWeight: "700", fontSize: "20px", marginTop: "4px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{tier.label}</div>
-                    </div>
-                    <div style={{ color: "rgba(245, 158, 11, 0.95)", fontWeight: "800", fontSize: "26px", textAlign: "right" }}>
-                      {tier.price?.toLocaleString()} {event.currency || "XAF"}
-                    </div>
-                  </div>
+                {/* Row 1: Brand */}
+                <div style={{ display: "flex", alignItems: "center", gap: "10px", flexShrink: 0 }}>
+                  <div style={{ width: "34px", height: "34px", borderRadius: "9px", background: "linear-gradient(135deg, #8B5CF6, #F59E0B)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "16px", flexShrink: 0 }}>🎬</div>
+                  <span style={{ color: "rgba(255,255,255,0.6)", fontWeight: "700", fontSize: "14px", letterSpacing: "2px", textTransform: "uppercase" }}>JNE Nightouts</span>
                 </div>
 
-                {/* Vertical tear line */}
-                <div style={{ position: "relative", display: "flex", flexDirection: "column", alignItems: "center", padding: "0 2px" }}>
-                  <div style={{ width: "22px", height: "22px", borderRadius: "50%", background: "#0a0a0f", flexShrink: 0, marginTop: "-11px" }} />
-                  <div style={{ flex: 1, borderLeft: "3px dashed rgba(139, 92, 246, 0.35)", width: 0 }} />
-                  <div style={{ width: "22px", height: "22px", borderRadius: "50%", background: "#0a0a0f", flexShrink: 0, marginBottom: "-11px" }} />
+                {/* Row 2: Type + Title */}
+                <div style={{ marginTop: "14px", flexShrink: 0 }}>
+                  <div style={{ color: "rgba(255,255,255,0.4)", fontSize: "11px", textTransform: "uppercase", letterSpacing: "2px", marginBottom: "4px" }}>
+                    {event.type === "movie_night" ? "🎬 Movie Night" : "🎵 Music Event"}
+                  </div>
+                  <div style={{ color: "white", fontWeight: "800", fontSize: "26px", lineHeight: "1.15" }}>{event.title}</div>
+                  {event.artist_or_movie && (
+                    <div style={{ color: "rgba(167, 139, 250, 0.9)", fontSize: "15px", marginTop: "3px" }}>{event.artist_or_movie}</div>
+                  )}
                 </div>
 
-                {/* Right: QR Code */}
-                <div style={{ position: "relative", width: "200px", flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "14px", padding: "30px 28px" }}>
-                  <div style={{ background: "white", padding: "12px", borderRadius: "12px" }}>
-                    <QRCodeSVG
-                      value={`${appParams.appBaseUrl || window.location.origin}/ScanTicket?id=${ticketId}`}
-                      size={120}
-                      level="H"
-                    />
+                {/* Row 3: Info grid */}
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px 16px", marginTop: "14px", alignContent: "start" }}>
+                  {[
+                    { label: "Date", value: event.date ? format(new Date(event.date), "EEE, MMM d, yyyy") : "TBA" },
+                    { label: "Time", value: event.date ? format(new Date(event.date), "h:mm a") : "TBA" },
+                    { label: "Venue", value: event.venue },
+                    { label: "City", value: event.city || "Various" },
+                  ].map(({ label, value }) => (
+                    <div key={label}>
+                      <div style={{ color: "rgba(255,255,255,0.35)", fontSize: "10px", textTransform: "uppercase", letterSpacing: "1.5px" }}>{label}</div>
+                      <div style={{ color: "white", fontSize: "14px", fontWeight: "600", marginTop: "1px" }}>{value}</div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Row 4: Attendee + Tier + Price */}
+                <div style={{ borderTop: "1px dashed rgba(139, 92, 246, 0.4)", paddingTop: "10px", display: "grid", gridTemplateColumns: "1fr 1fr auto", gap: "12px", alignItems: "end", flexShrink: 0 }}>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ color: "rgba(255,255,255,0.35)", fontSize: "10px", textTransform: "uppercase", letterSpacing: "1.5px" }}>Attendee</div>
+                    <div style={{ color: "white", fontWeight: "700", fontSize: "16px", marginTop: "2px", whiteSpace: "nowrap", lineHeight: "1.3" }}>{attendeeName}</div>
                   </div>
-                  <span style={{ color: "rgba(255,255,255,0.4)", fontSize: "13px", fontFamily: "monospace", letterSpacing: "1px", textAlign: "center", wordBreak: "break-all" }}>
-                    {ticketId}
-                  </span>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ color: "rgba(255,255,255,0.35)", fontSize: "10px", textTransform: "uppercase", letterSpacing: "1.5px" }}>Ticket Type</div>
+                    <div style={{ color: "#A78BFA", fontWeight: "700", fontSize: "16px", marginTop: "2px", whiteSpace: "nowrap", lineHeight: "1.3" }}>{tier.label}</div>
+                  </div>
+                  <div style={{ color: "rgba(245, 158, 11, 0.95)", fontWeight: "800", fontSize: "20px", textAlign: "right", lineHeight: "1.3" }}>
+                    {tier.price?.toLocaleString()} {event.currency || "XAF"}
+                  </div>
                 </div>
               </div>
+
+              {/* ─── Vertical tear line ─── */}
+              <div style={{ position: "relative", display: "flex", flexDirection: "column", alignItems: "center", width: "26px", flexShrink: 0 }}>
+                <div style={{ width: "22px", height: "22px", borderRadius: "50%", background: "#0a0a0f", flexShrink: 0, marginTop: "-11px" }} />
+                <div style={{ flex: 1, borderLeft: "3px dashed rgba(139, 92, 246, 0.35)", width: 0 }} />
+                <div style={{ width: "22px", height: "22px", borderRadius: "50%", background: "#0a0a0f", flexShrink: 0, marginBottom: "-11px" }} />
+              </div>
+
+              {/* ─── Right: QR Code ─── */}
+              <div style={{ position: "relative", width: "200px", flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "12px", padding: "20px", boxSizing: "border-box" }}>
+                <div style={{ background: "white", padding: "10px", borderRadius: "12px" }}>
+                  <QRCodeSVG
+                    value={`${appParams.appBaseUrl || window.location.origin}/ScanTicket?id=${ticketId}`}
+                    size={110}
+                    level="H"
+                  />
+                </div>
+                <span style={{ color: "rgba(255,255,255,0.4)", fontSize: "12px", fontFamily: "monospace", letterSpacing: "1px", textAlign: "center", wordBreak: "break-all" }}>
+                  {ticketId}
+                </span>
+              </div>
             </div>
+
           </div>
         </div>
       </div>
