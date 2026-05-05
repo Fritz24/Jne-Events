@@ -20,7 +20,7 @@ export default function TicketTiers({ event, compact = false }) {
       if (error) throw error;
       return data.map(item => ({
         id: item.id,
-        label: item.label,
+        name: item.name,
         price: item.price,
         category: item.category
       }));
@@ -82,7 +82,7 @@ export default function TicketTiers({ event, compact = false }) {
       if (!quantities[i]) return [];
       return dynamicAddons
         .filter(a => addonQty[`${i}_${a.id}`] > 0)
-        .map(a => `  ↳ ${addonQty[`${i}_${a.id}`]}x ${a.label} (${tier.label}) = ${(addonQty[`${i}_${a.id}`] * a.price).toLocaleString()} ${currency}`);
+        .map(a => `  ↳ ${addonQty[`${i}_${a.id}`]}x ${a.name} (${tier.label}) = ${(addonQty[`${i}_${a.id}`] * a.price).toLocaleString()} ${currency}`);
     });
 
     const sections = [...ticketLines];
@@ -197,7 +197,7 @@ export default function TicketTiers({ event, compact = false }) {
                             <Icon className="w-4 h-4" />
                           </div>
                           <div>
-                            <p className="text-sm font-medium text-white">{addon.label}</p>
+                            <p className="text-sm font-medium text-white">{addon.name}</p>
                             <p className="text-[10px] text-white/40">{addon.price.toLocaleString()} {currency}</p>
                           </div>
                         </div>

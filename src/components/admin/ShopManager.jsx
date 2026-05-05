@@ -78,14 +78,14 @@ export default function ShopManager() {
                 {(isAdding || editingItem) && (
                     <div className="col-span-full bg-white/[0.05] border border-white/10 rounded-2xl p-6 mb-4 animate-in fade-in slide-in-from-top-4">
                         <h3 className="text-lg font-bold text-white mb-4">
-                            {isAdding ? "Create New Extra" : `Edit ${editingItem?.label || "Item"}`}
+                            {isAdding ? "Create New Extra" : `Edit ${editingItem?.name || "Item"}`}
                         </h3>
                         <form
                             onSubmit={(e) => {
                                 e.preventDefault();
                                 const formData = new FormData(e.target);
                                 const item = {
-                                    label: formData.get('label'),
+                                    name: formData.get('name'),
                                     price: Number(formData.get('price')),
                                     category: formData.get('category'),
                                     available: formData.get('available') === 'on'
@@ -97,7 +97,7 @@ export default function ShopManager() {
                         >
                             <div className="space-y-1.5">
                                 <label className="text-xs font-bold text-white/40 uppercase">Item Name</label>
-                                <input name="label" defaultValue={editingItem?.label} required className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white" placeholder="e.g. Chicken Wings" />
+                                <input name="name" defaultValue={editingItem?.name} required className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white" placeholder="e.g. Chicken Wings" />
                             </div>
                             <div className="space-y-1.5">
                                 <label className="text-xs font-bold text-white/40 uppercase">Price (XAF)</label>
@@ -142,7 +142,7 @@ export default function ShopManager() {
                                         <Icon className="w-5 h-5" />
                                     </div>
                                     <div>
-                                        <h4 className={`font-bold ${item.available ? 'text-white' : 'text-white/40'}`}>{item.label}</h4>
+                                        <h4 className={`font-bold ${item.available ? 'text-white' : 'text-white/40'}`}>{item.name}</h4>
                                         <div className="flex gap-2 items-center">
                                             <span className="text-violet-400 font-bold text-sm">{(item.price || 0).toLocaleString()} XAF</span>
                                             <span className="text-[10px] uppercase tracking-widest text-white/20 font-bold">{item.category}</span>
