@@ -100,7 +100,7 @@ export default function EventForm({ event, onSave, onCancel }) {
         .from('jne_settings')
         .select('value')
         .eq('key', 'whatsapp_contacts')
-        .single();
+        .maybeSingle();
 
       const contacts = data?.value ? JSON.parse(data.value) : [];
       setWhatsappContacts(contacts);
@@ -397,7 +397,7 @@ export default function EventForm({ event, onSave, onCancel }) {
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   <TierToggle tier={tier} index={i} field="headphones_included" label="Headphones" />
                   <TierToggle tier={tier} index={i} field="seat_included" label="Seat / Blanket" />
-                  <TierToggle tier={tier} index={i} field="snack_included" label="Snack" />
+                  <TierToggle tier={tier} index={i} field="snack_included" label="Popcorn / Snack" />
                   <TierToggle tier={tier} index={i} field="drink_included" label="Drink" />
                 </div>
               </div>
