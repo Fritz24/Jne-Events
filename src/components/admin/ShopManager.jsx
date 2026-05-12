@@ -1,12 +1,35 @@
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Trash2, Edit2, Check, X, Loader2, Package, Utensils, GlassWater } from "lucide-react";
+import { Plus, Trash2, Edit2, Check, X, Loader2, Package, Utensils, GlassWater, LayoutGrid } from "lucide-react";
 
-export default function ShopManager() {
+export default function ShopManager({ initialTab }) {
     const queryClient = useQueryClient();
     const [editingItem, setEditingItem] = useState(null);
     const [isAdding, setIsAdding] = useState(false);
+    const [activeTab, setActiveTab] = useState(initialTab || "items"); // "items" or "categories"
+
+    // Fetch dynamic categories
+    const { data: categories = [] } = useQuery({
+        queryKey: ["event_categories"],
+        queryFn: async () => {
+            const { data } = await supabase
+                .from('jne_settings')
+                .select('value')
+                .eq('key', 'event_categories')
+                .maybeSingle();
+
+            if (data?.value) return JSON.parse(data.value);
+
+            // Initialization if empty
+            const defaults = [
+                { id: "movie_night", label: "Movie Night" },
+                { id: "music", label: "Music Event" }
+            ];
+            await supabase.from('jne_settings').upsert({ key: 'event_categories', value: JSON.stringify(defaults) });
+            return defaults;
+        }
+    });
 
     const { data: items, isLoading } = useQuery({
         queryKey: ["shop_items"],
@@ -55,126 +78,282 @@ export default function ShopManager() {
         }
     });
 
-    if (isLoading) return <div className="flex justify-center p-12"><Loader2 className="animate-spin" /></div>;
+    if (isLoading) return <div className="flex justify-center p-12"><Loader2 className="animate-spin text-violet-500" /></div>;
 
     return (
         <div className="space-y-6">
-            <div className="flex justify-between items-center">
-                <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                    <Package className="w-5 h-5 text-violet-400" />
-                    Extras & Refreshments
-                </h2>
+            {/* Tab Switcher */}
+            <div className="flex justify-between items-center bg-white/5 p-1 rounded-2xl border border-white/5">
                 <button
-                    onClick={() => setIsAdding(true)}
-                    className="flex items-center gap-2 px-4 py-2 bg-violet-500 hover:bg-violet-400 text-black font-bold rounded-xl transition-all"
+                    onClick={() => setActiveTab("items")}
+                    className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl transition-all font-bold text-sm ${activeTab === "items" ? "bg-violet-500 text-black shadow-lg" : "text-white/40 hover:text-white"}`}
                 >
-                    <Plus className="w-4 h-4" />
-                    Add Item
+                    <Package className="w-4 h-4" />
+                    Individual Extras
+                </button>
+                <button
+                    onClick={() => setActiveTab("categories")}
+                    className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl transition-all font-bold text-sm ${activeTab === "categories" ? "bg-violet-500 text-black shadow-lg" : "text-white/40 hover:text-white"}`}
+                >
+                    <LayoutGrid className="w-4 h-4" />
+                    Category Templates
                 </button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Add/Edit Form Overlay */}
-                {(isAdding || editingItem) && (
-                    <div className="col-span-full bg-white/[0.05] border border-white/10 rounded-2xl p-6 mb-4 animate-in fade-in slide-in-from-top-4">
-                        <h3 className="text-lg font-bold text-white mb-4">
-                            {isAdding ? "Create New Extra" : `Edit ${editingItem?.name || "Item"}`}
-                        </h3>
-                        <form
-                            onSubmit={(e) => {
-                                e.preventDefault();
-                                const formData = new FormData(e.target);
-                                const item = {
-                                    name: formData.get('name'),
-                                    price: Number(formData.get('price')),
-                                    category: formData.get('category'),
-                                    available: formData.get('available') === 'on'
-                                };
-                                if (editingItem?.id) item.id = editingItem.id;
-                                saveMutation.mutate(item);
-                            }}
-                            className="grid grid-cols-1 sm:grid-cols-2 gap-4"
+            {activeTab === "items" ? (
+                <div className="space-y-6 animate-in fade-in slide-in-from-left-4">
+                    <div className="flex justify-between items-center">
+                        <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                            <Package className="w-5 h-5 text-violet-400" />
+                            Refreshments List
+                        </h2>
+                        <button
+                            onClick={() => setIsAdding(true)}
+                            className="flex items-center gap-2 px-4 py-2 bg-violet-600/20 hover:bg-violet-600/40 text-violet-300 border border-violet-500/30 font-bold rounded-xl transition-all"
                         >
-                            <div className="space-y-1.5">
-                                <label className="text-xs font-bold text-white/40 uppercase">Item Name</label>
-                                <input name="name" defaultValue={editingItem?.name} required className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white" placeholder="e.g. Chicken Wings" />
-                            </div>
-                            <div className="space-y-1.5">
-                                <label className="text-xs font-bold text-white/40 uppercase">Price (XAF)</label>
-                                <input name="price" type="number" defaultValue={editingItem?.price} required className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white" />
-                            </div>
-                            <div className="space-y-1.5">
-                                <label className="text-xs font-bold text-white/40 uppercase">Category</label>
-                                <select
-                                    name="category"
-                                    defaultValue={editingItem?.category || "Food"}
-                                    className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white appearance-none cursor-pointer"
-                                    style={{ backgroundColor: '#1a1a1a' }}
-                                >
-                                    <option value="Food" style={{ color: 'white', backgroundColor: '#333' }}>Food & Snacks</option>
-                                    <option value="Refreshments" style={{ color: 'white', backgroundColor: '#333' }}>Refreshments & Drinks</option>
-                                </select>
-                            </div>
-                            <div className="flex items-center gap-3 pt-6">
-                                <input name="available" type="checkbox" defaultChecked={editingItem ? editingItem.available : true} className="w-5 h-5 accent-violet-500" />
-                                <label className="text-sm font-medium text-white">Available for booking</label>
-                            </div>
-                            <div className="col-span-full flex gap-3 mt-2">
-                                <button type="submit" disabled={saveMutation.isPending} className="flex-1 bg-violet-500 text-black font-bold py-3 rounded-xl flex items-center justify-center gap-2">
-                                    {saveMutation.isPending ? <Loader2 className="animate-spin w-4 h-4" /> : <Check className="w-4 h-4" />}
-                                    Save Changes
-                                </button>
-                                <button type="button" onClick={() => { setIsAdding(false); setEditingItem(null); }} className="px-6 bg-white/10 text-white font-bold rounded-xl">
-                                    Cancel
-                                </button>
-                            </div>
-                        </form>
+                            <Plus className="w-4 h-4" />
+                            New Item
+                        </button>
                     </div>
-                )}
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {items?.map(item => {
-                        const Icon = item.category === "Food" ? Utensils : GlassWater;
-                        return (
-                            <div key={item.id} className="bg-white/[0.03] border border-white/10 rounded-2xl p-4 flex items-center justify-between group">
-                                <div className="flex items-center gap-4">
-                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${item.available ? 'bg-violet-500/10 text-violet-400' : 'bg-gray-500/10 text-gray-500 grayscale'}`}>
-                                        <Icon className="w-5 h-5" />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* Add/Edit Form Overlay */}
+                        {(isAdding || editingItem) && (
+                            <div className="col-span-full bg-white/[0.05] border border-white/10 rounded-2xl p-6 mb-4 animate-in fade-in slide-in-from-top-4">
+                                <h3 className="text-lg font-bold text-white mb-4">
+                                    {isAdding ? "Create New Extra" : `Edit ${editingItem?.name || "Item"}`}
+                                </h3>
+                                <form
+                                    onSubmit={(e) => {
+                                        e.preventDefault();
+                                        const formData = new FormData(e.target);
+                                        const selectedTypes = categories
+                                            .filter(t => formData.get(`type_${t.id}`) === 'on')
+                                            .map(t => t.id);
+
+                                        const item = {
+                                            name: formData.get('name'),
+                                            price: Number(formData.get('price')),
+                                            category: formData.get('category'),
+                                            available: formData.get('available') === 'on',
+                                            applicable_event_types: selectedTypes
+                                        };
+                                        if (editingItem?.id) item.id = editingItem.id;
+                                        saveMutation.mutate(item);
+                                    }}
+                                    className="grid grid-cols-1 sm:grid-cols-2 gap-4"
+                                >
+                                    <div className="space-y-1.5">
+                                        <label className="text-xs font-bold text-white/40 uppercase">Item Name</label>
+                                        <input name="name" defaultValue={editingItem?.name} required className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white" placeholder="e.g. Chicken Wings" />
                                     </div>
-                                    <div>
-                                        <h4 className={`font-bold ${item.available ? 'text-white' : 'text-white/40'}`}>{item.name}</h4>
-                                        <div className="flex gap-2 items-center">
-                                            <span className="text-violet-400 font-bold text-sm">{(item.price || 0).toLocaleString()} XAF</span>
-                                            <span className="text-[10px] uppercase tracking-widest text-white/20 font-bold">{item.category}</span>
+                                    <div className="space-y-1.5">
+                                        <label className="text-xs font-bold text-white/40 uppercase">Price (XAF)</label>
+                                        <input name="price" type="number" defaultValue={editingItem?.price} required className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white" />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <label className="text-xs font-bold text-white/40 uppercase">Category</label>
+                                        <select
+                                            name="category"
+                                            defaultValue={editingItem?.category || "Food"}
+                                            className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white appearance-none cursor-pointer"
+                                            style={{ backgroundColor: '#1a1a1a' }}
+                                        >
+                                            <option value="Food" style={{ color: 'white', backgroundColor: '#333' }}>Food & Snacks</option>
+                                            <option value="Refreshments" style={{ color: 'white', backgroundColor: '#333' }}>Refreshments & Drinks</option>
+                                        </select>
+                                    </div>
+                                    <div className="space-y-1.5 col-span-full border-t border-white/5 pt-4 mt-2">
+                                        <label className="text-xs font-bold text-white/40 uppercase">Show this extra on:</label>
+                                        <div className="flex flex-wrap gap-4 mt-2">
+                                            {categories.map(type => (
+                                                <div key={type.id} className="flex items-center gap-2">
+                                                    <input
+                                                        type="checkbox"
+                                                        name={`type_${type.id}`}
+                                                        id={`type_${type.id}`}
+                                                        defaultChecked={editingItem?.applicable_event_types?.includes(type.id)}
+                                                        className="w-4 h-4 accent-violet-500 rounded border-white/10"
+                                                    />
+                                                    <label htmlFor={`type_${type.id}`} className="text-sm text-white/70 cursor-pointer">{type.label}</label>
+                                                </div>
+                                            ))}
+                                        </div>
+                                        <p className="text-[10px] text-white/20 italic mt-1.5">If none are checked, it will appear on ALL events.</p>
+                                    </div>
+
+                                    <div className="flex items-center gap-3 pt-4">
+                                        <input name="available" type="checkbox" id="available_check" defaultChecked={editingItem ? editingItem.available : true} className="w-5 h-5 accent-emerald-500" />
+                                        <label htmlFor="available_check" className="text-sm font-medium text-white italic cursor-pointer">Available for booking</label>
+                                    </div>
+                                    <div className="col-span-full flex gap-3 mt-2">
+                                        <button type="submit" disabled={saveMutation.isPending} className="flex-1 bg-violet-500 text-black font-bold py-3 rounded-xl flex items-center justify-center gap-2">
+                                            {saveMutation.isPending ? <Loader2 className="animate-spin w-4 h-4" /> : <Check className="w-4 h-4" />}
+                                            Save Changes
+                                        </button>
+                                        <button type="button" onClick={() => { setIsAdding(false); setEditingItem(null); }} className="px-6 bg-white/10 text-white font-bold rounded-xl">
+                                            Cancel
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        )}
+
+                        {items?.map(item => {
+                            const Icon = item.category === "Food" ? Utensils : GlassWater;
+                            return (
+                                <div key={item.id} className="bg-white/[0.03] border border-white/10 rounded-2xl p-4 flex items-center justify-between group">
+                                    <div className="flex items-center gap-4">
+                                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${item.available ? 'bg-violet-500/10 text-violet-400' : 'bg-gray-500/10 text-gray-500 grayscale'}`}>
+                                            <Icon className="w-5 h-5" />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <h4 className={`font-bold truncate ${item.available ? 'text-white' : 'text-white/40'}`}>{item.name}</h4>
+                                            <div className="flex gap-2 items-center flex-wrap mt-1">
+                                                <span className="text-violet-400 font-bold text-sm">{(item.price || 0).toLocaleString()} XAF</span>
+                                                <span className="text-[10px] uppercase tracking-widest text-white/20 font-bold px-1.5 py-0.5 border border-white/5 rounded-md">{item.category}</span>
+                                                {(!item.applicable_event_types || item.applicable_event_types.length === 0) ? (
+                                                    <span className="text-[9px] bg-white/5 text-white/40 px-1.5 py-0.5 rounded flex items-center gap-1">
+                                                        <LayoutGrid className="w-2.5 h-2.5" /> All
+                                                    </span>
+                                                ) : (
+                                                    item.applicable_event_types.map(t => (
+                                                        <span key={t} className="text-[9px] bg-violet-500/10 text-violet-400 px-1.5 py-0.5 rounded border border-violet-500/10">
+                                                            {categories.find(et => et.id === t)?.label || t}
+                                                        </span>
+                                                    ))
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
+                                    <div className="flex gap-1">
+                                        <button onClick={() => setEditingItem(item)} className="p-2 rounded-lg hover:bg-white/10 text-white/40 hover:text-white transition-all">
+                                            <Edit2 className="w-4 h-4" />
+                                        </button>
+                                        <button onClick={() => { if (window.confirm('Delete this item?')) deleteMutation.mutate(item.id); }} className="p-2 rounded-lg hover:bg-red-500/10 text-white/40 hover:text-red-400 transition-all">
+                                            <Trash2 className="w-4 h-4" />
+                                        </button>
+                                    </div>
                                 </div>
-                                <div className="flex gap-1">
-                                    <button
-                                        onClick={() => setEditingItem(item)}
-                                        className="p-2 rounded-lg hover:bg-white/10 text-white/40 hover:text-white transition-all"
-                                    >
-                                        <Edit2 className="w-4 h-4" />
-                                    </button>
-                                    <button
-                                        onClick={() => { if (window.confirm('Delete this item?')) deleteMutation.mutate(item.id); }}
-                                        className="p-2 rounded-lg hover:bg-red-500/10 text-white/40 hover:text-red-400 transition-all"
-                                    >
-                                        <Trash2 className="w-4 h-4" />
-                                    </button>
-                                </div>
-                            </div>
-                        );
-                    })}
-                </div>
+                            );
+                        })}
 
-                {items?.length === 0 && !isAdding && (
-                    <div className="col-span-full py-12 text-center border-2 border-dashed border-white/5 rounded-3xl">
-                        <Package className="w-8 h-8 text-white/10 mx-auto mb-3" />
-                        <p className="text-white/40">No refreshments added yet.</p>
+                        {items?.length === 0 && !isAdding && (
+                            <div className="col-span-full py-12 text-center border-2 border-dashed border-white/5 rounded-3xl">
+                                <Package className="w-8 h-8 text-white/10 mx-auto mb-3" />
+                                <p className="text-white/40">No refreshments added yet.</p>
+                            </div>
+                        )}
                     </div>
-                )}
+                </div>
+            ) : (
+                <CategoryManager categories={categories} items={items} />
+            )}
+        </div>
+    );
+}
+
+function CategoryManager({ categories, items }) {
+    const queryClient = useQueryClient();
+    const [isAdding, setIsAdding] = useState(false);
+
+    const updateCategories = useMutation({
+        mutationFn: async (newCats) => {
+            const { error } = await supabase
+                .from('jne_settings')
+                .upsert({ key: 'event_categories', value: JSON.stringify(newCats), updated_at: new Date().toISOString() });
+            if (error) throw error;
+        },
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: ["event_categories"] })
+    });
+
+    const toggleExtraForCategory = async (catId, extraId, isChecked) => {
+        const item = items.find(i => i.id === extraId);
+        if (!item) return;
+
+        let newTypes = item.applicable_event_types || [];
+        if (isChecked) {
+            if (!newTypes.includes(catId)) newTypes.push(catId);
+        } else {
+            newTypes = newTypes.filter(t => t !== catId);
+        }
+
+        await supabase.from('jne_shop_items').update({ applicable_event_types: newTypes }).eq('id', extraId);
+        queryClient.invalidateQueries({ queryKey: ["shop_items"] });
+    };
+
+    return (
+        <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
+            <div className="flex justify-between items-center">
+                <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                    <LayoutGrid className="w-5 h-5 text-violet-400" />
+                    Event Templates
+                </h2>
+                <button
+                    onClick={() => setIsAdding(true)}
+                    className="flex items-center gap-2 px-4 py-2 bg-violet-600/20 hover:bg-violet-600/40 text-violet-300 border border-violet-500/30 font-bold rounded-xl transition-all"
+                >
+                    <Plus className="w-4 h-4" />
+                    New Category
+                </button>
             </div>
-        </div >
+
+            {isAdding && (
+                <div className="bg-white/5 border border-white/10 rounded-2xl p-4 animate-in zoom-in-95">
+                    <form onSubmit={(e) => {
+                        e.preventDefault();
+                        const label = new FormData(e.target).get('label');
+                        const id = label.toLowerCase().replace(/\s+/g, '_');
+                        if (categories.some(c => c.id === id)) return alert('Category already exists');
+                        updateCategories.mutate([...categories, { id, label }]);
+                        setIsAdding(false);
+                    }} className="flex gap-2">
+                        <input name="label" autoFocus placeholder="e.g. Board Game Night" className="flex-1 bg-white/5 border border-white/10 rounded-xl p-3 text-white" />
+                        <button type="submit" className="px-6 bg-violet-500 text-black font-bold rounded-xl">Create</button>
+                        <button type="button" onClick={() => setIsAdding(false)} className="px-4 text-white/40">Cancel</button>
+                    </form>
+                </div>
+            )}
+
+            <div className="grid grid-cols-1 gap-4">
+                {categories.map(cat => (
+                    <div key={cat.id} className="bg-white/[0.03] border border-white/10 rounded-2xl p-6">
+                        <div className="flex justify-between items-start mb-6">
+                            <div>
+                                <h3 className="text-lg font-bold text-white">{cat.label}</h3>
+                                <p className="text-xs text-white/30 uppercase tracking-widest mt-1">Rule: Check items to show them for {cat.label}s</p>
+                            </div>
+                            <button
+                                onClick={() => {
+                                    if (window.confirm(`Delete "${cat.label}" category?`)) {
+                                        updateCategories.mutate(categories.filter(c => c.id !== cat.id));
+                                    }
+                                }}
+                                className="text-red-400/40 hover:text-red-400 p-2"
+                            >
+                                <Trash2 className="w-4 h-4" />
+                            </button>
+                        </div>
+
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                            {items?.map(item => (
+                                <label key={item.id} className={`flex items-center gap-3 p-3 rounded-xl border transition-all cursor-pointer ${item.applicable_event_types?.includes(cat.id) ? 'bg-violet-500/10 border-violet-500/30 text-violet-200' : 'bg-white/5 border-white/5 text-white/40 hover:bg-white/[0.08]'}`}>
+                                    <input
+                                        type="checkbox"
+                                        checked={item.applicable_event_types?.includes(cat.id)}
+                                        onChange={(e) => toggleExtraForCategory(cat.id, item.id, e.target.checked)}
+                                        className="w-4 h-4 accent-violet-500 rounded"
+                                    />
+                                    <div className="flex flex-col min-w-0">
+                                        <span className="text-xs font-bold leading-tight truncate">{item.name}</span>
+                                        <span className="text-[9px] opacity-60">{(item.price).toLocaleString()} XAF</span>
+                                    </div>
+                                </label>
+                            ))}
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
     );
 }

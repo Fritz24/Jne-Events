@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -28,10 +29,7 @@ const getLocalDatetimeLocal = (dateString) => {
 
 const emptyTier = () => ({
   label: "", price: "", description: "",
-  headphones_included: false,
-  seat_included: false,
-  snack_included: false,
-  drink_included: false,
+  inclusions: [],
 });
 
 function buildInitialForm(event) {
@@ -58,7 +56,16 @@ function buildInitialForm(event) {
 
 function buildInitialTiers(event) {
   return event?.ticket_tiers?.length
-    ? event.ticket_tiers.map(t => ({ ...emptyTier(), ...t, price: String(t.price) }))
+    ? event.ticket_tiers.map(t => {
+      const incs = new Set(t.inclusions || []);
+      if (t.headphones_included) incs.add("Headphones");
+      if (t.seat_included) incs.add("Seat / Blanket");
+      if (t.snack_included) incs.add("Popcorn / Snack");
+      if (t.drink_included) incs.add("Drink");
+
+      const { headphones_included, seat_included, snack_included, drink_included, ...rest } = t;
+      return { ...emptyTier(), ...rest, price: String(t.price), inclusions: Array.from(incs) };
+    })
     : [emptyTier()];
 }
 
@@ -92,6 +99,22 @@ export default function EventForm({ event, onSave, onCancel }) {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [whatsappContacts, setWhatsappContacts] = useState([]); // Array of { number, label, isDefault }
+  const [savedInclusions, setSavedInclusions] = useState([]); // Array of strings
+
+  const { data: categories = [] } = useQuery({
+    queryKey: ["event_categories"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('jne_settings')
+        .select('value')
+        .eq('key', 'event_categories')
+        .maybeSingle();
+      return data?.value ? JSON.parse(data.value) : [
+        { id: "movie_night", label: "Movie Night" },
+        { id: "music", label: "Music Event" }
+      ];
+    }
+  });
 
   // Fetch saved numbers and set default
   useEffect(() => {
@@ -139,6 +162,57 @@ export default function EventForm({ event, onSave, onCancel }) {
       .from('jne_settings')
       .upsert({ key: 'whatsapp_contacts', value: JSON.stringify(newContacts), updated_at: new Date().toISOString() });
     if (!error) setWhatsappContacts(newContacts);
+  };
+
+  // Fetch saved inclusions
+  useEffect(() => {
+    async function fetchInclusions() {
+      const { data } = await supabase
+        .from('jne_settings')
+        .select('value')
+        .eq('key', 'ticket_inclusions')
+        .maybeSingle();
+
+      if (data?.value) {
+        setSavedInclusions(JSON.parse(data.value));
+      } else {
+        // Defaults if none exist
+        const defaults = ["Headphones", "Seat / Blanket", "Popcorn / Snack", "Drink"];
+        setSavedInclusions(defaults);
+        await supabase.from('jne_settings').upsert({ key: 'ticket_inclusions', value: JSON.stringify(defaults) });
+      }
+    }
+    fetchInclusions();
+  }, []);
+
+  const handleUpdateSavedInclusions = async (newInclusions) => {
+    const { error } = await supabase
+      .from('jne_settings')
+      .upsert({
+        key: 'ticket_inclusions',
+        value: JSON.stringify(newInclusions),
+        updated_at: new Date().toISOString()
+      });
+    if (!error) setSavedInclusions(newInclusions);
+  };
+
+  const handleAddInclusionToTier = (tierIdx, value) => {
+    const val = value.trim();
+    if (!val) return;
+
+    const current = tiers[tierIdx].inclusions || [];
+    if (!current.includes(val)) {
+      handleTierChange(tierIdx, "inclusions", [...current, val]);
+
+      // Also save to suggestions if not already there
+      if (!savedInclusions.some(inc => inc.toLowerCase() === val.toLowerCase())) {
+        handleUpdateSavedInclusions([...savedInclusions, val]);
+      }
+    }
+  };
+
+  const removeSavedInclusion = (incToRemove) => {
+    handleUpdateSavedInclusions(savedInclusions.filter(inc => inc !== incToRemove));
   };
 
   // Auto-generate WhatsApp message behind the scenes
@@ -264,16 +338,6 @@ export default function EventForm({ event, onSave, onCancel }) {
 
   const inputClass = "bg-white/5 border-white/10 text-white placeholder:text-white/30 focus:border-violet-500";
 
-  const TierToggle = ({ tier, index, field, label }) => (
-    <div className="flex items-center gap-2">
-      <Switch
-        checked={!!tier[field]}
-        onCheckedChange={v => handleTierChange(index, field, v)}
-      />
-      <Label className="text-white/50 text-xs">{label}</Label>
-    </div>
-  );
-
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -286,8 +350,9 @@ export default function EventForm({ event, onSave, onCancel }) {
           <Select value={form.type} onValueChange={v => handleChange("type", v)}>
             <SelectTrigger className={inputClass}><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="movie_night">Movie Night</SelectItem>
-              <SelectItem value="music">Music</SelectItem>
+              {categories.map(cat => (
+                <SelectItem key={cat.id} value={cat.id}>{cat.label}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
@@ -391,15 +456,87 @@ export default function EventForm({ event, onSave, onCancel }) {
                   onChange={e => handleTierChange(i, "description", e.target.value)} />
               </div>
 
-              {/* Inclusions toggles */}
-              <div className="space-y-2 pt-1">
+              {/* Dynamic Inclusions input */}
+              <div className="space-y-2 pt-2 border-t border-white/5 mt-2">
                 <p className="text-[10px] text-white/30 uppercase font-bold tracking-widest px-1">Included with this tier:</p>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  <TierToggle tier={tier} index={i} field="headphones_included" label="Headphones" />
-                  <TierToggle tier={tier} index={i} field="seat_included" label="Seat / Blanket" />
-                  <TierToggle tier={tier} index={i} field="snack_included" label="Popcorn / Snack" />
-                  <TierToggle tier={tier} index={i} field="drink_included" label="Drink" />
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {(tier.inclusions || []).map((inc, incIdx) => (
+                    <div key={incIdx} className="flex items-center gap-1.5 text-xs text-white/80 bg-white/5 pl-2 pr-1 py-1 rounded-md border border-white/10">
+                      {inc}
+                      <button
+                        type="button"
+                        onClick={() => handleTierChange(i, "inclusions", tier.inclusions.filter((_, idx) => idx !== incIdx))}
+                        className="hover:bg-red-500/20 text-white/40 hover:text-red-400 rounded h-4 w-4 flex items-center justify-center transition-colors"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+                  {(tier.inclusions || []).length === 0 && (
+                    <p className="text-xs text-white/20 italic p-1">No inclusions added</p>
+                  )}
                 </div>
+
+                <div className="flex items-center gap-2">
+                  <Input
+                    placeholder="E.g. Headphones, Drink, Seat (Press Enter)"
+                    className="h-9 text-sm bg-white/5 border-white/10 text-white"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleAddInclusionToTier(i, e.target.value);
+                        e.target.value = "";
+                      }
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="h-9 shrink-0 border-dashed border-white/20 hover:bg-white/10 text-white bg-transparent shadow-none"
+                    onClick={(e) => {
+                      const input = e.currentTarget.previousElementSibling;
+                      handleAddInclusionToTier(i, input.value);
+                      input.value = "";
+                    }}
+                  >
+                    <Plus className="w-4 h-4 mr-1.5" /> Add
+                  </Button>
+                </div>
+
+                {/* Suggestions / Saved Inclusions */}
+                {savedInclusions.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 pt-1">
+                    <p className="w-full text-[9px] text-white/20 uppercase tracking-tighter mb-0.5">Quick Add Suggestions:</p>
+                    {savedInclusions.map((inc, sIdx) => {
+                      const isAlreadyAdded = (tier.inclusions || []).includes(inc);
+                      return (
+                        <div key={sIdx} className="group/s relative flex items-center">
+                          <button
+                            type="button"
+                            disabled={isAlreadyAdded}
+                            onClick={() => handleAddInclusionToTier(i, inc)}
+                            className={`text-[10px] px-2 py-1 rounded-full border transition-all ${isAlreadyAdded
+                              ? "bg-white/5 border-white/5 text-white/20 cursor-default"
+                              : "bg-violet-500/5 border-violet-500/20 text-violet-300/70 hover:bg-violet-500/20 hover:border-violet-500/40 hover:text-violet-200"
+                              }`}
+                          >
+                            {inc}
+                          </button>
+                          {!isAlreadyAdded && (
+                            <button
+                              type="button"
+                              onClick={() => removeSavedInclusion(inc)}
+                              className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-red-500/80 text-white flex items-center justify-center opacity-0 group-hover/s:opacity-100 transition-opacity hover:bg-red-600 scale-75"
+                              title="Remove from suggestions"
+                            >
+                              <X className="w-2 h-2" />
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             </div>
           ))}

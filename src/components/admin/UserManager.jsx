@@ -49,8 +49,8 @@ export default function UserManager() {
 
         // Filter out users who belong strictly to OTHER platforms and not events
         const platforms = Array.isArray(user.active_platforms) ? user.active_platforms : [];
-        // We only show them here if they are 'events' users, OR if their platforms array is totally empty (meaning they created an account here before the tagging fix)
-        const isEventsRelevant = platforms.includes('events') || platforms.length === 0;
+        // We only show them here if they are 'events' users, OR if their platforms array is totally empty, OR if they are a super admin
+        const isEventsRelevant = platforms.includes('events') || platforms.length === 0 || user.is_super_admin;
 
         return matchesSearch && isEventsRelevant;
     });

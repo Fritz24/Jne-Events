@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Headphones, ExternalLink, Armchair, Cookie, Coffee, Plus, Minus, Loader2, Ticket, Utensils, GlassWater } from "lucide-react";
+import { Headphones, ExternalLink, Armchair, Cookie, Coffee, Plus, Minus, Loader2, Ticket, Utensils, GlassWater, Check } from "lucide-react";
 import { format } from "date-fns";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
@@ -18,12 +18,19 @@ export default function TicketTiers({ event, compact = false }) {
         .select('*')
         .eq('available', true);
       if (error) throw error;
-      return data.map(item => ({
-        id: item.id,
-        name: item.name,
-        price: item.price,
-        category: item.category
-      }));
+      return data
+        .filter(item => {
+          // If no specific types are set, show on all events
+          if (!item.applicable_event_types || item.applicable_event_types.length === 0) return true;
+          // Otherwise check if current event type is in the allowed list
+          return item.applicable_event_types.includes(event?.type);
+        })
+        .map(item => ({
+          id: item.id,
+          name: item.name,
+          price: item.price,
+          category: item.category
+        }));
     }
   });
 
@@ -70,6 +77,16 @@ export default function TicketTiers({ event, compact = false }) {
         if (tier.snack_included) included.push("Snack/Popcorn 🍿");
         if (tier.drink_included) included.push("Drink 🥤");
 
+        if (tier.inclusions) {
+          tier.inclusions.forEach(inc => {
+            if (tier.headphones_included && inc === "Headphones") return;
+            if (tier.seat_included && inc === "Seat / Blanket") return;
+            if (tier.snack_included && inc === "Popcorn / Snack") return;
+            if (tier.drink_included && inc === "Drink") return;
+            included.push(`${inc} ✅`);
+          });
+        }
+
         let line = `• ${quantities[i]}x ${tier.label} @ ${(tier.price || 0).toLocaleString()} ${currency} = ${(quantities[i] * tier.price).toLocaleString()} ${currency}`;
         if (included.length > 0) {
           line += `\n  (Includes: ${included.join(", ")})`;
@@ -101,6 +118,19 @@ export default function TicketTiers({ event, compact = false }) {
     ].join("\n");
   };
 
+  const logClick = async () => {
+    try {
+      await supabase.from('jne_analytics').insert([{
+        event_id: event?.id,
+        event_title: event?.title,
+        type: 'whatsapp_click'
+      }]);
+    } catch (e) {
+      console.error("Analytics error:", e);
+    }
+  };
+
+
   return (
     <div className="space-y-4">
       {/* Tier rows */}
@@ -129,7 +159,7 @@ export default function TicketTiers({ event, compact = false }) {
                 )}
               </div>
 
-              {(tier.headphones_included || tier.seat_included || tier.snack_included || tier.drink_included) && (
+              {(tier.headphones_included || tier.seat_included || tier.snack_included || tier.drink_included || (tier.inclusions?.length > 0)) && (
                 <div className="flex flex-wrap gap-x-4 gap-y-1.5 border-b border-white/5 pb-3 mb-1">
                   <p className="w-full text-[10px] text-white/30 uppercase font-bold tracking-widest mb-1">Included free with ticket:</p>
                   {tier.headphones_included && (
@@ -156,6 +186,18 @@ export default function TicketTiers({ event, compact = false }) {
                       Drink
                     </div>
                   )}
+                  {(tier.inclusions || []).map((inc, incIdx) => {
+                    if (tier.headphones_included && inc === "Headphones") return null;
+                    if (tier.seat_included && inc === "Seat / Blanket") return null;
+                    if (tier.snack_included && inc === "Popcorn / Snack") return null;
+                    if (tier.drink_included && inc === "Drink") return null;
+                    return (
+                      <div key={incIdx} className="flex items-center gap-1.5 text-xs text-white/60 bg-white/5 px-2 py-1 rounded-md">
+                        <Check className={`w-3.5 h-3.5 shrink-0 ${isHighlight ? "text-violet-300" : "text-violet-400"}`} />
+                        {inc}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
 
@@ -233,6 +275,7 @@ export default function TicketTiers({ event, compact = false }) {
                       href={`https://wa.me/${whatsappBase}?text=${encodeURIComponent(buildWhatsAppMessage())}`}
                       target="_blank"
                       rel="noopener noreferrer"
+                      onClick={logClick}
                       className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold transition-all shadow-lg shadow-emerald-500/20"
                     >
                       Book on WhatsApp
@@ -248,6 +291,7 @@ export default function TicketTiers({ event, compact = false }) {
                     href={`https://wa.me/${whatsappBase}?text=${encodeURIComponent(buildWhatsAppMessage())}`}
                     target="_blank"
                     rel="noopener noreferrer"
+                    onClick={logClick}
                     className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold transition-all shadow-lg shadow-emerald-500/20"
                   >
                     Book on WhatsApp
