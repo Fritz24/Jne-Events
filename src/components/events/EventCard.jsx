@@ -6,11 +6,22 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import TicketTiers from "./TicketTiers";
 import { useLang } from "@/lib/LanguageContext";
+import { logAnalyticsEvent } from "../../utils/analytics";
 
 export default function EventCard({ event, index = 0 }) {
   const [showTiers, setShowTiers] = useState(false);
   const navigate = useNavigate();
   const { t } = useLang();
+
+  const handleToggleTiers = () => {
+    const nextState = !showTiers;
+    setShowTiers(nextState);
+
+    // Log a view when they open the tiers
+    if (nextState) {
+      logAnalyticsEvent('event_view', event.id, event.title);
+    }
+  };
 
   const typeConfig = {
     movie_night: { icon: Film, label: t.movieNights, color: "bg-amber-500/15 text-amber-300 border-amber-500/20" },
@@ -102,7 +113,7 @@ export default function EventCard({ event, index = 0 }) {
 
           {isAvailable ? (
             <button
-              onClick={() => setShowTiers(!showTiers)}
+              onClick={handleToggleTiers}
               className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-sm font-semibold transition-all"
             >
               {showTiers ? t.hidePackages : t.viewPackages}

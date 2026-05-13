@@ -17,6 +17,7 @@ import RefreshmentsManager from "../components/admin/RefreshmentsManager";
 import ExtrasManager from "../components/admin/RefreshmentsManager";
 import CategoryDesigner from "../components/admin/CategoryDesigner";
 import UserManager from "../components/admin/UserManager";
+import AnalyticsDashboard from "../components/admin/AnalyticsDashboard";
 import SettingsPanel from "../components/admin/SettingsPanel";
 import { useAuth } from "@/lib/AuthContext";
 
@@ -457,6 +458,17 @@ export default function Admin() {
             </div>
           )}
 
+          {/* Analytics */}
+          {activeSection === "analytics" && (
+            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
+              <div>
+                <h2 className="text-2xl font-bold text-white tracking-tight">Ecosystem Analytics</h2>
+                <p className="text-white/40 text-sm mt-1">Real-time tracking of visitor engagement and booking conversions.</p>
+              </div>
+              <AnalyticsDashboard />
+            </div>
+          )}
+
           {/* Extras */}
           {activeSection === "extras" && (
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
@@ -470,10 +482,10 @@ export default function Admin() {
             </div>
           )}
 
-          {/* Analytics / SEO / Marketing placeholders */}
-          {["analytics", "seo", "marketing"].includes(activeSection) && (
+          {/* SEO / Marketing placeholders */}
+          {["seo", "marketing"].includes(activeSection) && (
             <PlaceholderSection
-              icon={activeSection === "analytics" ? BarChart3 : activeSection === "seo" ? Globe : Megaphone}
+              icon={activeSection === "seo" ? Globe : Megaphone}
               title={activeSection.toUpperCase()}
               subtitle={`Coming soon — professional ${activeSection} tools.`}
             />

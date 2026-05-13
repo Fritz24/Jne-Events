@@ -3,6 +3,7 @@ import { Headphones, ExternalLink, Armchair, Cookie, Coffee, Plus, Minus, Loader
 import { format } from "date-fns";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
+import { logAnalyticsEvent } from "../../utils/analytics";
 
 export default function TicketTiers({ event, compact = false }) {
   const whatsappBase = event?.whatsapp_number?.replace(/[^0-9]/g, "") || "237681770020";
@@ -119,15 +120,7 @@ export default function TicketTiers({ event, compact = false }) {
   };
 
   const logClick = async () => {
-    try {
-      await supabase.from('jne_analytics').insert([{
-        event_id: event?.id,
-        event_title: event?.title,
-        type: 'whatsapp_click'
-      }]);
-    } catch (e) {
-      console.error("Analytics error:", e);
-    }
+    logAnalyticsEvent('whatsapp_click', event?.id, event?.title);
   };
 
 

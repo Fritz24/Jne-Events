@@ -18,6 +18,7 @@ import SignUp from './pages/SignUp';
 import ProgrammaticPage from './pages/ProgrammaticPage';
 import Privacy from './pages/Privacy';
 import Terms from './pages/Terms';
+import EventCalendar from './pages/EventCalendar';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -55,6 +56,8 @@ const AuthenticatedApp = () => {
         <Route path="/Home" element={<Navigate to="/home" replace />} />
         <Route path="/events" element={<Events />} />
         <Route path="/Events" element={<Navigate to="/events" replace />} />
+        <Route path="/calendar" element={<EventCalendar />} />
+        <Route path="/Calendar" element={<Navigate to="/calendar" replace />} />
 
         {/* Programmatic SEO Routes */}
         <Route path="/events/city/:value" element={<ProgrammaticPage type="city" />} />

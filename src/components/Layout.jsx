@@ -15,6 +15,7 @@ export default function Layout() {
   const navLinks = [
     { to: "/home", label: t.home, icon: Calendar },
     { to: "/events", label: t.events, icon: Film },
+    { to: "/calendar", label: "Calendar", icon: Calendar },
   ];
 
   return (
