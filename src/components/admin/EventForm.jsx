@@ -451,8 +451,8 @@ export default function EventForm({ event, onSave, onCancel }) {
               </div>
 
               <div className="space-y-1">
-                <Label className="text-white/50 text-xs">Description</Label>
-                <Input className={inputClass} placeholder="What's included..." value={tier.description || ""}
+                <Label className="text-white/50 text-xs">Tier Highlight</Label>
+                <Input className={inputClass} placeholder="e.g. Best for groups, Limited offer..." value={tier.description || ""}
                   onChange={e => handleTierChange(i, "description", e.target.value)} />
               </div>
 
