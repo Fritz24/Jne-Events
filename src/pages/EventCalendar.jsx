@@ -22,6 +22,7 @@ export default function EventCalendar() {
     const [copied, setCopied] = useState(false);
     const navigate = useNavigate();
 
+    // Fetch events
     const { data: events = [], isLoading } = useQuery({
         queryKey: ["events"],
         queryFn: async () => {
@@ -33,6 +34,44 @@ export default function EventCalendar() {
             return data || [];
         },
     });
+
+    // Fetch dynamic categories
+    const { data: categories = [] } = useQuery({
+        queryKey: ["event_categories"],
+        queryFn: async () => {
+            const { data } = await supabase.from('jne_settings').select('value').eq('key', 'event_categories').maybeSingle();
+            return data?.value ? JSON.parse(data.value) : [];
+        }
+    });
+
+    // Predefined premium color palette for dynamic categories
+    const CATEGORY_PALETTE = [
+        { color: "bg-violet-500/20 text-violet-300 border-violet-500/30", dot: "bg-violet-400", icon: Music },
+        { color: "bg-amber-500/20 text-amber-300 border-amber-500/30", dot: "bg-amber-400", icon: Film },
+        { color: "bg-emerald-500/20 text-emerald-300 border-emerald-500/30", dot: "bg-emerald-400", icon: Sparkles },
+        { color: "bg-fuchsia-500/20 text-fuchsia-300 border-fuchsia-500/30", dot: "bg-fuchsia-400", icon: Sparkles },
+        { color: "bg-cyan-500/20 text-cyan-300 border-cyan-500/30", dot: "bg-cyan-400", icon: Sparkles },
+        { color: "bg-rose-500/20 text-rose-300 border-rose-500/30", dot: "bg-rose-400", icon: Sparkles },
+    ];
+
+    // Generate dynamic type config mapping IDs to palette records
+    const typeConfig = useMemo(() => {
+        const config = {};
+        categories.forEach((cat, index) => {
+            config[cat.id] = {
+                ...CATEGORY_PALETTE[index % CATEGORY_PALETTE.length],
+                label: cat.label
+            };
+        });
+        return config;
+    }, [categories]);
+
+    const getTypeConfig = (type) => typeConfig[type] || {
+        icon: Sparkles,
+        color: "bg-white/10 text-white/60 border-white/20",
+        dot: "bg-white/40",
+        label: type?.replace("_", " ")
+    };
 
     // Calendar days grid
     const calendarDays = useMemo(() => {
@@ -107,15 +146,6 @@ export default function EventCalendar() {
             setTimeout(() => setCopied(false), 2500);
         }
     };
-
-    const typeConfig = {
-        movie_night: { icon: Film, color: "bg-amber-500/20 text-amber-300 border-amber-500/30", dot: "bg-amber-400" },
-        music: { icon: Music, color: "bg-violet-500/20 text-violet-300 border-violet-500/30", dot: "bg-violet-400" },
-        concert: { icon: Music, color: "bg-fuchsia-500/20 text-fuchsia-300 border-fuchsia-500/30", dot: "bg-fuchsia-400" },
-        party: { icon: Sparkles, color: "bg-emerald-500/20 text-emerald-300 border-emerald-500/30", dot: "bg-emerald-400" },
-    };
-
-    const getTypeConfig = (type) => typeConfig[type] || { icon: Sparkles, color: "bg-white/10 text-white/60 border-white/20", dot: "bg-white/40" };
 
     return (
         <div className="min-h-screen bg-[#06060a]">
@@ -208,59 +238,70 @@ export default function EventCalendar() {
                                     const hasEvents = dayEvents.length > 0;
 
                                     return (
-                                        <button
-                                            key={i}
-                                            onClick={() => setSelectedDate(day)}
-                                            className={`
-                                                relative aspect-square flex flex-col items-center justify-center gap-1 
-                                                rounded-full transition-all duration-300
-                                                ${!inMonth ? "opacity-20" : ""}
-                                                ${today && !selected ? "bg-violet-500/20 border border-violet-500/40" : "border border-white/5"}
-                                                ${selected ? "bg-violet-500/40 border-violet-400 shadow-[0_0_15px_rgba(139,92,246,0.3)] scale-105" : "hover:bg-white/[0.08] hover:border-white/20"}
-                                                ${past && !hasEvents ? "opacity-40" : ""}
-                                                overflow-hidden group
-                                            `}
-                                        >
-                                            {/* Blurry Event Background */}
-                                            {hasEvents && dayEvents[0]?.image_url && (
-                                                <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
-                                                    <img
-                                                        src={dayEvents[0].image_url}
-                                                        className={`w-full h-full object-cover blur-[2px] opacity-[0.35] scale-110 group-hover:scale-125 transition-transform duration-700 ${selected ? 'opacity-[0.55] blur-[1px]' : ''}`}
-                                                        alt=""
-                                                    />
-                                                    <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0f]/60 via-transparent to-transparent opacity-60" />
-                                                </div>
-                                            )}
-
-                                            <span
+                                        <div key={i} className="flex flex-col items-center gap-1.5">
+                                            <button
+                                                onClick={() => setSelectedDate(day)}
                                                 className={`
-                                                    relative z-10 text-sm font-bold transition-colors
-                                                    ${today ? "text-violet-400" : selected ? "text-white" : "text-white/80"}
-                                                    ${hasEvents && !selected ? "drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]" : ""}
+                                                    relative w-full aspect-square flex flex-col items-center justify-center gap-1 
+                                                    rounded-full transition-all duration-300
+                                                    ${!inMonth ? "opacity-20" : ""}
+                                                    ${today && !selected ? "bg-violet-500/20 border border-violet-500/40" : "border border-white/5"}
+                                                    ${selected ? "bg-violet-500/40 border-violet-400 shadow-[0_0_15px_rgba(139,92,246,0.3)] scale-105" : "hover:bg-white/[0.08] hover:border-white/20"}
+                                                    ${past && !hasEvents ? "opacity-40" : ""}
+                                                    overflow-hidden group
                                                 `}
                                             >
-                                                {format(day, "d")}
-                                            </span>
-
-                                            {/* Event Dots */}
-                                            {hasEvents && (
-                                                <div className="relative z-10 flex gap-0.5">
-                                                    {dayEvents.slice(0, 3).map((e, j) => (
-                                                        <div
-                                                            key={j}
-                                                            className={`w-1.5 h-1.5 rounded-full ${getTypeConfig(e.type).dot} ${selected ? 'scale-125' : ''} transition-transform shadow-md border border-black/20`}
+                                                {/* Blurry Event Background */}
+                                                {hasEvents && dayEvents[0]?.image_url && (
+                                                    <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+                                                        <img
+                                                            src={dayEvents[0].image_url}
+                                                            className={`w-full h-full object-cover opacity-[0.5] scale-110 group-hover:scale-125 transition-transform duration-700 ${selected ? 'opacity-[0.85] blur-none' : 'blur-[0.5px]'}`}
+                                                            alt=""
                                                         />
-                                                    ))}
-                                                </div>
-                                            )}
+                                                        <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0f]/50 via-transparent to-transparent opacity-50" />
+                                                    </div>
+                                                )}
 
-                                            {today && (
-                                                <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 z-10">
-                                                    <div className="w-1 h-1 rounded-full bg-violet-400 animate-pulse" />
+                                                <span
+                                                    className={`
+                                                        relative z-10 text-sm font-bold transition-colors
+                                                        ${today ? "text-violet-400" : selected ? "text-white" : "text-white"}
+                                                        drop-shadow-[0_2px_10px_rgba(0,0,0,1)]
+                                                    `}
+                                                >
+                                                    {format(day, "d")}
+                                                </span>
+
+                                                {/* Event Dots */}
+                                                {hasEvents && (
+                                                    <div className="relative z-10 flex gap-0.5">
+                                                        {dayEvents.slice(0, 3).map((e, j) => (
+                                                            <div
+                                                                key={j}
+                                                                className={`w-1.5 h-1.5 rounded-full ${getTypeConfig(e.type).dot} ${selected ? 'scale-125' : ''} transition-transform shadow-md border border-black/20`}
+                                                            />
+                                                        ))}
+                                                    </div>
+                                                )}
+
+                                                {today && (
+                                                    <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 z-10">
+                                                        <div className="w-1 h-1 rounded-full bg-violet-400 animate-pulse" />
+                                                    </div>
+                                                )}
+                                            </button>
+
+                                            {/* Event Name Label */}
+                                            {hasEvents && inMonth && (
+                                                <div className="w-full h-7">
+                                                    <p className={`text-[9px] font-bold text-center leading-tight truncate px-1 transition-colors ${selected ? 'text-violet-400' : 'text-white/40'}`}>
+                                                        {dayEvents[0].title}
+                                                        {dayEvents.length > 1 && ` (+${dayEvents.length - 1})`}
+                                                    </p>
                                                 </div>
                                             )}
-                                        </button>
+                                        </div>
                                     );
                                 })}
                             </div>
@@ -270,7 +311,7 @@ export default function EventCalendar() {
                                 {Object.entries(typeConfig).map(([key, cfg]) => (
                                     <div key={key} className="flex items-center gap-1.5 text-[10px] text-white/30 font-medium">
                                         <div className={`w-2 h-2 rounded-full ${cfg.dot}`} />
-                                        {key.replace("_", " ")}
+                                        {cfg.label}
                                     </div>
                                 ))}
                             </div>
@@ -388,7 +429,10 @@ export default function EventCalendar() {
                                                     </p>
                                                 </div>
                                                 <div className="text-[10px] font-bold text-white/20 shrink-0">
-                                                    {(e.price || 0).toLocaleString()} {e.currency || "XAF"}
+                                                    {(e.ticket_tiers?.length
+                                                        ? Math.min(...e.ticket_tiers.map((t) => t.price || 0))
+                                                        : e.price || 0
+                                                    ).toLocaleString()} {e.currency || "XAF"}
                                                 </div>
                                             </button>
                                         );
