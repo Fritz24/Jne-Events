@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { format } from "date-fns";
 import { useQuery } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -218,14 +219,19 @@ export default function EventForm({ event, onSave, onCancel }) {
   // Auto-generate WhatsApp message behind the scenes
   useEffect(() => {
     const dateObj = form.date ? new Date(form.date) : null;
-    const dateStr = dateObj && !isNaN(dateObj) ? dateObj.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }) : "";
-    const typeLabel = form.type === "movie_night" ? "Movie Night" : "Music Event";
-    const newMsg = `Hi! I'd like to book tickets for *${form.title || "your event"}* (${typeLabel})${dateStr ? ` on ${dateStr}` : ""}. Please let me know how to proceed. 🎟️`;
+    const dateFormatted = dateObj && !isNaN(dateObj) ? format(dateObj, "EEE, MMM d") : "";
+    const timeFormatted = dateObj && !isNaN(dateObj) ? format(dateObj, "h:mm a") : "";
+
+    // Attempt to find category label
+    const cat = categories?.find(c => c.id === form.type);
+    const typeLabel = cat ? cat.label : (form.type === "movie_night" ? "Movie Night" : "Music Event");
+
+    const newMsg = `Hi! I'd like to book tickets for *${form.title || "your event"}* (${typeLabel})${dateFormatted ? ` on ${dateFormatted} at ${timeFormatted}` : ""}. Please let me know how to proceed. 🎟️`;
 
     if (form.whatsapp_message !== newMsg) {
       setForm(prev => ({ ...prev, whatsapp_message: newMsg }));
     }
-  }, [form.title, form.date, form.type]);
+  }, [form.title, form.date, form.type, categories]);
 
   // Auto-save draft to localStorage on every change
   useEffect(() => {

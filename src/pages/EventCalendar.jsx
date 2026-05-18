@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { motion, AnimatePresence } from "framer-motion";
@@ -13,6 +13,7 @@ import {
 } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import SEO from "../components/common/SEO";
+import { logAnalyticsEvent } from "@/utils/analytics";
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -21,6 +22,11 @@ export default function EventCalendar() {
     const [selectedDate, setSelectedDate] = useState(null);
     const [copied, setCopied] = useState(false);
     const navigate = useNavigate();
+
+    // Log calendar view on mount
+    useEffect(() => {
+        logAnalyticsEvent('calendar_view');
+    }, []);
 
     // Fetch events
     const { data: events = [], isLoading } = useQuery({

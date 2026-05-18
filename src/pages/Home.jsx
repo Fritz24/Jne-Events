@@ -21,9 +21,10 @@ export default function Home() {
   });
 
   const now = new Date();
-  const upcomingEvents = events.filter(
-    (e) => e.status === "upcoming" && new Date(e.date) >= now
-  );
+  const upcomingEvents = events
+    .filter((e) => (e.status === "upcoming" || !e.status) && new Date(e.date) >= now)
+    .sort((a, b) => new Date(a.date) - new Date(b.date));
+
   const featuredEvents = upcomingEvents.filter((e) => e.featured).slice(0, 3);
   const nextUpEvents = upcomingEvents.filter((e) => !e.featured).slice(0, 5);
 

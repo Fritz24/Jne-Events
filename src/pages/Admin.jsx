@@ -19,6 +19,7 @@ import CategoryDesigner from "../components/admin/CategoryDesigner";
 import UserManager from "../components/admin/UserManager";
 import AnalyticsDashboard from "../components/admin/AnalyticsDashboard";
 import SettingsPanel from "../components/admin/SettingsPanel";
+import SubscriberManager from "../components/admin/SubscriberManager";
 import { useAuth } from "@/lib/AuthContext";
 
 const SIDEBAR_SECTIONS = [
@@ -50,6 +51,9 @@ const SIDEBAR_SECTIONS = [
   },
   {
     id: "marketing", label: "Marketing", icon: Megaphone,
+    children: [
+      { id: "marketing_subscribers", label: "Newsletter" },
+    ],
   },
   {
     id: "settings", label: "Settings", icon: Settings,
@@ -479,6 +483,17 @@ export default function Admin() {
               <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-4 sm:p-6">
                 <ExtrasManager />
               </div>
+            </div>
+          )}
+
+          {/* Marketing Subscriptions */}
+          {activeSection === "marketing_subscribers" && (
+            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
+              <div>
+                <h2 className="text-2xl font-bold text-white tracking-tight">Newsletter Subscribers</h2>
+                <p className="text-white/40 text-sm mt-1">Manage leads captured via the homepage notification box.</p>
+              </div>
+              <SubscriberManager />
             </div>
           )}
 

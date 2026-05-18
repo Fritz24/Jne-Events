@@ -103,7 +103,8 @@ export default function TicketGenerator({ event, onClose }) {
 
   const handleShare = async () => {
     const canvas = await captureTicket();
-    const message = `Hi! I'd like to book a ${tier.label} (${tier.price?.toLocaleString()} ${event.currency || "XAF"}) for ${event.title} on ${event.date ? format(new Date(event.date), "EEE, MMM d") : "TBA"}. Please let me know how to proceed. 🎟️`;
+    const timeStr = event.date ? format(new Date(event.date), "h:mm a") : "";
+    const message = `Hi! I'd like to book a ${tier.label} (${tier.price?.toLocaleString()} ${event.currency || "XAF"}) for ${event.title} on ${event.date ? format(new Date(event.date), "EEE, MMM d") : "TBA"}${timeStr ? ` at ${timeStr}` : ""}. Please let me know how to proceed. 🎟️`;
     canvas.toBlob(async (blob) => {
       const file = new File([blob], "ticket.png", { type: "image/png" });
       if (navigator.share && navigator.canShare({ files: [file] })) {
@@ -255,7 +256,7 @@ export default function TicketGenerator({ event, onClose }) {
                     crossOrigin="anonymous"
                     style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", objectFit: "cover", objectPosition: "center" }}
                   />
-                  <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to right, rgba(10,10,15,0.85) 0%, rgba(10,10,15,0.75) 60%, rgba(10,10,15,0.9) 100%)" }} />
+                  <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to right, rgba(10,10,15,0.95) 0%, rgba(10,10,15,0.85) 60%, rgba(10,10,15,0.95) 100%)" }} />
                 </>
               )}
 
@@ -265,13 +266,13 @@ export default function TicketGenerator({ event, onClose }) {
                 {/* Row 1: Brand */}
                 <div style={{ display: "flex", alignItems: "center", gap: "10px", flexShrink: 0 }}>
                   <div style={{ width: "34px", height: "34px", borderRadius: "9px", background: "linear-gradient(135deg, #8B5CF6, #F59E0B)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "16px", flexShrink: 0 }}>🎬</div>
-                  <span style={{ color: "rgba(255,255,255,0.6)", fontWeight: "700", fontSize: "14px", letterSpacing: "2px", textTransform: "uppercase" }}>JNE Nightouts</span>
+                  <span style={{ color: "rgba(255,255,255,0.8)", fontWeight: "700", fontSize: "14px", letterSpacing: "2px", textTransform: "uppercase" }}>JNE Nightouts</span>
                 </div>
 
                 {/* Row 2: Type + Title */}
                 <div style={{ marginTop: "14px", flexShrink: 0 }}>
-                  <div style={{ color: "rgba(255,255,255,0.4)", fontSize: "11px", textTransform: "uppercase", letterSpacing: "2px", marginBottom: "4px" }}>
-                    {event.type === "movie_night" ? "🎬 Movie Night" : "🎵 Music Event"}
+                  <div style={{ color: "rgba(255,255,255,0.6)", fontSize: "11px", textTransform: "uppercase", letterSpacing: "2px", marginBottom: "4px" }}>
+                    {(event.type === 'movie_night' || event.title?.toLowerCase().includes('movie')) ? "🎬 Movie Night" : (event.type === "music" ? "🎵 Music Event" : "✨ Special Event")}
                   </div>
                   <div style={{ color: "white", fontWeight: "800", fontSize: "26px", lineHeight: "1.15" }}>{event.title}</div>
                   {event.artist_or_movie && (

@@ -65,8 +65,21 @@ export default function Events() {
     return matchesType && matchesGenre && matchesCity && matchesSearch;
   });
 
-  const upcoming = filtered.filter(e => e.status === "upcoming" || e.status === "ongoing" || !e.status);
-  const past = filtered.filter(e => e.status === "completed" || e.status === "cancelled");
+  const now = new Date();
+  const upcoming = filtered
+    .filter(e =>
+      (e.status === "upcoming" || e.status === "ongoing" || !e.status) &&
+      (e.date ? new Date(e.date) >= now : true)
+    )
+    .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+  const past = events
+    .filter(e =>
+      e.status === "completed" ||
+      e.status === "cancelled" ||
+      (e.date && new Date(e.date) < now)
+    )
+    .sort((a, b) => new Date(b.date) - new Date(a.date));
 
   // JSON-LD Structured Data for Events
   const structuredData = {

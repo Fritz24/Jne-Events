@@ -36,16 +36,23 @@ export default function UpcomingPreview({ events }) {
               className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 sm:p-5 rounded-xl bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.05] hover:border-white/10 transition-all"
             >
               <div className="flex items-center gap-4">
-                <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${isMovie ? "bg-amber-500/10" : "bg-violet-500/10"
-                  }`}>
-                  <Icon className={`w-5 h-5 ${isMovie ? "text-amber-400" : "text-violet-400"}`} />
+                <div className="w-12 h-12 rounded-xl overflow-hidden shrink-0 border border-white/10 bg-white/5 flex items-center justify-center">
+                  {event.image_url ? (
+                    <img
+                      src={event.image_url}
+                      alt={event.title}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <Icon className={`w-5 h-5 ${isMovie ? "text-amber-400" : "text-violet-400"}`} />
+                  )}
                 </div>
                 <div>
                   <h3 className="font-semibold text-white">{event.title}</h3>
                   <div className="flex items-center gap-3 mt-1 text-sm text-white/40">
                     <span className="flex items-center gap-1">
                       <Calendar className="w-3.5 h-3.5" />
-                      {event.date ? format(new Date(event.date), "EEE, MMM d") : "TBA"}
+                      {event.date ? format(new Date(event.date), "EEE, MMM d · h:mm a") : "TBA"}
                     </span>
                     <span className="flex items-center gap-1">
                       <MapPin className="w-3.5 h-3.5" />

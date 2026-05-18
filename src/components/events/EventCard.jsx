@@ -4,6 +4,8 @@ import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/lib/supabase";
 import TicketTiers from "./TicketTiers";
 import { useLang } from "@/lib/LanguageContext";
 import { logAnalyticsEvent } from "../../utils/analytics";
@@ -23,6 +25,17 @@ export default function EventCard({ event, index = 0 }) {
     }
   };
 
+  // Fetch dynamic categories for labeling
+  const { data: categories = [] } = useQuery({
+    queryKey: ["event_categories"],
+    queryFn: async () => {
+      const { data } = await supabase.from('jne_settings').select('value').eq('key', 'event_categories').single();
+      return data?.value ? JSON.parse(data.value) : [];
+    }
+  });
+
+  const category = categories.find(c => c.id === event.type);
+
   const typeConfig = {
     movie_night: { icon: Film, label: t.movieNights, color: "bg-amber-500/15 text-amber-300 border-amber-500/20" },
     music: { icon: Music, label: t.music, color: "bg-violet-500/15 text-violet-300 border-violet-500/20" },
@@ -36,9 +49,18 @@ export default function EventCard({ event, index = 0 }) {
     completed: { label: t.completed, color: "bg-gray-500/15 text-gray-400" },
   };
 
-  const type = typeConfig[event.type] || typeConfig.music;
+  // Determine label and icon with smarter detection
+  const isMovie = event.type === 'movie_night' ||
+    category?.label?.toLowerCase().includes('movie') ||
+    event.title?.toLowerCase().includes('movie');
+
+  const typeLabel = category?.label || (isMovie ? (t.movieNights || "Movie Night") : (t.music || "Music Event"));
+  const typeColor = category?.color
+    ? `bg-[${category.color}]/10 text-[${category.color}] border-[${category.color}]/20`
+    : (isMovie ? typeConfig.movie_night.color : typeConfig.music.color);
+  const TypeIcon = isMovie ? Film : Music;
+
   const status = statusConfig[event.status] || statusConfig.upcoming;
-  const TypeIcon = type.icon;
   const isAvailable = event.status !== "sold_out" && event.status !== "cancelled" && event.status !== "completed" && event.status !== "ongoing";
 
   return (
@@ -66,11 +88,11 @@ export default function EventCard({ event, index = 0 }) {
 
           <div className="absolute top-3 left-3 flex gap-2">
             <Badge
-              className={`${type.color} border text-xs cursor-pointer hover:brightness-110`}
+              className={`${typeColor} border text-xs cursor-pointer hover:brightness-110`}
               onClick={(e) => { e.stopPropagation(); navigate(`/events/category/${event.type}`); }}
             >
               <TypeIcon className="w-3 h-3 mr-1" />
-              {type.label}
+              {typeLabel}
             </Badge>
           </div>
           {event.status === "sold_out" && (

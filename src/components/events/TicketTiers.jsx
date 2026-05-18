@@ -108,8 +108,9 @@ export default function TicketTiers({ event, compact = false }) {
       sections.push("", "Extras:", ...addonLines);
     }
 
+    const timeStr = event?.date ? format(new Date(event.date), "h:mm a") : "";
     return [
-      `Hi! I'd like to book tickets for *${event?.title || "JNE Nightout"}*${dateStr ? ` on ${dateStr}` : ""}:`,
+      `Hi! I'd like to book tickets for *${event?.title || "JNE Nightout"}*${dateStr ? ` on ${dateStr} at ${timeStr}` : ""}:`,
       "",
       ...sections,
       "",
