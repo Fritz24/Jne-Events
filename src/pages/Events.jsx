@@ -47,6 +47,14 @@ export default function Events() {
     },
   });
 
+  const { data: categories = [] } = useQuery({
+    queryKey: ["event_categories"],
+    queryFn: async () => {
+      const { data } = await supabase.from('jne_settings').select('value').eq('key', 'event_categories').single();
+      return data?.value ? JSON.parse(data.value) : [];
+    }
+  });
+
   const soldOut = isSoldOut(bookings);
   const usedSlots = countUsedSlots(bookings);
 
@@ -55,7 +63,21 @@ export default function Events() {
   const allCities = ["all", ...new Set(events.map(e => e.city).filter(Boolean))];
 
   const filtered = events.filter(e => {
-    const matchesType = activeFilters.type === "all" || e.type === activeFilters.type;
+    let matchesType = activeFilters.type === "all" || e.type === activeFilters.type;
+
+    // Smart fallback detection for custom category IDs acting as movies/music
+    if (!matchesType && activeFilters.type !== "all") {
+      const cat = categories.find(c => c.id === e.type);
+      const isMovieFilter = activeFilters.type === "movie_night";
+      const isMusicFilter = activeFilters.type === "music";
+
+      if (isMovieFilter && (cat?.label?.toLowerCase().includes("movie") || e.title?.toLowerCase().includes("movie"))) {
+        matchesType = true;
+      } else if (isMusicFilter && (cat?.label?.toLowerCase().includes("music") || e.title?.toLowerCase().includes("music"))) {
+        matchesType = true;
+      }
+    }
+
     const matchesGenre = activeFilters.genre === "all" || e.genre === activeFilters.genre;
     const matchesCity = activeFilters.location === "all" || e.city === activeFilters.location;
     const matchesSearch = !activeFilters.search ||
@@ -162,20 +184,7 @@ export default function Events() {
             </div>
           )}
 
-          {past.length > 0 && (
-            <div className="mt-16">
-              <h2 className="text-sm font-medium text-white/30 uppercase tracking-wider mb-5">
-                {t.pastEvents}
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 opacity-60">
-                {past.map((event, i) => (
-                  <EventCard key={event.id} event={event} index={i} />
-                ))}
-              </div>
-            </div>
-          )}
-
-          {filtered.length === 0 && (
+          {upcoming.length === 0 && (
             <div className="text-center py-20">
               <p className="text-white/30 text-lg">{t.noEvents}</p>
             </div>
