@@ -88,11 +88,12 @@ export default function EventCalendar() {
         return eachDayOfInterval({ start: calStart, end: calEnd });
     }, [currentMonth]);
 
-    // Events grouped by date
+    // Events grouped by date (ignoring past events)
     const eventsByDate = useMemo(() => {
         const map = {};
+        const now = new Date();
         events.forEach((e) => {
-            if (!e.date) return;
+            if (!e.date || new Date(e.date) < now) return;
             const key = format(new Date(e.date), "yyyy-MM-dd");
             if (!map[key]) map[key] = [];
             map[key].push(e);
