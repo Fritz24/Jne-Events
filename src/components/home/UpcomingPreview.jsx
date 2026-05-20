@@ -22,7 +22,7 @@ export default function UpcomingPreview({ events }) {
         </Link>
       </div>
 
-      <div className="space-y-3">
+      <div className="space-y-4 max-w-4xl mx-auto">
         {events.map(event => {
           const isMovie = event.type === "movie_night";
           const Icon = isMovie ? Film : Music;
@@ -33,37 +33,43 @@ export default function UpcomingPreview({ events }) {
           return (
             <div
               key={event.id}
-              className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 sm:p-5 rounded-xl bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.05] hover:border-white/10 transition-all"
+              className="relative flex flex-col sm:flex-row rounded-xl overflow-hidden bg-[#0d0d12] border border-white/[0.08] hover:bg-[#111118] hover:border-white/15 transition-all group shadow-2xl"
             >
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl overflow-hidden shrink-0 border border-white/10 bg-white/5 flex items-center justify-center">
-                  {event.image_url ? (
-                    <img
-                      src={event.image_url}
-                      alt={event.title}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <Icon className={`w-5 h-5 ${isMovie ? "text-amber-400" : "text-violet-400"}`} />
-                  )}
-                </div>
-                <div>
-                  <h3 className="font-semibold text-white">{event.title}</h3>
-                  <div className="flex items-center gap-3 mt-1 text-sm text-white/40">
-                    <span className="flex items-center gap-1">
-                      <Calendar className="w-3.5 h-3.5" />
-                      {event.date ? format(new Date(event.date), "EEE, MMM d · h:mm a") : "TBA"}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <MapPin className="w-3.5 h-3.5" />
-                      {event.venue}
-                    </span>
+              {/* Left cutout */}
+              <div className="hidden sm:block absolute top-1/2 -translate-y-1/2 -left-3 w-6 h-6 bg-[#0a0a0f] rounded-full border-r border-white/10 border-y border-transparent z-10 group-hover:border-white/20 transition-colors" />
+
+              <div className="flex-1 flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 sm:px-6 sm:py-5 border-b sm:border-b-0 sm:border-r-[2px] border-dashed border-white/10">
+                <div className="flex items-center gap-5">
+                  <div className="w-16 h-16 rounded-xl overflow-hidden shrink-0 border border-white/10 bg-white/5 flex items-center justify-center shadow-md">
+                    {event.image_url ? (
+                      <img
+                        src={event.image_url}
+                        alt={event.title}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <Icon className={`w-6 h-6 ${isMovie ? "text-amber-400" : "text-violet-400"}`} />
+                    )}
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <h3 className="font-bold text-white text-lg tracking-wide">{event.title}</h3>
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-[13px] text-white/50 font-medium">
+                      <span className="flex items-center gap-1.5">
+                        <Calendar className="w-4 h-4 text-violet-400/70" />
+                        {event.date ? format(new Date(event.date), "EEE, MMM d · h:mm a") : "TBA"}
+                      </span>
+                      <span className="flex items-center gap-1.5">
+                        <MapPin className="w-4 h-4 text-violet-400/70" />
+                        {event.venue}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              <div className="flex items-center gap-4 sm:gap-6">
-                <span className="text-lg font-bold text-white">
+              {/* Right Ticket Stub */}
+              <div className="flex sm:flex-col items-center justify-between sm:justify-center gap-3 p-4 sm:px-8 sm:py-0 bg-white/[0.02] sm:min-w-[160px]">
+                <span className="text-[17px] font-black text-white tracking-tight">
                   {(event.ticket_tiers?.length
                     ? Math.min(...event.ticket_tiers.map(t => t.price || 0))
                     : (event.price || 0)
@@ -74,12 +80,15 @@ export default function UpcomingPreview({ events }) {
                     href={whatsappUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium transition-all"
+                    className="inline-flex items-center justify-center min-w-[100px] px-4 py-2 rounded-lg bg-emerald-500/10 hover:bg-emerald-500 hover:text-white border border-emerald-500/30 text-emerald-400 text-sm font-semibold capitalize transition-all shadow-lg"
                   >
-                    {t.book} <ExternalLink className="w-3.5 h-3.5" />
+                    {t.book}
                   </a>
                 )}
               </div>
+
+              {/* Right cutout */}
+              <div className="hidden sm:block absolute top-1/2 -translate-y-1/2 -right-3 w-6 h-6 bg-[#0a0a0f] rounded-full border-l border-white/10 border-y border-transparent z-10 group-hover:border-white/20 transition-colors" />
             </div>
           );
         })}

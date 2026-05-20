@@ -7,7 +7,7 @@ import {
   Plus, CalendarDays, Ticket, ShieldOff, ShoppingBag, Users,
   LayoutDashboard, BarChart3, Globe, Megaphone, Settings,
   ChevronDown, Menu, X, Sparkles, TrendingUp, Eye,
-  MessageCircle, MapPin, ArrowUpRight, Tags, Layers, Settings2
+  MessageCircle, MapPin, ArrowUpRight, Tags, Layers, Settings2, ScanLine
 } from "lucide-react";
 import EventForm from "../components/admin/EventForm";
 import EventTable from "../components/admin/EventTable";
@@ -20,6 +20,7 @@ import UserManager from "../components/admin/UserManager";
 import AnalyticsDashboard from "../components/admin/AnalyticsDashboard";
 import SettingsPanel from "../components/admin/SettingsPanel";
 import SubscriberManager from "../components/admin/SubscriberManager";
+import ScannerManager from "../components/admin/ScannerManager";
 import { useAuth } from "@/lib/AuthContext";
 
 const SIDEBAR_SECTIONS = [
@@ -36,6 +37,9 @@ const SIDEBAR_SECTIONS = [
   },
   {
     id: "bookings", label: "Bookings", icon: Ticket,
+  },
+  {
+    id: "scanner", label: "Scanner", icon: ScanLine,
   },
   {
     id: "users", label: "Users", icon: Users,
@@ -63,6 +67,7 @@ const SIDEBAR_SECTIONS = [
 export default function Admin() {
   const { user, isLoadingAuth } = useAuth();
   const [activeSection, setActiveSection] = useState("dashboard");
+  const [eventsFilter, setEventsFilter] = useState("upcoming");
   const [showForm, setShowForm] = useState(false);
   const [editingEvent, setEditingEvent] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -360,11 +365,11 @@ export default function Admin() {
                 </button>
               </div>
 
-              {/* Recent Events */}
+              {/* Upcoming Events */}
               <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] overflow-hidden">
                 <div className="px-6 py-4 border-b border-white/[0.06] flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-white">Recent Events</h3>
-                  <button onClick={() => setActiveSection("events_all")} className="text-[11px] text-violet-400 hover:text-violet-300 font-medium">View All →</button>
+                  <h3 className="text-sm font-semibold text-white">Upcoming Events</h3>
+                  <button onClick={() => { setActiveSection("events_all"); setEventsFilter("upcoming"); }} className="text-[11px] text-violet-400 hover:text-violet-300 font-medium">View All →</button>
                 </div>
                 <div className="p-4">
                   {isLoading ? (
@@ -372,7 +377,7 @@ export default function Admin() {
                       <div className="w-5 h-5 border-2 border-violet-400 border-t-transparent rounded-full animate-spin" />
                     </div>
                   ) : (
-                    <EventTable events={events.slice(0, 5)} onEdit={handleEdit} onDelete={(id) => deleteMutation.mutate(id)} />
+                    <EventTable events={events.filter(e => (e.status || "upcoming") === "upcoming").slice(0, 5)} onEdit={handleEdit} onDelete={(id) => deleteMutation.mutate(id)} />
                   )}
                 </div>
               </div>
@@ -382,17 +387,31 @@ export default function Admin() {
           {/* Events: All */}
           {activeSection === "events_all" && (
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                   <h2 className="text-2xl font-bold text-white tracking-tight">Events Gallery</h2>
-                  <p className="text-white/40 text-sm mt-1">{events.length} total events</p>
+                  <p className="text-white/40 text-sm mt-1">
+                    {events.filter(e => eventsFilter === "all" ? true : (e.status || "upcoming") === eventsFilter).length} {eventsFilter !== "all" ? eventsFilter : "total"} events
+                  </p>
                 </div>
-                <Button
-                  onClick={() => { setEditingEvent(null); setShowForm(true); setActiveSection("events_create"); }}
-                  className="bg-violet-600 hover:bg-violet-500 text-white shadow-lg shadow-violet-500/20"
-                >
-                  <Plus className="w-4 h-4 mr-2" /> New Event
-                </Button>
+                <div className="flex items-center gap-3">
+                  <select
+                    value={eventsFilter}
+                    onChange={(e) => setEventsFilter(e.target.value)}
+                    className="bg-white/5 border border-white/10 rounded-lg text-sm text-white/70 px-3 py-2 outline-none focus:border-violet-500 transition-all cursor-pointer h-10"
+                  >
+                    <option value="all" className="bg-[#0a0a0f]">All Events</option>
+                    <option value="upcoming" className="bg-[#0a0a0f]">Upcoming</option>
+                    <option value="completed" className="bg-[#0a0a0f]">Completed</option>
+                    <option value="cancelled" className="bg-[#0a0a0f]">Cancelled</option>
+                  </select>
+                  <Button
+                    onClick={() => { setEditingEvent(null); setShowForm(true); setActiveSection("events_create"); }}
+                    className="bg-violet-600 hover:bg-violet-500 text-white shadow-lg shadow-violet-500/20 h-10"
+                  >
+                    <Plus className="w-4 h-4 mr-2" /> New Event
+                  </Button>
+                </div>
               </div>
               <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-4 sm:p-6">
                 {isLoading ? (
@@ -400,7 +419,11 @@ export default function Admin() {
                     <div className="w-6 h-6 border-2 border-violet-400 border-t-transparent rounded-full animate-spin" />
                   </div>
                 ) : (
-                  <EventTable events={events} onEdit={handleEdit} onDelete={(id) => deleteMutation.mutate(id)} />
+                  <EventTable
+                    events={events.filter(e => eventsFilter === "all" ? true : (e.status || "upcoming") === eventsFilter)}
+                    onEdit={handleEdit}
+                    onDelete={(id) => deleteMutation.mutate(id)}
+                  />
                 )}
               </div>
             </div>
@@ -445,6 +468,15 @@ export default function Admin() {
               </div>
               <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-4 sm:p-6">
                 <BookingManager />
+              </div>
+            </div>
+          )}
+
+          {/* Scanner */}
+          {activeSection === "scanner" && (
+            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
+              <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-4 sm:p-6 lg:p-10">
+                <ScannerManager />
               </div>
             </div>
           )}

@@ -57,6 +57,17 @@ export const AuthProvider = ({ children }) => {
         console.error('DEBUG: Ecosystem Profile Error:', error);
       }
 
+      // Safely auto-tag the user to 'events' if they aren't already, now that they are authenticated (bypassing 403 RLS)
+      const platforms = profile?.active_platforms || [];
+      if (!platforms.includes('events')) {
+        await supabase
+          .from('users')
+          .update({ active_platforms: [...platforms, 'events'] })
+          .eq('auth_id', authUser.id);
+
+        if (profile) profile.active_platforms = [...platforms, 'events'];
+      }
+
       // Map ecosystem properties to app user object
       // is_super_admin grants 'admin' role in JnE Events
       const isAdmin = profile?.is_super_admin === true || String(profile?.is_super_admin) === 'true';

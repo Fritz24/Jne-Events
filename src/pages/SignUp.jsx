@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/AuthContext";
 import { supabase } from "@/lib/supabase";
@@ -15,9 +15,11 @@ export default function SignUp() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
 
-    if (user) {
-        navigate(user.role === 'admin' ? "/admin" : "/home");
-    }
+    useEffect(() => {
+        if (user) {
+            navigate(user.role === 'admin' ? "/admin" : "/home");
+        }
+    }, [user, navigate]);
 
     const handleSignUp = async (e) => {
         e.preventDefault();
@@ -26,24 +28,7 @@ export default function SignUp() {
         try {
             const res = await signUp(email, password, { full_name: fullName });
 
-            // Link new the user to the Events platform
-            if (res?.user?.id) {
-                const { data: userRecord } = await supabase
-                    .from('users')
-                    .select('active_platforms')
-                    .eq('auth_id', res.user.id)
-                    .single();
-
-                const platforms = userRecord?.active_platforms || [];
-                if (!platforms.includes('events')) {
-                    await supabase
-                        .from('users')
-                        .update({ active_platforms: [...platforms, 'events'] })
-                        .eq('auth_id', res.user.id);
-                }
-            }
-
-            // New users are customers by default
+            // Tagging handled securely by AuthContext upon session detection
             navigate("/home");
         } catch (err) {
             setError(err.message || "Failed to create account. Please try again.");

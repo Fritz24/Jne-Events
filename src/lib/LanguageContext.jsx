@@ -12,8 +12,8 @@ export const translations = {
     dashboard: "Dashboard",
     // Hero
     everyWeekend: "Every Weekend",
-    heroSubtitle: "Movie Nights & Live Music",
-    heroDescription: "Join us every weekend for unforgettable movie nights and electrifying music events. Book your tickets instantly via WhatsApp.",
+    heroSubtitle: "Premium Events & Experiences",
+    heroDescription: "Join us every weekend for unforgettable movie nights, live performances, and exclusive gatherings. Book your tickets instantly via WhatsApp.",
     browseEvents: "Browse Events",
     // Upcoming
     comingUp: "Coming Up",
@@ -63,8 +63,8 @@ export const translations = {
     dashboard: "Tableau de bord",
     // Hero
     everyWeekend: "Chaque Week-end",
-    heroSubtitle: "Soirées Cinéma & Musique Live",
-    heroDescription: "Rejoignez-nous chaque week-end pour des soirées cinéma inoubliables et des concerts électrisants. Réservez vos billets instantanément via WhatsApp.",
+    heroSubtitle: "Événements & Expériences Premium",
+    heroDescription: "Rejoignez-nous chaque week-end pour des soirées cinéma inoubliables, des performances live et des rassemblements exclusifs. Réservez vos billets instantanément via WhatsApp.",
     browseEvents: "Voir les Événements",
     // Upcoming
     comingUp: "À Venir",

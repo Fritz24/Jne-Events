@@ -32,6 +32,17 @@ export default function UserManager() {
         onSuccess: () => queryClient.invalidateQueries({ queryKey: ["users"] }),
     });
 
+    const togglePlatformMutation = useMutation({
+        mutationFn: async ({ id, platforms }) => {
+            const { error } = await supabase
+                .from('users')
+                .update({ active_platforms: platforms })
+                .eq('id', id);
+            if (error) throw error;
+        },
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: ["users"] }),
+    });
+
     const deleteMutation = useMutation({
         mutationFn: async (id) => {
             const { error } = await supabase
@@ -47,10 +58,9 @@ export default function UserManager() {
         const matchesSearch = (user.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
             (user.email?.toLowerCase() || '').includes(searchTerm.toLowerCase());
 
-        // Filter out users who belong strictly to OTHER platforms and not events
+        // STRICT SCOPING: Only show users explicitly connected to Events or if they are Super Admin
         const platforms = Array.isArray(user.active_platforms) ? user.active_platforms : [];
-        // We only show them here if they are 'events' users, OR if their platforms array is totally empty, OR if they are a super admin
-        const isEventsRelevant = platforms.includes('events') || platforms.length === 0 || user.is_super_admin;
+        const isEventsRelevant = platforms.includes('events') || user.is_super_admin;
 
         return matchesSearch && isEventsRelevant;
     });
