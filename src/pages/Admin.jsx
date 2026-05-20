@@ -202,25 +202,30 @@ export default function Admin() {
   };
 
   return (
-    <div className="min-h-screen bg-[#09090b] flex">
-      {/* Mobile sidebar toggle */}
-      <button
-        onClick={() => setSidebarOpen(!sidebarOpen)}
-        className="fixed top-4 left-4 z-50 lg:hidden p-3 bg-white/5 border border-white/10 rounded-xl backdrop-blur-md text-white/70 hover:bg-white/10 transition-all"
-      >
-        {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-      </button>
+    <div className="min-h-screen bg-[#09090b] flex flex-col lg:flex-row">
+      {/* Mobile Top Header Bar */}
+      <div className="lg:hidden sticky top-0 z-40 w-full bg-[#0c0c0f]/80 backdrop-blur-md border-b border-white/[0.06] flex items-center justify-between px-6 py-4">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="p-2 -ml-2 rounded-lg hover:bg-white/5 text-white/70 transition-all"
+          >
+            <Menu className="w-6 h-6" />
+          </button>
+          <span className="text-[14px] font-bold text-white tracking-wider uppercase">JNE Control Panel</span>
+        </div>
+      </div>
 
       {/* Sidebar Overlay (mobile) */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-30 lg:hidden"
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
       {/* Sidebar */}
-      <aside className={`fixed lg:sticky top-0 left-0 h-screen w-[260px] bg-[#0c0c0f] border-r border-white/[0.06] z-40 flex flex-col transition-transform duration-300 ease-out ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}>
+      <aside className={`fixed lg:sticky top-0 left-0 h-screen w-[260px] bg-[#0c0c0f] border-r border-white/[0.06] z-50 flex flex-col transition-transform duration-300 ease-out ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}>
 
         {/* Logo */}
         <div className="px-6 py-6 border-b border-white/[0.06] space-y-4">

@@ -27,37 +27,49 @@ export default function ScannerManager() {
     }, []);
 
     useEffect(() => {
-        let html5QrcodeScanner = null;
+        let html5QrCode = null;
 
-        if (isCameraActive && window.Html5QrcodeScanner) {
-            html5QrcodeScanner = new window.Html5QrcodeScanner(
-                "reader",
-                { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 },
-                /* verbose= */ false
-            );
-
-            html5QrcodeScanner.render((decodedText) => {
-                // Success callback
-                setTicketId(decodedText);
-                setIsCameraActive(false); // Stop camera
-                html5QrcodeScanner.clear();
-            }, () => {
-                // Ignore failure
+        if (isCameraActive && window.Html5Qrcode) {
+            // Instantly instantiate programmatic scanner on the clean element
+            html5QrCode = new window.Html5Qrcode("reader");
+            
+            html5QrCode.start(
+                { facingMode: "environment" }, // Forces rear/back camera automatically!
+                { 
+                    fps: 10, 
+                    qrbox: { width: 250, height: 250 },
+                    aspectRatio: 1.0 
+                },
+                (decodedText) => {
+                    // On scan success: set input, stop scanner, turn off camera UI
+                    setTicketId(decodedText);
+                    setIsCameraActive(false);
+                    // Also trigger the validation process automatically
+                    handleScan(null, decodedText);
+                },
+                () => {
+                    // Continuous search frame errors, safe to ignore
+                }
+            ).catch(err => {
+                console.error("Error starting Html5Qrcode programmatically:", err);
             });
         }
 
         return () => {
-            if (html5QrcodeScanner) {
-                html5QrcodeScanner.clear().catch(error => {
-                    console.error("Failed to clear html5QrcodeScanner. ", error);
-                });
+            if (html5QrCode) {
+                if (html5QrCode.isScanning) {
+                    html5QrCode.stop().catch(err => {
+                        console.error("Failed to stop programmatic scanner in cleanup:", err);
+                    });
+                }
             }
         };
     }, [isCameraActive]);
 
-    const handleScan = async (e) => {
+    const handleScan = async (e, scannedId = null) => {
         if (e) e.preventDefault();
-        if (!ticketId.trim()) return;
+        const finalId = scannedId || ticketId;
+        if (!finalId.trim()) return;
 
         setLoading(true);
         setScanResult(null);
@@ -66,7 +78,7 @@ export default function ScannerManager() {
             const { data: booking, error } = await supabase
                 .from('jne_bookings')
                 .select('*')
-                .eq('ticket_id', ticketId.trim())
+                .eq('ticket_id', finalId.trim())
                 .single();
 
             if (error || !booking) {
@@ -130,48 +142,19 @@ export default function ScannerManager() {
 
     return (
         <div className="max-w-xl mx-auto space-y-8 py-4">
-            {/* CSS Override for ugly html5-qrcode defaults to force Apple Dark Mode styling */}
+            {/* CSS Override to clean up the video viewfinder tag layout */}
             <style>{`
                 #reader {
                     background: transparent !important;
                     border: none !important;
                     color: white !important;
                     font-family: inherit !important;
-                }
-                #reader__dashboard_section_csr span {
-                    color: rgba(255,255,255,0.5) !important;
-                    font-size: 13px !important;
-                }
-                #reader__dashboard_section_csr button {
-                    background: rgba(255, 255, 255, 0.1) !important;
-                    border: 1px solid rgba(255, 255, 255, 0.1) !important;
-                    color: white !important;
-                    border-radius: 8px !important;
-                    padding: 6px 12px !important;
-                    font-size: 13px !important;
-                    font-weight: 500 !important;
-                    margin: 8px 4px !important;
-                    transition: all 0.2s ease;
-                }
-                #reader__dashboard_section_csr button:hover {
-                    background: rgba(255, 255, 255, 0.15) !important;
-                }
-                #reader__camera_selection {
-                    background: rgba(0, 0, 0, 0.5) !important;
-                    border: 1px solid rgba(255, 255, 255, 0.1) !important;
-                    color: white !important;
-                    border-radius: 8px !important;
-                    padding: 8px !important;
-                    margin-bottom: 12px !important;
                     width: 100% !important;
-                    max-width: 300px !important;
                 }
                 #reader video {
-                    border-radius: 16px !important;
+                    border-radius: 20px !important;
                     object-fit: cover !important;
-                }
-                #reader__dashboard_section_swaplink {
-                    display: none !important; /* Hides the ugly 'scan an image file' link */
+                    border: 1px solid rgba(255, 255, 255, 0.06) !important;
                 }
             `}</style>
 
