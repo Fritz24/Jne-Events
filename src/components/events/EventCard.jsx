@@ -112,7 +112,7 @@ export default function EventCard({ event, index = 0 }) {
           <div className="flex flex-col gap-2 mb-4">
             <div className="flex items-center gap-2 text-sm text-white/50">
               <Calendar className="w-3.5 h-3.5 shrink-0" />
-              {event.date ? format(new Date(event.date), "EEE, MMM d · h:mm a") : "TBA"}
+              {event.date ? format(new Date(event.date), "EEE, MMM d · HH:mm") : "TBA"}
             </div>
             <div
               className="flex items-center gap-2 text-sm text-white/50 cursor-pointer hover:text-violet-400 transition-colors"

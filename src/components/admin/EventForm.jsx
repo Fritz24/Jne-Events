@@ -220,7 +220,7 @@ export default function EventForm({ event, onSave, onCancel }) {
   useEffect(() => {
     const dateObj = form.date ? new Date(form.date) : null;
     const dateFormatted = dateObj && !isNaN(dateObj) ? format(dateObj, "EEE, MMM d") : "";
-    const timeFormatted = dateObj && !isNaN(dateObj) ? format(dateObj, "h:mm a") : "";
+    const timeFormatted = dateObj && !isNaN(dateObj) ? format(dateObj, "HH:mm") : "";
 
     // Attempt to find category label
     const cat = categories?.find(c => c.id === form.type);

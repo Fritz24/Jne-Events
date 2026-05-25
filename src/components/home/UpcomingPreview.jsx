@@ -23,7 +23,7 @@ export default function UpcomingPreview({ events }) {
       </div>
 
       <div className="space-y-4 max-w-4xl mx-auto">
-        {events.map(event => {
+        {events.slice(0, 3).map(event => {
           const isMovie = event.type === "movie_night";
           const Icon = isMovie ? Film : Music;
           const whatsappUrl = `https://wa.me/${event.whatsapp_number?.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(
@@ -56,7 +56,7 @@ export default function UpcomingPreview({ events }) {
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-[13px] text-white/50 font-medium">
                       <span className="flex items-center gap-1.5">
                         <Calendar className="w-4 h-4 text-violet-400/70" />
-                        {event.date ? format(new Date(event.date), "EEE, MMM d · h:mm a") : "TBA"}
+                        {event.date ? format(new Date(event.date), "EEE, MMM d · HH:mm") : "TBA"}
                       </span>
                       <span className="flex items-center gap-1.5">
                         <MapPin className="w-4 h-4 text-violet-400/70" />

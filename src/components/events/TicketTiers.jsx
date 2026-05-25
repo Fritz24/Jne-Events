@@ -108,16 +108,27 @@ export default function TicketTiers({ event, compact = false }) {
       sections.push("", "Extras:", ...addonLines);
     }
 
-    const timeStr = event?.date ? format(new Date(event.date), "h:mm a") : "";
+    const timeStr = event?.date ? format(new Date(event.date), "HH:mm") : "";
+    
+    // If the admin defined a custom WhatsApp message for this event, use it as the intro!
+    let introMessage = `Hi! I'd like to book tickets for *${event?.title || "JNE Nightout"}*${dateStr ? ` on ${dateStr} at ${timeStr}` : ""}:`;
+    let outroMessage = "Please let me know how to proceed. 🎟️";
+
+    if (event?.whatsapp_message) {
+      // We assume the custom message is the intro. If it contains "Please let me know", we can strip it or just use the whole thing.
+      introMessage = event.whatsapp_message;
+      outroMessage = ""; // Avoid duplicating the outro if it's already in their custom message
+    }
+
     return [
-      `Hi! I'd like to book tickets for *${event?.title || "JNE Nightout"}*${dateStr ? ` on ${dateStr} at ${timeStr}` : ""}:`,
+      introMessage,
       "",
       ...sections,
       "",
       `*Total: ${totalPrice.toLocaleString()} ${currency}* (${totalTickets} ticket${totalTickets !== 1 ? "s" : ""})`,
-      "",
-      "Please let me know how to proceed. 🎟️",
-    ].join("\n");
+      outroMessage ? "" : null,
+      outroMessage || null,
+    ].filter(line => line !== null).join("\n");
   };
 
   const logClick = async () => {
