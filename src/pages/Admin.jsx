@@ -21,6 +21,7 @@ import AnalyticsDashboard from "../components/admin/AnalyticsDashboard";
 import SettingsPanel from "../components/admin/SettingsPanel";
 import SubscriberManager from "../components/admin/SubscriberManager";
 import ScannerManager from "../components/admin/ScannerManager";
+import AlbumManager from "../components/admin/AlbumManager";
 import { useAuth } from "@/lib/AuthContext";
 
 const SIDEBAR_SECTIONS = [
@@ -46,6 +47,9 @@ const SIDEBAR_SECTIONS = [
   },
   {
     id: "extras", label: "Extras", icon: ShoppingBag,
+  },
+  {
+    id: "albums", label: "Albums", icon: Sparkles,
   },
   {
     id: "analytics", label: "Analytics", icon: BarChart3,
@@ -519,6 +523,15 @@ export default function Admin() {
               </div>
               <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-4 sm:p-6">
                 <ExtrasManager />
+              </div>
+            </div>
+          )}
+
+          {/* Albums */}
+          {activeSection === "albums" && (
+            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
+              <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-4 sm:p-6">
+                <AlbumManager />
               </div>
             </div>
           )}

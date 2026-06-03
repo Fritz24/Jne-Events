@@ -1,110 +1,82 @@
-import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { X, Images } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/lib/supabase";
+import { Link } from "react-router-dom";
+import { Images, ArrowRight, Image as ImageIcon } from "lucide-react";
 import { useLang } from "@/lib/LanguageContext";
 
-const photos = [
-  {
-    url: "/picture1.JPG",
-    caption: "Premium Movie Night",
-  },
-  {
-    url: "/picture2.jpg",
-    caption: "Live Performances",
-  },
-  {
-    url: "/picture3.jpg",
-    caption: "Exclusive Gatherings",
-  },
-  {
-    url: "/picture4.jpg",
-    caption: "Vibrant Atmosphere",
-  },
-  {
-    url: "/picture5.jpg",
-    caption: "Community Vibes",
-  },
-  {
-    url: "/picture6.jpg",
-    caption: "Social Evenings",
-  },
-  {
-    url: "/picture7.jpg",
-    caption: "Memorable Moments",
-  },
-];
-
 export default function GallerySection() {
-  const [lightbox, setLightbox] = useState(null);
   const { t } = useLang();
 
+  const { data: albums = [] } = useQuery({
+    queryKey: ["public_albums_preview"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('jne_settings')
+        .select('value')
+        .eq('key', 'albums')
+        .maybeSingle();
+
+      if (error) throw error;
+      const value = data?.value;
+      return Array.isArray(value) ? value : [];
+    }
+  });
+
+  // Only show the section if there are actually albums to preview
+  if (albums.length === 0) return null;
+
+  // Take up to 3 albums for the preview
+  const previewAlbums = albums.slice(0, 3);
+
   return (
-    <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-      <div className="mb-10">
-        <p className="text-sm font-medium text-violet-400 mb-2 tracking-wide uppercase">{t.memories}</p>
-        <h2 className="text-2xl sm:text-3xl font-bold text-white flex items-center gap-2">
-          <Images className="w-6 h-6 text-violet-400" />
-          {t.pastNightouts}
-        </h2>
-        <p className="text-white/40 mt-2">{t.gallerySubtitle}</p>
+    <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 border-t border-white/5">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 mb-12">
+        <div>
+          <p className="text-sm font-semibold text-violet-400 mb-2 tracking-wider uppercase">{t.memories}</p>
+          <h2 className="text-3xl sm:text-4xl font-bold text-white tracking-tight flex items-center gap-3">
+            <Images className="w-8 h-8 text-violet-400" />
+            {t.pastNightouts}
+          </h2>
+          <p className="text-white/40 mt-3 max-w-lg">{t.gallerySubtitle}</p>
+        </div>
+        <Link 
+          to="/albums"
+          className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-white/5 hover:bg-white/10 text-white font-medium transition-all group shrink-0"
+        >
+          {t.exploreAllMemories}
+          <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+        </Link>
       </div>
 
-      {/* Masonry-style grid */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-        {photos.map((photo, i) => (
-          <motion.div
-            key={i}
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.4, delay: i * 0.07 }}
-            className={`relative overflow-hidden rounded-xl cursor-pointer group ${i === 0 ? "col-span-2 md:col-span-1 row-span-2" : ""
-              }`}
-            style={{ aspectRatio: i === 0 ? "3/4" : "4/3" }}
-            onClick={() => setLightbox(photo)}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {previewAlbums.map((album) => (
+          <Link
+            key={album.id}
+            to="/albums"
+            className="group block"
           >
-            <img
-              src={photo.url}
-              alt={photo.caption}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-            />
-            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all duration-300 flex items-end p-3">
-              <p className="text-white text-xs font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                {photo.caption}
-              </p>
+            <div className="relative aspect-[4/3] rounded-[1.5rem] overflow-hidden bg-white/5 border border-white/5 transition-all duration-500 group-hover:scale-[1.02] group-hover:shadow-2xl shadow-black/50">
+              {album.coverImage ? (
+                <img 
+                  src={album.coverImage} 
+                  alt={album.title} 
+                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center opacity-20">
+                  <ImageIcon className="w-12 h-12 text-white" />
+                </div>
+              )}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-80 group-hover:opacity-90 transition-opacity"></div>
+              
+              <div className="absolute bottom-0 left-0 right-0 p-6">
+                <h3 className="text-xl font-bold text-white tracking-tight">{album.title}</h3>
+                <p className="text-sm text-white/50 mt-1 font-medium">{album.images?.length || 0} {t.photos}</p>
+              </div>
             </div>
-          </motion.div>
+          </Link>
         ))}
       </div>
-
-      {/* Lightbox */}
-      <AnimatePresence>
-        {lightbox && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
-            onClick={() => setLightbox(null)}
-          >
-            <button
-              className="absolute top-4 right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
-              onClick={() => setLightbox(null)}
-            >
-              <X className="w-5 h-5" />
-            </button>
-            <motion.img
-              initial={{ scale: 0.9 }}
-              animate={{ scale: 1 }}
-              exit={{ scale: 0.9 }}
-              src={lightbox.url}
-              alt={lightbox.caption}
-              className="max-w-full max-h-[85vh] object-contain rounded-xl"
-              onClick={(e) => e.stopPropagation()}
-            />
-            <p className="absolute bottom-6 text-white/60 text-sm">{lightbox.caption}</p>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </section>
   );
 }

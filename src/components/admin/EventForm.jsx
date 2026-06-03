@@ -36,10 +36,12 @@ const emptyTier = () => ({
 function buildInitialForm(event) {
   return {
     title: event?.title || "",
+    title_fr: event?.title_fr || "",
     type: event?.type || "movie_night",
     description: event?.description || "",
     date: event?.date ? getLocalDatetimeLocal(event.date) : (() => { const d = new Date(); d.setHours(18, 30, 0, 0); return getLocalDatetimeLocal(d); })(),
     venue: event?.venue || "",
+    venue_fr: event?.venue_fr || "",
     city: event?.city || "",
     venue_description: event?.venue_description || "",
     price: event?.price || "",
@@ -224,7 +226,7 @@ export default function EventForm({ event, onSave, onCancel }) {
 
     // Attempt to find category label
     const cat = categories?.find(c => c.id === form.type);
-    const typeLabel = cat ? cat.label : (form.type === "movie_night" ? "Movie Night" : "Music Event");
+    const typeLabel = cat ? cat.label : (form.type?.toLowerCase().includes("movie") ? "Movie Night" : "Event");
 
     const newMsg = `Hi! I'd like to book tickets for *${form.title || "your event"}* (${typeLabel})${dateFormatted ? ` on ${dateFormatted} at ${timeFormatted}` : ""}. Please let me know how to proceed. 🎟️`;
 
@@ -348,7 +350,7 @@ export default function EventForm({ event, onSave, onCancel }) {
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label className="text-white/70">Title *</Label>
+          <Label className="text-white/70">Title (English) *</Label>
           <Input className={inputClass} value={form.title} onChange={e => handleChange("title", e.target.value)} required />
         </div>
         <div className="space-y-2">
@@ -361,6 +363,21 @@ export default function EventForm({ event, onSave, onCancel }) {
               ))}
             </SelectContent>
           </Select>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 rounded-xl border border-violet-500/20 bg-violet-500/5 p-4">
+        <div className="space-y-2 sm:col-span-2">
+          <p className="text-xs font-semibold text-violet-300 uppercase tracking-wider">French translations (optional)</p>
+          <p className="text-xs text-white/40">Shown when visitors switch the site to FR. Leave blank to use the English title/venue.</p>
+        </div>
+        <div className="space-y-2">
+          <Label className="text-white/70">Title (Français)</Label>
+          <Input className={inputClass} value={form.title_fr} onChange={e => handleChange("title_fr", e.target.value)} placeholder="e.g. Soirée cinéma sous les étoiles" />
+        </div>
+        <div className="space-y-2">
+          <Label className="text-white/70">Venue (Français)</Label>
+          <Input className={inputClass} value={form.venue_fr} onChange={e => handleChange("venue_fr", e.target.value)} placeholder="e.g. L'Hippodrome The Nest" />
         </div>
       </div>
 
@@ -392,7 +409,7 @@ export default function EventForm({ event, onSave, onCancel }) {
           <Input className={inputClass} value={form.city} onChange={e => handleChange("city", e.target.value)} placeholder="e.g. Douala, Yaoundé" required />
         </div>
         <div className="space-y-2">
-          <Label className="text-white/70">Venue *</Label>
+          <Label className="text-white/70">Venue (English) *</Label>
           <Input className={inputClass} value={form.venue} onChange={e => handleChange("venue", e.target.value)} required />
         </div>
         <div className="space-y-2">

@@ -1,4 +1,4 @@
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useState, useEffect } from "react";
 
 const LanguageContext = createContext();
 
@@ -7,9 +7,12 @@ export const translations = {
     // Nav
     home: "Home",
     events: "Events",
+    calendar: "Calendar",
+    memoriesNav: "Memories",
     login: "Login",
     logout: "Logout",
     dashboard: "Dashboard",
+    adminPanel: "ADMIN PANEL",
     // Hero
     everyWeekend: "Every Weekend",
     heroSubtitle: "Premium Events & Experiences",
@@ -22,6 +25,7 @@ export const translations = {
     viewAllEvents: "View all events",
     book: "Book",
     tba: "TBA",
+    ongoing: "Ongoing 🎬",
     // Events page
     eventsTitle: "Events",
     eventsSubtitle: "Discover and book your next weekend experience",
@@ -41,8 +45,28 @@ export const translations = {
     memories: "Memories",
     pastNightouts: "Past Nightouts",
     gallerySubtitle: "A glimpse of the unforgettable moments we've created together.",
+    exploreAllMemories: "Explore All Memories",
+    photos: "photos",
+    // Albums
+    albumsSubtitle: "Relive the best moments from our past events. Handpicked highlights and unforgettable nights.",
+    noAlbumsYet: "No albums have been published yet.",
+    backToAlbums: "Back to Albums",
+    unknownDate: "Unknown date",
+    noPhotosInAlbum: "No photos in this album.",
+    downloadImage: "Download Image",
     // Footer
     allRightsReserved: "All rights reserved.",
+    footerTagline: "The premium destination for night outs, movie screenings, and exclusive entertainment in Cameroon.",
+    exploreCities: "Explore Cities",
+    eventsIn: "Events in",
+    noActiveLocations: "No active locations",
+    topActivities: "Top Activities",
+    noActiveActivities: "No active activities",
+    language: "Language",
+    frenchVersion: "Version Française",
+    englishVersion: "English Version",
+    privacyPolicy: "Privacy Policy",
+    termsOfService: "Terms of Service",
     // SoldOut Banner
     soldOutTitle: "Officially Sold Out 🎉",
     soldOutDesc: "All 50 tickets have been claimed. Thank you for the love!",
@@ -53,14 +77,114 @@ export const translations = {
     searchEvents: "Search events...",
     allGenres: "All Genres",
     allLocations: "All Locations",
+    genreLabel: "Genre",
+    cityLabel: "City",
+    // Programmatic pages
+    exploreLocal: "Explore Local",
+    eventsInCity: "Events in",
+    movieNightsTitle: "Movie Nights",
+    musicEventsTitle: "Music Events",
+    activitiesIn: "Activities to do in",
+    discoverDescription: "Looking for the best things to do in {city}? Check out the latest movie nights, live performances, and exclusive gatherings organized by JNE Events in {city}, Cameroon.",
+    browseDescription: "Browse all upcoming {title}. Book your tickets online for premium experiences and night outs in Cameroon.",
+    noEventsForSelection: "No events found for this selection yet.",
+    checkBackSoon: "Check back soon for new updates!",
+    // Newsletter
+    newsletterTitleGuest: "Don't miss any night out",
+    newsletterTitleUser: "Join the Inner Circle",
+    newsletterDescGuest: "Get notified about upcoming movie nights, music events, and secret sessions before they sell out.",
+    newsletterDescUser: "Get instant alerts for secret sessions and last-minute deals directly on your phone.",
+    whatsappCommunity: "JNE WhatsApp Community",
+    exclusiveAccess: "Exclusive Member Access",
+    emailPlaceholder: "Enter your email",
+    joining: "Joining...",
+    joinUs: "Join Us",
+    newsletterSuccess: "You're on the list! See you soon.",
+    newsletterError: "Something went wrong. Please try again.",
+    newsletterFooter: "Weekly updates • Instant booking • No spam",
+    // Ticket tiers
+    standardTicket: "Standard Ticket",
+    includedFree: "Included free with ticket:",
+    headphones: "Headphones",
+    seatBlanket: "Seat / Blanket",
+    popcornSnack: "Popcorn / Snack",
+    drink: "Drink",
+    addPaidExtras: "Add Paid Extras:",
+    ticket: "ticket",
+    tickets: "tickets",
+    extras: "extras",
+    payWithMobileMoney: "Pay with Mobile Money",
+    bookViaWhatsApp: "Book via WhatsApp",
+    mobileMoneyNumber: "Mobile Money Number",
+    payNow: "Pay Now",
+    cancel: "Cancel",
+    cancelPayment: "Cancel Payment",
+    paymentSuccessful: "Payment Successful!",
+    yourTicketId: "Your ticket ID is:",
+    done: "Done",
+    checkYourPhone: "Check your phone!",
+    enterPin: "Please enter your PIN on your device to confirm.",
+    noPopupMtn: "No popup? Dial",
+    noPopupOrange: "No popup? Dial",
+    enterMobileMoney: "Please enter your Mobile Money number.",
+    paymentError: "An error occurred during payment.",
+    transactionFailed: "Transaction failed or was rejected.",
+    transactionTimeout: "Transaction timed out. Please try again.",
+    whatsappBookingIntro: "Hi! I'd like to book tickets for *{title}*",
+    whatsappBookingDate: " on {date} at {time}",
+    whatsappBookingOutro: "Please let me know how to proceed. 🎟️",
+    whatsappExtras: "Extras:",
+    whatsappTotal: "Total:",
+    whatsappIncludes: "Includes:",
+    // Privacy
+    privacyTitle: "Privacy Policy",
+    lastUpdated: "Last Updated: April 25, 2026",
+    privacyCollectTitle: "Information We Collect",
+    privacyCollectIntro: "At JNE Events, we value your privacy. To provide our ticketing and event discovery services in Cameroon, we collect:",
+    privacyCollect1: "Personal Details: Name, phone number (for WhatsApp ticket delivery), and email address.",
+    privacyCollect2: "Transaction Data: Booking IDs and ticket purchase records.",
+    privacyCollect3: "Usage Data: Location information to show you events in Douala, Yaoundé, and other cities.",
+    privacyUseTitle: "How We Use Your Data",
+    privacyUseIntro: "Your data is used solely for the following purposes:",
+    privacyUse1: "Generating and delivering e-tickets via WhatsApp.",
+    privacyUse2: "Verifying ticket validity at event venue entrances.",
+    privacyUse3: "Sending updates regarding changes to event schedules or venues.",
+    privacyUse4: "Improving local search relevance for activities in your city.",
+    privacySecurityTitle: "Data Security & Third Parties",
+    privacySecurityText: "We do not sell, trade, or rent your personal identification information to others. We may share generic aggregated demographic information not linked to any personal identification information with our business partners and trusted affiliates for the purposes outlined above.",
+    privacyWhatsappNote: "Note: When you use the WhatsApp booking feature, your interaction is subject to WhatsApp's own privacy policy and end-to-end encryption.",
+    contactUs: "Contact Us",
+    privacyContact: "If you have any questions about this Privacy Policy, please contact us via our official WhatsApp channel or email.",
+    // Terms
+    termsTitle: "Terms of Service",
+    termsTicketingTitle: "1. Ticketing & Payments",
+    termsTicketingIntro: "By booking a ticket on JNE Events, you agree to the following:",
+    termsTicketing1: "Non-Refundability: All ticket sales are final. Refunds are only issued if the event is cancelled and not rescheduled.",
+    termsTicketing2: "Ticket Integrity: Tickets are unique to the booking ID. Any attempt to duplicate or forge tickets will result in immediate voiding without refund.",
+    termsTicketing3: "Reservation Fees: Small platform fees may apply and are clearly displayed at the time of booking.",
+    termsAttendanceTitle: "2. Event Attendance",
+    termsAttendanceIntro: "Attendance is subject to the rules and regulations of the specific event venue:",
+    termsAttendance1: "Identification: You may be required to show a valid ID at the entrance to verify your age or identity.",
+    termsAttendance2: "Right of Refusal: Venue owners and event organizers reserve the right to refuse entry for inappropriate behavior or failure to comply with safety protocols.",
+    termsAttendance3: "Arrival: We recommend arriving at least 30 minutes before the scheduled start time.",
+    termsLiabilityTitle: "3. Liability Disclaimer",
+    termsLiabilityIntro: "JNE Events acts as a ticketing and promotion platform. We are not responsible for:",
+    termsLiability1: "Any loss, injury, or damage occurring during the event at the venue.",
+    termsLiability2: "Changes made to the performance or movie schedule by the venue organizers.",
+    termsLiability3: "Items lost or stolen during an event.",
+    legalJurisdiction: "Legal Jurisdiction",
+    termsJurisdiction: "These terms are governed by the laws of the Republic of Cameroon. Any disputes shall be subject to the exclusive jurisdiction of the courts in Yaoundé or Douala.",
   },
   fr: {
     // Nav
     home: "Accueil",
     events: "Événements",
+    calendar: "Calendrier",
+    memoriesNav: "Souvenirs",
     login: "Connexion",
     logout: "Déconnexion",
     dashboard: "Tableau de bord",
+    adminPanel: "PANNEAU ADMIN",
     // Hero
     everyWeekend: "Chaque Week-end",
     heroSubtitle: "Événements & Expériences Premium",
@@ -73,6 +197,7 @@ export const translations = {
     viewAllEvents: "Voir tous les événements",
     book: "Réserver",
     tba: "À confirmer",
+    ongoing: "En cours 🎬",
     // Events page
     eventsTitle: "Événements",
     eventsSubtitle: "Découvrez et réservez votre prochaine expérience du week-end",
@@ -92,8 +217,28 @@ export const translations = {
     memories: "Souvenirs",
     pastNightouts: "Nos Soirées Passées",
     gallerySubtitle: "Un aperçu des moments inoubliables que nous avons créés ensemble.",
+    exploreAllMemories: "Voir tous les souvenirs",
+    photos: "photos",
+    // Albums
+    albumsSubtitle: "Revivez les meilleurs moments de nos événements passés. Des moments forts et des soirées inoubliables.",
+    noAlbumsYet: "Aucun album n'a encore été publié.",
+    backToAlbums: "Retour aux albums",
+    unknownDate: "Date inconnue",
+    noPhotosInAlbum: "Aucune photo dans cet album.",
+    downloadImage: "Télécharger l'image",
     // Footer
     allRightsReserved: "Tous droits réservés.",
+    footerTagline: "La destination premium pour les soirées, projections de films et divertissement exclusif au Cameroun.",
+    exploreCities: "Explorer les villes",
+    eventsIn: "Événements à",
+    noActiveLocations: "Aucun lieu actif",
+    topActivities: "Activités populaires",
+    noActiveActivities: "Aucune activité active",
+    language: "Langue",
+    frenchVersion: "Version Française",
+    englishVersion: "English Version",
+    privacyPolicy: "Politique de confidentialité",
+    termsOfService: "Conditions d'utilisation",
     // SoldOut Banner
     soldOutTitle: "Officiellement Complet 🎉",
     soldOutDesc: "Les 50 billets ont été réclamés. Merci pour votre amour !",
@@ -104,11 +249,121 @@ export const translations = {
     searchEvents: "Rechercher...",
     allGenres: "Tous les Genres",
     allLocations: "Tous les Lieux",
+    genreLabel: "Genre",
+    cityLabel: "Ville",
+    // Programmatic pages
+    exploreLocal: "Explorer localement",
+    eventsInCity: "Événements à",
+    movieNightsTitle: "Soirées Cinéma",
+    musicEventsTitle: "Événements Musicaux",
+    activitiesIn: "Activités à faire à",
+    discoverDescription: "Vous cherchez les meilleures activités à {city} ? Découvrez les dernières soirées cinéma, performances live et rassemblements exclusifs organisés par JNE Events à {city}, Cameroun.",
+    browseDescription: "Parcourez tous les {title} à venir. Réservez vos billets en ligne pour des expériences premium au Cameroun.",
+    noEventsForSelection: "Aucun événement trouvé pour cette sélection.",
+    checkBackSoon: "Revenez bientôt pour de nouvelles annonces !",
+    // Newsletter
+    newsletterTitleGuest: "Ne manquez aucune soirée",
+    newsletterTitleUser: "Rejoignez le cercle privé",
+    newsletterDescGuest: "Soyez informé des prochaines soirées cinéma, événements musicaux et sessions secrètes avant qu'elles ne soient complètes.",
+    newsletterDescUser: "Recevez des alertes instantanées pour les sessions secrètes et les offres de dernière minute sur votre téléphone.",
+    whatsappCommunity: "Communauté WhatsApp JNE",
+    exclusiveAccess: "Accès membre exclusif",
+    emailPlaceholder: "Entrez votre e-mail",
+    joining: "Inscription...",
+    joinUs: "Rejoindre",
+    newsletterSuccess: "Vous êtes inscrit ! À bientôt.",
+    newsletterError: "Une erreur s'est produite. Veuillez réessayer.",
+    newsletterFooter: "Mises à jour hebdomadaires • Réservation instantanée • Pas de spam",
+    // Ticket tiers
+    standardTicket: "Billet Standard",
+    includedFree: "Inclus gratuitement avec le billet :",
+    headphones: "Casque",
+    seatBlanket: "Siège / Couverture",
+    popcornSnack: "Popcorn / Snack",
+    drink: "Boisson",
+    addPaidExtras: "Extras payants :",
+    ticket: "billet",
+    tickets: "billets",
+    extras: "extras",
+    payWithMobileMoney: "Payer par Mobile Money",
+    bookViaWhatsApp: "Réserver via WhatsApp",
+    mobileMoneyNumber: "Numéro Mobile Money",
+    payNow: "Payer maintenant",
+    cancel: "Annuler",
+    cancelPayment: "Annuler le paiement",
+    paymentSuccessful: "Paiement réussi !",
+    yourTicketId: "Votre numéro de billet :",
+    done: "Terminé",
+    checkYourPhone: "Vérifiez votre téléphone !",
+    enterPin: "Veuillez saisir votre code PIN sur votre appareil pour confirmer.",
+    noPopupMtn: "Pas de popup ? Composez",
+    noPopupOrange: "Pas de popup ? Composez",
+    enterMobileMoney: "Veuillez entrer votre numéro Mobile Money.",
+    paymentError: "Une erreur s'est produite lors du paiement.",
+    transactionFailed: "La transaction a échoué ou a été refusée.",
+    transactionTimeout: "Délai de transaction dépassé. Veuillez réessayer.",
+    whatsappBookingIntro: "Bonjour ! Je souhaite réserver des billets pour *{title}*",
+    whatsappBookingDate: " le {date} à {time}",
+    whatsappBookingOutro: "Merci de me dire comment procéder. 🎟️",
+    whatsappExtras: "Extras :",
+    whatsappTotal: "Total :",
+    whatsappIncludes: "Inclus :",
+    // Privacy
+    privacyTitle: "Politique de confidentialité",
+    lastUpdated: "Dernière mise à jour : 25 avril 2026",
+    privacyCollectTitle: "Informations collectées",
+    privacyCollectIntro: "Chez JNE Events, nous respectons votre vie privée. Pour fournir nos services de billetterie et de découverte d'événements au Cameroun, nous collectons :",
+    privacyCollect1: "Données personnelles : nom, numéro de téléphone (pour la livraison des billets via WhatsApp) et adresse e-mail.",
+    privacyCollect2: "Données de transaction : identifiants de réservation et historique d'achats.",
+    privacyCollect3: "Données d'utilisation : informations de localisation pour vous montrer les événements à Douala, Yaoundé et autres villes.",
+    privacyUseTitle: "Utilisation de vos données",
+    privacyUseIntro: "Vos données sont utilisées uniquement aux fins suivantes :",
+    privacyUse1: "Génération et envoi des e-billets via WhatsApp.",
+    privacyUse2: "Vérification de la validité des billets à l'entrée des événements.",
+    privacyUse3: "Envoi de mises à jour concernant les changements d'horaires ou de lieux.",
+    privacyUse4: "Amélioration de la pertinence des recherches locales dans votre ville.",
+    privacySecurityTitle: "Sécurité des données et tiers",
+    privacySecurityText: "Nous ne vendons, n'échangeons ni ne louons vos informations personnelles. Nous pouvons partager des informations démographiques agrégées non liées à une personne avec nos partenaires pour les fins décrites ci-dessus.",
+    privacyWhatsappNote: "Note : lorsque vous utilisez la réservation WhatsApp, votre interaction est soumise à la politique de confidentialité de WhatsApp et au chiffrement de bout en bout.",
+    contactUs: "Nous contacter",
+    privacyContact: "Pour toute question sur cette politique de confidentialité, contactez-nous via notre canal WhatsApp officiel ou par e-mail.",
+    // Terms
+    termsTitle: "Conditions d'utilisation",
+    termsTicketingTitle: "1. Billetterie et paiements",
+    termsTicketingIntro: "En réservant un billet sur JNE Events, vous acceptez ce qui suit :",
+    termsTicketing1: "Non-remboursement : toutes les ventes sont définitives. Les remboursements ne sont effectués qu'en cas d'annulation sans report.",
+    termsTicketing2: "Intégrité des billets : chaque billet est unique. Toute tentative de duplication entraîne l'annulation sans remboursement.",
+    termsTicketing3: "Frais de réservation : de petits frais peuvent s'appliquer et sont affichés clairement lors de la réservation.",
+    termsAttendanceTitle: "2. Participation aux événements",
+    termsAttendanceIntro: "La participation est soumise aux règles du lieu de l'événement :",
+    termsAttendance1: "Identification : une pièce d'identité peut être exigée à l'entrée.",
+    termsAttendance2: "Droit de refus : les organisateurs peuvent refuser l'entrée en cas de comportement inapproprié.",
+    termsAttendance3: "Arrivée : nous recommandons d'arriver au moins 30 minutes avant le début.",
+    termsLiabilityTitle: "3. Limitation de responsabilité",
+    termsLiabilityIntro: "JNE Events agit comme plateforme de billetterie et de promotion. Nous ne sommes pas responsables de :",
+    termsLiability1: "Toute perte, blessure ou dommage survenant pendant l'événement.",
+    termsLiability2: "Les modifications d'horaire ou de programme par les organisateurs.",
+    termsLiability3: "Les objets perdus ou volés pendant un événement.",
+    legalJurisdiction: "Juridiction légale",
+    termsJurisdiction: "Ces conditions sont régies par les lois de la République du Cameroun. Tout litige relève des tribunaux de Yaoundé ou Douala.",
   },
 };
 
 export function LanguageProvider({ children }) {
-  const [lang, setLang] = useState("en");
+  const [lang, setLang] = useState(() => {
+    try {
+      return localStorage.getItem("jne_lang") || "en";
+    } catch {
+      return "en";
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("jne_lang", lang);
+    } catch { /* ignore */ }
+  }, [lang]);
+
   const t = translations[lang];
   const toggleLang = () => setLang(l => l === "en" ? "fr" : "en");
 
@@ -121,4 +376,23 @@ export function LanguageProvider({ children }) {
 
 export function useLang() {
   return useContext(LanguageContext);
+}
+
+/** Shorthand: current lang + helpers for dates and event DB fields. */
+export function useLocalized() {
+  const { lang, t, toggleLang } = useLang();
+  return {
+    lang,
+    t,
+    toggleLang,
+    getField: (event, field) => {
+      if (!event) return "";
+      if (lang === "fr") {
+        const frField = event[`${field}_fr`];
+        if (frField) return frField;
+        if (event.translations?.fr?.[field]) return event.translations.fr[field];
+      }
+      return event[field] ?? "";
+    },
+  };
 }

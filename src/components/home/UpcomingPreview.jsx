@@ -1,10 +1,10 @@
 import { Link } from "react-router-dom";
 import { ArrowRight, Calendar, MapPin, Film, Music, ExternalLink } from "lucide-react";
-import { format } from "date-fns";
-import { useLang } from "@/lib/LanguageContext";
+import { formatLocalizedDate } from "@/lib/localize";
+import { useLocalized } from "@/lib/LanguageContext";
 
 export default function UpcomingPreview({ events }) {
-  const { t } = useLang();
+  const { t, lang, getField } = useLocalized();
   if (!events?.length) return null;
 
   return (
@@ -27,7 +27,7 @@ export default function UpcomingPreview({ events }) {
           const isMovie = event.type === "movie_night";
           const Icon = isMovie ? Film : Music;
           const whatsappUrl = `https://wa.me/${event.whatsapp_number?.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(
-            event.whatsapp_message || `Hi! I'd like to book tickets for "${event.title}".`
+            event.whatsapp_message || `${t.whatsappBookingIntro.replace("{title}", getField(event, "title"))}`
           )}`;
 
           return (
@@ -44,7 +44,7 @@ export default function UpcomingPreview({ events }) {
                     {event.image_url ? (
                       <img
                         src={event.image_url}
-                        alt={event.title}
+                        alt={getField(event, "title")}
                         className="w-full h-full object-cover"
                       />
                     ) : (
@@ -52,15 +52,15 @@ export default function UpcomingPreview({ events }) {
                     )}
                   </div>
                   <div className="flex flex-col gap-1">
-                    <h3 className="font-bold text-white text-lg tracking-wide">{event.title}</h3>
+                    <h3 className="font-bold text-white text-lg tracking-wide">{getField(event, "title")}</h3>
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-[13px] text-white/50 font-medium">
                       <span className="flex items-center gap-1.5">
                         <Calendar className="w-4 h-4 text-violet-400/70" />
-                        {event.date ? format(new Date(event.date), "EEE, MMM d · HH:mm") : "TBA"}
+                        {event.date ? formatLocalizedDate(event.date, "EEE, MMM d · HH:mm", lang) : t.tba}
                       </span>
                       <span className="flex items-center gap-1.5">
                         <MapPin className="w-4 h-4 text-violet-400/70" />
-                        {event.venue}
+                        {getField(event, "venue")}
                       </span>
                     </div>
                   </div>
@@ -76,14 +76,12 @@ export default function UpcomingPreview({ events }) {
                   ).toLocaleString()} {event.currency || "XAF"}
                 </span>
                 {event.status === "upcoming" && (
-                  <a
-                    href={whatsappUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  <Link
+                    to="/Events"
                     className="inline-flex items-center justify-center min-w-[100px] px-4 py-2 rounded-lg bg-emerald-500/10 hover:bg-emerald-500 hover:text-white border border-emerald-500/30 text-emerald-400 text-sm font-semibold capitalize transition-all shadow-lg"
                   >
                     {t.book}
-                  </a>
+                  </Link>
                 )}
               </div>
 

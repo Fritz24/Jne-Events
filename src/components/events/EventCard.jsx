@@ -1,5 +1,5 @@
 import { Calendar, MapPin, Film, Music, ChevronDown, ChevronUp } from "lucide-react";
-import { format } from "date-fns";
+import { formatLocalizedDate } from "@/lib/localize";
 import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
 import { useState } from "react";
@@ -7,13 +7,16 @@ import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import TicketTiers from "./TicketTiers";
-import { useLang } from "@/lib/LanguageContext";
+import { useLocalized } from "@/lib/LanguageContext";
+import { useAuth } from "@/lib/AuthContext";
 import { logAnalyticsEvent } from "../../utils/analytics";
 
 export default function EventCard({ event, index = 0 }) {
   const [showTiers, setShowTiers] = useState(false);
   const navigate = useNavigate();
-  const { t } = useLang();
+  const { t, lang, getField } = useLocalized();
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin";
 
   const handleToggleTiers = () => {
     const nextState = !showTiers;
@@ -43,7 +46,7 @@ export default function EventCard({ event, index = 0 }) {
 
   const statusConfig = {
     upcoming: { label: t.upcoming_status, color: "bg-emerald-500/15 text-emerald-300" },
-    ongoing: { label: "Ongoing 🎬", color: "bg-amber-500/15 text-amber-300" },
+    ongoing: { label: t.ongoing, color: "bg-amber-500/15 text-amber-300" },
     sold_out: { label: t.soldOut, color: "bg-red-500/15 text-red-300" },
     cancelled: { label: t.cancelled, color: "bg-gray-500/15 text-gray-300" },
     completed: { label: t.completed, color: "bg-gray-500/15 text-gray-400" },
@@ -76,7 +79,7 @@ export default function EventCard({ event, index = 0 }) {
           {event.image_url ? (
             <img
               src={event.image_url}
-              alt={event.title}
+              alt={getField(event, "title")}
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
             />
           ) : (
@@ -104,7 +107,7 @@ export default function EventCard({ event, index = 0 }) {
 
         {/* Content */}
         <div className="p-5">
-          <h3 className="text-lg font-semibold text-white mb-1 line-clamp-1">{event.title}</h3>
+          <h3 className="text-lg font-semibold text-white mb-1 line-clamp-1">{getField(event, "title")}</h3>
           {event.artist_or_movie && (
             <p className="text-sm text-white/40 mb-3">{event.artist_or_movie}</p>
           )}
@@ -112,14 +115,14 @@ export default function EventCard({ event, index = 0 }) {
           <div className="flex flex-col gap-2 mb-4">
             <div className="flex items-center gap-2 text-sm text-white/50">
               <Calendar className="w-3.5 h-3.5 shrink-0" />
-              {event.date ? format(new Date(event.date), "EEE, MMM d · HH:mm") : "TBA"}
+              {event.date ? formatLocalizedDate(event.date, "EEE, MMM d · HH:mm", lang) : t.tba}
             </div>
             <div
               className="flex items-center gap-2 text-sm text-white/50 cursor-pointer hover:text-violet-400 transition-colors"
               onClick={(e) => { e.stopPropagation(); navigate(`/events/city/${event.city || event.venue}`); }}
             >
               <MapPin className="w-3.5 h-3.5 shrink-0" />
-              {event.city ? `${event.venue}, ${event.city}` : event.venue}
+              {event.city ? `${getField(event, "venue")}, ${event.city}` : getField(event, "venue")}
             </div>
           </div>
 
@@ -155,7 +158,7 @@ export default function EventCard({ event, index = 0 }) {
               exit={{ opacity: 0, height: 0 }}
               className="mt-4 pt-4 border-t border-white/5"
             >
-              <TicketTiers event={event} compact />
+              <TicketTiers event={event} compact showMobileMoney={isAdmin} />
             </motion.div>
           )}
         </div>

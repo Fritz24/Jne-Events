@@ -10,7 +10,6 @@ export default function ProgrammaticPage({ type = "city" }) {
     const { value, slug } = useParams();
     const { t } = useLang();
 
-    // Normalize value (handle slugs like 'activities-to-do-in-yaounde')
     const displayValue = slug
         ? slug.split('-').pop().charAt(0).toUpperCase() + slug.split('-').pop().slice(1)
         : value;
@@ -38,14 +37,14 @@ export default function ProgrammaticPage({ type = "city" }) {
     });
 
     const pageTitle = type === "city"
-        ? `Events in ${displayValue}`
+        ? `${t.eventsInCity} ${displayValue}`
         : type === "category"
-            ? `${displayValue === 'movie_night' ? 'Movie Nights' : 'Music Events'}`
-            : `Activities to do in ${displayValue}`;
+            ? `${value === 'movie_night' ? t.movieNightsTitle : t.musicEventsTitle}`
+            : `${t.activitiesIn} ${displayValue}`;
 
     const description = type === "discover"
-        ? `Looking for the best things to do in ${displayValue}? Check out the latest movie nights, live performances, and exclusive gatherings organized by JNE Events in ${displayValue}, Cameroon.`
-        : `Browse all upcoming ${pageTitle}. Book your tickets online for premium experiences and night outs in Cameroon.`;
+        ? t.discoverDescription.replace(/\{city\}/g, displayValue)
+        : t.browseDescription.replace("{title}", pageTitle);
 
     return (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -56,9 +55,9 @@ export default function ProgrammaticPage({ type = "city" }) {
             />
 
             <nav className="flex items-center gap-2 text-xs font-medium text-white/30 mb-8 overflow-x-auto whitespace-nowrap pb-2">
-                <Link to="/home" className="hover:text-white transition-colors uppercase tracking-widest">Home</Link>
+                <Link to="/home" className="hover:text-white transition-colors uppercase tracking-widest">{t.home}</Link>
                 <ChevronRight className="w-3 h-3 shrink-0" />
-                <Link to="/events" className="hover:text-white transition-colors uppercase tracking-widest">Events</Link>
+                <Link to="/events" className="hover:text-white transition-colors uppercase tracking-widest">{t.events}</Link>
                 <ChevronRight className="w-3 h-3 shrink-0" />
                 <span className="text-violet-400 uppercase tracking-widest">{pageTitle}</span>
             </nav>
@@ -67,7 +66,7 @@ export default function ProgrammaticPage({ type = "city" }) {
                 <div>
                     <div className="flex items-center gap-2 text-violet-400 mb-2 font-medium">
                         {type === "city" ? <MapPin className="w-4 h-4" /> : type === "category" ? <Tag className="w-4 h-4" /> : <Info className="w-4 h-4" />}
-                        <span className="uppercase tracking-widest text-xs">Explore Local</span>
+                        <span className="uppercase tracking-widest text-xs">{t.exploreLocal}</span>
                     </div>
                     <h1 className="text-3xl sm:text-4xl font-bold text-white mb-2">{pageTitle}</h1>
                     <p className="text-white/40 max-w-2xl">{description}</p>
@@ -85,8 +84,8 @@ export default function ProgrammaticPage({ type = "city" }) {
                     ))}
                     {events.length === 0 && (
                         <div className="col-span-full text-center py-20 border border-dashed border-white/10 rounded-3xl">
-                            <p className="text-white/30 text-lg">No events found for this selection yet.</p>
-                            <p className="text-white/20 text-sm mt-1">Check back soon for new updates!</p>
+                            <p className="text-white/30 text-lg">{t.noEventsForSelection}</p>
+                            <p className="text-white/20 text-sm mt-1">{t.checkBackSoon}</p>
                         </div>
                     )}
                 </div>

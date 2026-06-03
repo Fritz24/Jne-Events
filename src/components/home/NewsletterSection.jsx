@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Mail, Sparkles, CheckCircle2, MessageCircle, ArrowRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLang } from "@/lib/LanguageContext";
@@ -29,19 +29,18 @@ export default function NewsletterSection() {
             setEmail("");
         } catch (err) {
             console.error("Subscription error:", err);
-            setError("Something went wrong. Please try again.");
+            setError(t.newsletterError);
             setLoading(false);
         }
     };
 
-    const whatsappLink = "https://chat.whatsapp.com/your-group-id"; // Placeholder
+    const whatsappLink = "https://chat.whatsapp.com/your-group-id";
 
     return (
         <section className="py-20 relative overflow-hidden">
             <div className="absolute inset-0 bg-violet-600/5 -z-10" />
             <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="relative p-8 sm:p-12 rounded-3xl bg-white/[0.03] border border-white/10 backdrop-blur-sm overflow-hidden">
-                    {/* Background Gradient */}
                     <div className="absolute top-0 right-0 w-32 h-32 bg-violet-500/20 rounded-full blur-[80px]" />
                     <div className="absolute bottom-0 left-0 w-32 h-32 bg-amber-500/20 rounded-full blur-[80px]" />
 
@@ -52,13 +51,10 @@ export default function NewsletterSection() {
 
                         <div className="space-y-3">
                             <h2 className="text-3xl sm:text-4xl font-bold text-white tracking-tight">
-                                {user ? "Join the Inner Circle" : "Don’t miss any night out"}
+                                {user ? t.newsletterTitleUser : t.newsletterTitleGuest}
                             </h2>
                             <p className="text-white/50 text-lg max-w-xl mx-auto">
-                                {user
-                                    ? "Get instant alerts for secret sessions and last-minute deals directly on your phone."
-                                    : "Get notified about upcoming movie nights, music events, and secret sessions before they sell out."
-                                }
+                                {user ? t.newsletterDescUser : t.newsletterDescGuest}
                             </p>
                         </div>
 
@@ -81,8 +77,8 @@ export default function NewsletterSection() {
                                                 <MessageCircle className="w-5 h-5" />
                                             </div>
                                             <div className="text-left">
-                                                <p className="font-bold text-emerald-400">JNE WhatsApp Community</p>
-                                                <p className="text-xs text-white/40">Exclusive Member Access</p>
+                                                <p className="font-bold text-emerald-400">{t.whatsappCommunity}</p>
+                                                <p className="text-xs text-white/40">{t.exclusiveAccess}</p>
                                             </div>
                                         </div>
                                         <ArrowRight className="w-5 h-5 text-emerald-500 group-hover:translate-x-1 transition-transform" />
@@ -104,7 +100,7 @@ export default function NewsletterSection() {
                                         <input
                                             type="email"
                                             required
-                                            placeholder="Enter your email"
+                                            placeholder={t.emailPlaceholder}
                                             value={email}
                                             onChange={(e) => setEmail(e.target.value)}
                                             className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-32 text-white placeholder:text-white/20 focus:outline-none focus:border-violet-500/50 transition-all focus:ring-4 focus:ring-violet-500/10"
@@ -114,7 +110,7 @@ export default function NewsletterSection() {
                                             disabled={loading}
                                             className="absolute right-2 px-6 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-medium transition-all transform active:scale-95 disabled:opacity-50 disabled:active:scale-100"
                                         >
-                                            {loading ? "Joining..." : "Join Us"}
+                                            {loading ? t.joining : t.joinUs}
                                         </button>
                                     </div>
                                     {error && <p className="text-red-400 text-xs mt-3">{error}</p>}
@@ -127,13 +123,13 @@ export default function NewsletterSection() {
                                     className="flex items-center justify-center gap-3 py-4 text-emerald-400 font-medium"
                                 >
                                     <CheckCircle2 className="w-6 h-6" />
-                                    <span>You're on the list! See you soon.</span>
+                                    <span>{t.newsletterSuccess}</span>
                                 </motion.div>
                             )}
                         </AnimatePresence>
 
                         <p className="text-[10px] uppercase tracking-widest text-white/20 font-medium pt-4">
-                            Weekly updates • Instant booking • No spam
+                            {t.newsletterFooter}
                         </p>
                     </div>
                 </div>

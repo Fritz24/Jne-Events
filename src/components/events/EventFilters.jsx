@@ -55,7 +55,7 @@ export default function EventFilters({ filters, onFilterChange, genres, cities }
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-2 text-xs font-semibold text-white/30 uppercase tracking-wider">
               <Tag className="w-3 h-3" />
-              Genre
+              {t.genreLabel}
             </div>
             <div className="relative">
               <select
@@ -77,7 +77,7 @@ export default function EventFilters({ filters, onFilterChange, genres, cities }
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-2 text-xs font-semibold text-white/30 uppercase tracking-wider">
               <MapPin className="w-3 h-3" />
-              City
+              {t.cityLabel}
             </div>
             <div className="relative">
               <select
@@ -87,7 +87,7 @@ export default function EventFilters({ filters, onFilterChange, genres, cities }
               >
                 {cities.map(city => (
                   <option key={city} value={city} className="bg-[#0a0a0f] text-white">
-                    {city === "all" ? t.allCities || "All Cities" : city}
+                    {city === "all" ? t.allLocations : city}
                   </option>
                 ))}
               </select>

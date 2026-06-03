@@ -17,7 +17,8 @@ export default function Layout() {
   const navLinks = [
     { to: "/home", label: t.home, icon: Calendar },
     { to: "/events", label: t.events, icon: Film },
-    { to: "/calendar", label: "Calendar", icon: Calendar },
+    { to: "/calendar", label: t.calendar, icon: Calendar },
+    { to: "/albums", label: t.memoriesNav, icon: Film },
   ];
 
   return (
@@ -72,7 +73,7 @@ export default function Layout() {
                     className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-500/20 border border-amber-500/30 text-amber-400 hover:bg-amber-500/30 transition-all font-semibold text-xs"
                   >
                     <LayoutDashboard className="w-4 h-4" />
-                    ADMIN PANEL
+                    {t.adminPanel}
                   </Link>
                 </div>
               )}
@@ -81,7 +82,7 @@ export default function Layout() {
                   <button
                     onClick={signOut}
                     className="p-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 transition-all"
-                    title="Logout"
+                    title={t.logout}
                   >
                     <LogOut className="w-4 h-4" />
                   </button>
@@ -229,27 +230,27 @@ function DynamicFooter({ t, lang, toggleLang }) {
             <span className="font-semibold text-lg">JnE Events</span>
           </div>
           <p className="text-sm text-white/40 leading-relaxed">
-            The premium destination for night outs, movie screenings, and exclusive entertainment in Cameroon.
+            {t.footerTagline}
           </p>
         </div>
 
         <div>
-          <h4 className="text-sm font-bold uppercase tracking-widest text-white/20 mb-6">Explore Cities</h4>
+          <h4 className="text-sm font-bold uppercase tracking-widest text-white/20 mb-6">{t.exploreCities}</h4>
           <ul className="space-y-3 text-sm">
             {activeCities.length > 0 ? activeCities.map(city => (
               <li key={city}>
                 <Link to={`/events/city/${city.toLowerCase()}`} className="text-white/50 hover:text-violet-400 transition-colors capitalize">
-                  Events in {city}
+                  {t.eventsIn} {city}
                 </Link>
               </li>
             )) : (
-              <li className="text-white/20 italic text-xs">No active locations</li>
+              <li className="text-white/20 italic text-xs">{t.noActiveLocations}</li>
             )}
           </ul>
         </div>
 
         <div>
-          <h4 className="text-sm font-bold uppercase tracking-widest text-white/20 mb-6">Top Activities</h4>
+          <h4 className="text-sm font-bold uppercase tracking-widest text-white/20 mb-6">{t.topActivities}</h4>
           <ul className="space-y-3 text-sm">
             {activeTypes.length > 0 ? activeTypes.map(type => (
               <li key={type.id}>
@@ -258,18 +259,18 @@ function DynamicFooter({ t, lang, toggleLang }) {
                 </Link>
               </li>
             )) : (
-              <li className="text-white/20 italic text-xs">No active activities</li>
+              <li className="text-white/20 italic text-xs">{t.noActiveActivities}</li>
             )}
           </ul>
         </div>
 
         <div>
-          <h4 className="text-sm font-bold uppercase tracking-widest text-white/20 mb-6">Language</h4>
+          <h4 className="text-sm font-bold uppercase tracking-widest text-white/20 mb-6">{t.language}</h4>
           <button
             onClick={toggleLang}
             className="flex items-center gap-2 px-4 py-2 rounded-xl border border-white/5 bg-white/[0.02] text-sm text-white/60 hover:text-white hover:bg-white/5 transition-all"
           >
-            <span>{lang === "en" ? "Version Française" : "English Version"}</span>
+            <span>{lang === "en" ? t.frenchVersion : t.englishVersion}</span>
           </button>
         </div>
       </div>
@@ -279,8 +280,8 @@ function DynamicFooter({ t, lang, toggleLang }) {
           © {new Date().getFullYear()} JnE Events. {t.allRightsReserved}
         </p>
         <div className="flex gap-6 text-xs text-white/20">
-          <Link to="/privacy" className="hover:text-white/40">Privacy Policy</Link>
-          <Link to="/terms" className="hover:text-white/40">Terms of Service</Link>
+          <Link to="/privacy" className="hover:text-white/40">{t.privacyPolicy}</Link>
+          <Link to="/terms" className="hover:text-white/40">{t.termsOfService}</Link>
         </div>
       </div>
     </div>

@@ -50,31 +50,14 @@ export const AuthProvider = ({ children }) => {
         .eq('auth_id', authUser.id)
         .single();
 
-      console.log('DEBUG: Auth User ID:', authUser.id);
-      console.log('DEBUG: Ecosystem Profile:', profile);
-
       if (error && error.code !== 'PGRST116') {
-        console.error('DEBUG: Ecosystem Profile Error:', error);
-      }
-
-      // Safely auto-tag the user to 'events' if they aren't already, now that they are authenticated (bypassing 403 RLS)
-      const platforms = profile?.active_platforms || [];
-      if (!platforms.includes('events')) {
-        await supabase
-          .from('users')
-          .update({ active_platforms: [...platforms, 'events'] })
-          .eq('auth_id', authUser.id);
-
-        if (profile) profile.active_platforms = [...platforms, 'events'];
+        console.error('Profile fetch error:', error);
       }
 
       // Map ecosystem properties to app user object
       // is_super_admin grants 'admin' role in JnE Events
       const isAdmin = profile?.is_super_admin === true || String(profile?.is_super_admin) === 'true';
       const assignedRole = isAdmin ? 'admin' : 'customer';
-
-      console.log('DEBUG: Is Super Admin?', profile?.is_super_admin);
-      console.log('DEBUG: Assigned Role:', assignedRole);
 
       setUser({
         ...authUser,
@@ -95,23 +78,6 @@ export const AuthProvider = ({ children }) => {
   const loginWithEmail = async (email, password) => {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
-
-    // Safely append "events" to active_platforms on login without wiping out "bus" or "finance"
-    if (data?.user?.id) {
-      const { data: profile } = await supabase
-        .from('users')
-        .select('active_platforms')
-        .eq('auth_id', data.user.id)
-        .single();
-
-      const platforms = profile?.active_platforms || [];
-      if (!platforms.includes('events')) {
-        await supabase
-          .from('users')
-          .update({ active_platforms: [...platforms, 'events'] })
-          .eq('auth_id', data.user.id);
-      }
-    }
 
     return data;
   };
