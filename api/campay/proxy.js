@@ -20,11 +20,16 @@ export default async function handler(req, res) {
     "https://demo.campay.net/api"
   ).replace(/\/$/, "");
 
-  const segments = Array.isArray(req.query.path)
-    ? req.query.path
-    : req.query.path
-      ? [req.query.path]
-      : [];
+  let segments = [];
+  if (req.query && req.query.path) {
+    segments = Array.isArray(req.query.path) ? req.query.path : [req.query.path];
+  } else if (req.url) {
+    const urlPath = req.url.split('?')[0];
+    const match = urlPath.match(/\/api\/campay\/(.*)/);
+    if (match && match[1]) {
+      segments = match[1].split('/').filter(Boolean);
+    }
+  }
 
   if (!segments.length) {
     return res.status(400).json({ message: "Missing Campay API path" });
