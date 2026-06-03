@@ -34,7 +34,6 @@ export default function Home() {
   return (
     <div>
       <SEO
-        title="Exclusive Nightouts & Community Events"
         description="Experience the best night outs with JNE Events. From premium movie nights to live music and exclusive gatherings, find your next unforgettable experience here."
         keywords={["social events", "nightlife", "movie tickets", "live entertainment", "weekend plans", "cinema experience", "outdoor cinema", "community gatherings"]}
       />

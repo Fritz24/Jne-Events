@@ -13,31 +13,47 @@
   </script>
 
   <!-- Primary Meta Tags -->
-  <meta name="title" content="JNE Events | Premium Nightlife in Cameroon" />
+  <meta name="application-name" content="JNE Events" />
+  <meta name="apple-mobile-web-app-title" content="JNE Events" />
+  <meta name="title" content="JNE Events" />
   <meta name="description"
     content="Discover premium movie nights, live performances, and exclusive gatherings in Douala and Yaoundé." />
+  <link rel="canonical" href="https://jneevents.bookontransapp.com/" />
 
   <!-- Open Graph / Social Media Fallback -->
+  <meta property="og:site_name" content="JNE Events" />
   <meta property="og:title" content="JNE Events" />
   <meta property="og:description" content="Premium night outs and exclusive event tickets in Cameroon." />
   <meta property="og:image" content="https://jneevents.bookontransapp.com/picture1.JPG" />
-  <meta property="og:url" content="https://jneevents.bookontransapp.com" />
+  <meta property="og:url" content="https://jneevents.bookontransapp.com/" />
 
   <!-- Search Console and Analytics Handled Dynamically -->
   <meta name="google-site-verification" content="google9cd9b5e2f3ff0bb6" />
 
-  <!-- Structured Data to force Google to show the correct Site Name -->
+  <!-- Structured data: brand name for Google search results -->
   <script type="application/ld+json">
     {
       "@context": "https://schema.org",
-      "@type": "WebSite",
-      "name": "JNE Events",
-      "alternateName": ["JNE", "JNE Events Douala"],
-      "url": "https://jneevents.bookontransapp.com/"
+      "@graph": [
+        {
+          "@type": "Organization",
+          "@id": "https://jneevents.bookontransapp.com/#organization",
+          "name": "JNE Events",
+          "url": "https://jneevents.bookontransapp.com/"
+        },
+        {
+          "@type": "WebSite",
+          "@id": "https://jneevents.bookontransapp.com/#website",
+          "name": "JNE Events",
+          "alternateName": ["JNE", "JNE Events Douala"],
+          "url": "https://jneevents.bookontransapp.com/",
+          "publisher": { "@id": "https://jneevents.bookontransapp.com/#organization" }
+        }
+      ]
     }
   </script>
 
-  <title>Jne Events | Nightlife & Movies in Cameroon</title>
+  <title>JNE Events</title>
 </head>
 
 <body>

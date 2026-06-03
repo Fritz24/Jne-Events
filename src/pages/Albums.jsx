@@ -4,6 +4,7 @@ import { supabase } from "@/lib/supabase";
 import { formatLocalizedDate } from "@/lib/localize";
 import { X, Image as ImageIcon, ChevronLeft, Download } from "lucide-react";
 import { useLang } from "@/lib/LanguageContext";
+import SEO from "../components/common/SEO";
 
 export default function Albums() {
   const { t, lang } = useLang();
@@ -47,6 +48,7 @@ export default function Albums() {
 
   return (
     <div className="min-h-screen pt-32 pb-20 px-6 sm:px-12 max-w-7xl mx-auto selection:bg-white/20">
+      <SEO title={t.memories} description={t.albumsSubtitle} url="/albums" />
       
       {/* Header */}
       {!selectedAlbum && (
