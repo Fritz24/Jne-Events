@@ -10,7 +10,7 @@ export async function requestPayment(amount, phoneNumber, description, reference
     formattedNumber = "237" + formattedNumber;
   }
 
-  const response = await fetch(`${CAMPAY_PROXY}/collect/`, {
+  const response = await fetch(`/api/campay-collect`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -35,7 +35,7 @@ export async function requestPayment(amount, phoneNumber, description, reference
  * Polls the transaction status after the user confirms on their phone.
  */
 export async function checkTransactionStatus(reference) {
-  const response = await fetch(`${CAMPAY_PROXY}/transaction/${reference}/`, {
+  const response = await fetch(`/api/campay-status?reference=${reference}`, {
     method: "GET",
     headers: { "Content-Type": "application/json" },
   });
