@@ -41,8 +41,8 @@ export default function TicketGenerator({ event, onClose }) {
   });
 
   const eventBookings = allBookings.filter(b => b.event_id === event.id);
-  const soldOut = isSoldOut(eventBookings);
-  const remaining = remainingSlots(eventBookings);
+  const soldOut = isSoldOut(eventBookings, event.capacity || 50);
+  const remaining = remainingSlots(eventBookings, event.capacity || 50);
   const slotsNeeded = tierSlotCount(tier.label);
 
   // ─── Download: temporarily show ticket at native size, capture, restore ───

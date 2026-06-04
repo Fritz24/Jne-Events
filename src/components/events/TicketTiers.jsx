@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from "react";
-import { Headphones, ExternalLink, Armchair, Cookie, Coffee, Plus, Minus, Loader2, Ticket, Utensils, GlassWater, Check, Phone, ArrowRight, X } from "lucide-react";
+import { Headphones, Armchair, Cookie, Coffee, Plus, Minus, Loader2, Utensils, GlassWater, Check, Phone, ArrowRight, X } from "lucide-react";
 import { formatLocalizedDate, getLocalizedEventField } from "@/lib/localize";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { logAnalyticsEvent } from "../../utils/analytics";
 import { requestPayment, checkTransactionStatus } from "@/lib/campay";
 import { useLocalized } from "@/lib/LanguageContext";
+import GuestTicket from "./GuestTicket";
 
 export default function TicketTiers({ event, compact = false, showMobileMoney = false }) {
   const { t, lang } = useLocalized();
@@ -51,9 +52,11 @@ export default function TicketTiers({ event, compact = false, showMobileMoney = 
   // Mobile Money Payment State
   const [payingTier, setPayingTier] = useState(null);
   const [phoneNumber, setPhoneNumber] = useState("");
+  const [attendeeName, setAttendeeName] = useState("");
   const [payState, setPayState] = useState("idle"); // idle, processing, polling, success, error
   const [payError, setPayError] = useState("");
   const [finalTicket, setFinalTicket] = useState(null);
+  const [finalBooking, setFinalBooking] = useState(null);
   const pollingIntervalRef = useRef(null);
 
   // Cleanup interval on unmount
@@ -86,6 +89,10 @@ export default function TicketTiers({ event, compact = false, showMobileMoney = 
 
   // Process Mobile Money via Campay
   const handlePayment = async (tierIndex) => {
+    if (!attendeeName.trim()) {
+      setPayError(t.enterName || "Please enter the primary attendee's full name");
+      return;
+    }
     if (!phoneNumber.trim()) {
       setPayError(t.enterMobileMoney);
       return;
@@ -108,7 +115,7 @@ export default function TicketTiers({ event, compact = false, showMobileMoney = 
            event_title: event.title,
            tier_label: qty > 1 ? `${qty}x ${tier.label}` : tier.label,
            tier_price: totalAmount,
-           attendee_name: phoneNumber,
+           attendee_name: attendeeName.trim(),
            status: "pending",
            ticket_id: `JNE-${Math.floor(Date.now() / 1000)}-${Math.floor(Math.random() * 1000)}`
         }])
@@ -116,6 +123,7 @@ export default function TicketTiers({ event, compact = false, showMobileMoney = 
         .single();
 
       if (dbError) throw dbError;
+      setFinalBooking(booking);
 
       const description = `${qty}x ${tier.label} - ${event.title}`;
       const paymentRes = await requestPayment(totalAmount, phoneNumber, description, booking.id);
@@ -384,14 +392,16 @@ export default function TicketTiers({ event, compact = false, showMobileMoney = 
                     {payingTier === i ? (
                       <div className="space-y-4 pt-2 animate-in fade-in zoom-in-95 duration-200">
                         {payState === 'success' ? (
-                          <div className="flex flex-col items-center justify-center py-4 text-center">
-                            <div className="w-14 h-14 bg-emerald-500/20 rounded-full flex items-center justify-center mb-4 shadow-[0_0_30px_rgba(16,185,129,0.2)]">
-                              <Check className="w-7 h-7 text-emerald-400" />
-                            </div>
-                            <h4 className="text-white font-bold text-xl mb-2 tracking-tight">{t.paymentSuccessful}</h4>
-                            <p className="text-white/60 text-sm mb-6">{t.yourTicketId} <br/><span className="text-white font-mono bg-black/40 border border-white/10 px-3 py-1.5 rounded-lg mt-2 inline-block tracking-widest">{finalTicket}</span></p>
-                            <button onClick={() => {setPayingTier(null); setPayState("idle");}} className="w-full py-3 bg-white/10 hover:bg-white/20 rounded-xl text-sm text-white font-semibold transition-all">{t.done}</button>
-                          </div>
+                          <GuestTicket 
+                            booking={finalBooking} 
+                            event={event} 
+                            onDone={() => {
+                              setPayingTier(null); 
+                              setPayState("idle");
+                              setAttendeeName("");
+                              setPhoneNumber("");
+                            }} 
+                          />
                         ) : payState === 'polling' ? (
                           <div className="flex flex-col items-center justify-center py-6 text-center">
                             <Loader2 className="w-10 h-10 text-amber-400 animate-spin mb-4" />
@@ -417,11 +427,27 @@ export default function TicketTiers({ event, compact = false, showMobileMoney = 
                           </div>
                         ) : (
                           <>
+                            {/* Name Input */}
+                            <div className="flex flex-col mb-4">
+                              <label className="text-xs font-semibold text-white/50 uppercase tracking-widest mb-2.5">
+                                {t.ticketAttendeeName}
+                              </label>
+                              <input
+                                type="text"
+                                placeholder={t.ticketNamePlaceholder}
+                                value={attendeeName}
+                                onChange={(e) => setAttendeeName(e.target.value)}
+                                className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3.5 text-white placeholder:text-white/25 focus:outline-none focus:ring-2 focus:ring-violet-500/40 focus:border-violet-500/40 transition-all font-medium"
+                                disabled={payState === 'processing'}
+                              />
+                            </div>
+
+                            {/* MoMo Input */}
                             <div className="flex items-center justify-between mb-2">
-                              <div className="flex items-center gap-2">
+                              <label className="text-sm font-medium text-white/90 flex items-center gap-2">
                                 <Phone className="w-4 h-4 text-amber-400" />
-                                <span className="text-sm font-medium text-white/90">{t.mobileMoneyNumber}</span>
-                              </div>
+                                {t.mobileMoneyNumber}
+                              </label>
                               {(() => {
                                 const cleanPhone = phoneNumber.replace(/\D/g, '');
                                 if (cleanPhone.length >= 2) {
@@ -440,7 +466,7 @@ export default function TicketTiers({ event, compact = false, showMobileMoney = 
                               placeholder="e.g. 670 00 00 00"
                               value={phoneNumber}
                               onChange={(e) => setPhoneNumber(e.target.value)}
-                              className="w-full bg-black/40 backdrop-blur-md border border-white/10 rounded-xl px-4 py-3.5 text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-amber-500/50 transition-all font-medium"
+                              className="w-full bg-black/40 backdrop-blur-md border border-white/10 rounded-2xl px-4 py-3.5 text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-amber-500/50 transition-all font-medium"
                               disabled={payState === 'processing'}
                             />
                             {payError && <p className="text-red-400 text-xs font-medium leading-relaxed">{payError}</p>}

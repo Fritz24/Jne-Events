@@ -1,18 +1,38 @@
-import { Outlet, Link, useLocation } from "react-router-dom";
+import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
 import { Film, Music, Calendar, Menu, X } from "lucide-react";
-import { useState, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLang } from "@/lib/LanguageContext";
 import { useAuth } from "@/lib/AuthContext";
 import { LogOut, LayoutDashboard, LogIn } from "lucide-react";
+import SearchBar from "./common/SearchBar";
 
 export default function Layout() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
   const { lang, t, toggleLang } = useLang();
   const { user, signOut } = useAuth();
+  const [navSearch, setNavSearch] = useState("");
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const searchValue = params.get("search") || params.get("q") || "";
+    setNavSearch(searchValue);
+  }, [location.search]);
+
+  const submitNavSearch = () => {
+    const q = navSearch.trim();
+    if (!q) {
+      navigate("/events");
+      setMobileOpen(false);
+      return;
+    }
+    navigate(`/events?search=${encodeURIComponent(q)}`);
+    setMobileOpen(false);
+  };
 
   const navLinks = [
     { to: "/home", label: t.home, icon: Calendar },
@@ -32,7 +52,6 @@ export default function Layout() {
         }
       `}</style>
 
-      {/* Navigation */}
       <nav className="fixed top-0 left-0 right-0 z-50 backdrop-blur-xl bg-[#0a0a0f]/80 border-b border-white/5">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
@@ -43,20 +62,35 @@ export default function Layout() {
               <span className="text-lg font-semibold tracking-tight">JnE Events</span>
             </Link>
 
-            {/* Desktop nav */}
+            <div className="hidden md:flex flex-1 justify-center px-6">
+              <SearchBar
+                className="w-full min-w-[220px] max-w-md"
+                value={navSearch}
+                onChange={(e) => setNavSearch(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    submitNavSearch();
+                  }
+                }}
+              />
+            </div>
+
             <div className="hidden md:flex items-center gap-1">
-              {navLinks.map(link => (
+              {navLinks.map((link) => (
                 <Link
                   key={link.to}
                   to={link.to}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${location.pathname === link.to
-                    ? "bg-white/10 text-white"
-                    : "text-white/60 hover:text-white hover:bg-white/5"
-                    }`}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                    location.pathname === link.to
+                      ? "bg-white/10 text-white"
+                      : "text-white/60 hover:text-white hover:bg-white/5"
+                  }`}
                 >
                   {link.label}
                 </Link>
               ))}
+
               <button
                 onClick={toggleLang}
                 className="ml-2 px-3 py-1.5 rounded-lg border border-white/10 text-xs font-bold text-white/70 hover:text-white hover:border-white/30 transition-all tracking-wider"
@@ -66,7 +100,7 @@ export default function Layout() {
 
               <div className="ml-4 h-6 w-px bg-white/10" />
 
-              {user?.role === 'admin' && (
+              {user?.role === "admin" && (
                 <div className="flex items-center gap-2 ml-4">
                   <Link
                     to="/admin"
@@ -77,6 +111,7 @@ export default function Layout() {
                   </Link>
                 </div>
               )}
+
               {user && (
                 <div className="ml-4 flex items-center gap-2">
                   <button
@@ -88,6 +123,7 @@ export default function Layout() {
                   </button>
                 </div>
               )}
+
               {!user && (
                 <Link
                   to="/Login"
@@ -99,25 +135,38 @@ export default function Layout() {
               )}
             </div>
 
-            {/* Lang toggle (mobile) */}
-            <button
-              onClick={toggleLang}
-              className="md:hidden px-2.5 py-1 rounded-lg border border-white/10 text-xs font-bold text-white/70 hover:text-white transition-all"
-            >
-              {lang === "en" ? "FR" : "EN"}
-            </button>
+            <div className="md:hidden flex items-center gap-2">
+              <button
+                onClick={toggleLang}
+                className="px-2.5 py-1 rounded-lg border border-white/10 text-xs font-bold text-white/70 hover:text-white transition-all"
+              >
+                {lang === "en" ? "FR" : "EN"}
+              </button>
 
-            {/* Mobile toggle */}
-            <button
-              onClick={() => setMobileOpen(!mobileOpen)}
-              className="md:hidden p-2 rounded-lg text-white/60 hover:text-white hover:bg-white/5"
-            >
-              {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-            </button>
+              <button
+                onClick={() => setMobileOpen(!mobileOpen)}
+                className="p-2 rounded-lg text-white/60 hover:text-white hover:bg-white/5"
+              >
+                {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              </button>
+            </div>
+          </div>
+
+          <div className="md:hidden pb-3 pt-2">
+            <SearchBar
+              className="w-full"
+              value={navSearch}
+              onChange={(e) => setNavSearch(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  submitNavSearch();
+                }
+              }}
+            />
           </div>
         </div>
 
-        {/* Mobile menu */}
         <AnimatePresence>
           {mobileOpen && (
             <motion.div
@@ -127,23 +176,25 @@ export default function Layout() {
               className="md:hidden overflow-hidden border-t border-white/5"
             >
               <div className="px-4 py-3 space-y-1">
-                {navLinks.map(link => (
+                {navLinks.map((link) => (
                   <Link
                     key={link.to}
                     to={link.to}
                     onClick={() => setMobileOpen(false)}
-                    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${location.pathname === link.to
-                      ? "bg-white/10 text-white"
-                      : "text-white/60 hover:text-white hover:bg-white/5"
-                      }`}
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                      location.pathname === link.to
+                        ? "bg-white/10 text-white"
+                        : "text-white/60 hover:text-white hover:bg-white/5"
+                    }`}
                   >
                     <link.icon className="w-4 h-4" />
                     {link.label}
                   </Link>
                 ))}
+
                 {user ? (
                   <>
-                    {user.role === 'admin' && (
+                    {user.role === "admin" && (
                       <Link
                         to="/admin"
                         onClick={() => setMobileOpen(false)}
@@ -153,8 +204,12 @@ export default function Layout() {
                         {t.dashboard}
                       </Link>
                     )}
+
                     <button
-                      onClick={() => { signOut(); setMobileOpen(false); }}
+                      onClick={() => {
+                        signOut();
+                        setMobileOpen(false);
+                      }}
                       className="flex w-full items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-red-400 hover:text-red-300"
                     >
                       <LogOut className="w-4 h-4" />
@@ -177,12 +232,10 @@ export default function Layout() {
         </AnimatePresence>
       </nav>
 
-      {/* Main content */}
       <main className="pt-16">
         <Outlet />
       </main>
 
-      {/* Footer */}
       <footer className="border-t border-white/5 mt-20 bg-white/[0.01]">
         <DynamicFooter t={t} lang={lang} toggleLang={toggleLang} />
       </footer>
@@ -194,29 +247,31 @@ function DynamicFooter({ t, lang, toggleLang }) {
   const { data: events = [] } = useQuery({
     queryKey: ["events_footer"],
     queryFn: async () => {
-      const { data } = await supabase.from('jne_events').select('city, type, status');
+      const { data } = await supabase.from("jne_events").select("city, type, status");
       return data || [];
-    }
+    },
   });
 
   const { data: categories = [] } = useQuery({
     queryKey: ["event_categories_footer"],
     queryFn: async () => {
-      const { data } = await supabase.from('jne_settings').select('value').eq('key', 'event_categories').maybeSingle();
+      const { data } = await supabase
+        .from("jne_settings")
+        .select("value")
+        .eq("key", "event_categories")
+        .maybeSingle();
       return data?.value ? JSON.parse(data.value) : [];
-    }
+    },
   });
 
-  // Get unique cities that have events
   const activeCities = useMemo(() => {
-    const cities = [...new Set(events.filter(e => e.city).map(e => e.city))];
+    const cities = [...new Set(events.filter((e) => e.city).map((e) => e.city))];
     return cities.sort();
   }, [events]);
 
-  // Get unique activity types that have events
   const activeTypes = useMemo(() => {
-    const types = [...new Set(events.filter(e => e.type).map(e => e.type))];
-    return categories.filter(c => types.includes(c.id));
+    const types = [...new Set(events.filter((e) => e.type).map((e) => e.type))];
+    return categories.filter((c) => types.includes(c.id));
   }, [events, categories]);
 
   return (
@@ -229,21 +284,24 @@ function DynamicFooter({ t, lang, toggleLang }) {
             </div>
             <span className="font-semibold text-lg">JnE Events</span>
           </div>
-          <p className="text-sm text-white/40 leading-relaxed">
-            {t.footerTagline}
-          </p>
+          <p className="text-sm text-white/40 leading-relaxed">{t.footerTagline}</p>
         </div>
 
         <div>
           <h4 className="text-sm font-bold uppercase tracking-widest text-white/20 mb-6">{t.exploreCities}</h4>
           <ul className="space-y-3 text-sm">
-            {activeCities.length > 0 ? activeCities.map(city => (
-              <li key={city}>
-                <Link to={`/events/city/${city.toLowerCase()}`} className="text-white/50 hover:text-violet-400 transition-colors capitalize">
-                  {t.eventsIn} {city}
-                </Link>
-              </li>
-            )) : (
+            {activeCities.length > 0 ? (
+              activeCities.map((city) => (
+                <li key={city}>
+                  <Link
+                    to={`/events/city/${city.toLowerCase()}`}
+                    className="text-white/50 hover:text-violet-400 transition-colors capitalize"
+                  >
+                    {t.eventsIn} {city}
+                  </Link>
+                </li>
+              ))
+            ) : (
               <li className="text-white/20 italic text-xs">{t.noActiveLocations}</li>
             )}
           </ul>
@@ -252,13 +310,18 @@ function DynamicFooter({ t, lang, toggleLang }) {
         <div>
           <h4 className="text-sm font-bold uppercase tracking-widest text-white/20 mb-6">{t.topActivities}</h4>
           <ul className="space-y-3 text-sm">
-            {activeTypes.length > 0 ? activeTypes.map(type => (
-              <li key={type.id}>
-                <Link to={`/events/category/${type.id}`} className="text-white/50 hover:text-violet-400 transition-colors">
-                  {type.label}
-                </Link>
-              </li>
-            )) : (
+            {activeTypes.length > 0 ? (
+              activeTypes.map((type) => (
+                <li key={type.id}>
+                  <Link
+                    to={`/events/category/${type.id}`}
+                    className="text-white/50 hover:text-violet-400 transition-colors"
+                  >
+                    {type.label}
+                  </Link>
+                </li>
+              ))
+            ) : (
               <li className="text-white/20 italic text-xs">{t.noActiveActivities}</li>
             )}
           </ul>
@@ -280,8 +343,12 @@ function DynamicFooter({ t, lang, toggleLang }) {
           © {new Date().getFullYear()} JnE Events. {t.allRightsReserved}
         </p>
         <div className="flex gap-6 text-xs text-white/20">
-          <Link to="/privacy" className="hover:text-white/40">{t.privacyPolicy}</Link>
-          <Link to="/terms" className="hover:text-white/40">{t.termsOfService}</Link>
+          <Link to="/privacy" className="hover:text-white/40">
+            {t.privacyPolicy}
+          </Link>
+          <Link to="/terms" className="hover:text-white/40">
+            {t.termsOfService}
+          </Link>
         </div>
       </div>
     </div>

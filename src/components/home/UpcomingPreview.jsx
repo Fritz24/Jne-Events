@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { ArrowRight, Calendar, MapPin, Film, Music, ExternalLink } from "lucide-react";
+import { ArrowRight, Calendar, MapPin, Film, Music } from "lucide-react";
 import { formatLocalizedDate } from "@/lib/localize";
 import { useLocalized } from "@/lib/LanguageContext";
 

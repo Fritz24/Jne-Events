@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/AuthContext";
-import { supabase } from "@/lib/supabase";
-import { Mail, Lock, Music, ArrowRight, Loader2, User, AlertCircle } from "lucide-react";
+import { Mail, Lock, ArrowRight, Loader2, User, AlertCircle } from "lucide-react";
 import { motion } from "framer-motion";
 import SEO from "../components/common/SEO";
 

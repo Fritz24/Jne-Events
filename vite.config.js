@@ -13,10 +13,27 @@ export default defineConfig(({ mode }) => {
   ],
   server: {
     proxy: {
-      '/api/campay': {
+      // Local dev proxy for /api/campay-collect → Campay POST /collect/
+      '/api/campay-collect': {
         target: campayApi,
         changeOrigin: true,
-        rewrite: (p) => p.replace(/^\/api\/campay\/?/, '/'),
+        rewrite: () => '/collect/',
+        configure: (proxy) => {
+          proxy.on('proxyReq', (proxyReq) => {
+            if (campayToken) {
+              proxyReq.setHeader('Authorization', `Token ${campayToken}`)
+            }
+          })
+        },
+      },
+      // Local dev proxy for /api/campay-status → Campay GET /transaction/:ref/
+      '/api/campay-status': {
+        target: campayApi,
+        changeOrigin: true,
+        rewrite: (p) => {
+          const match = p.match(/reference=([^&]+)/)
+          return match ? `/transaction/${match[1]}/` : '/transaction/'
+        },
         configure: (proxy) => {
           proxy.on('proxyReq', (proxyReq) => {
             if (campayToken) {

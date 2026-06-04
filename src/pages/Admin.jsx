@@ -6,13 +6,12 @@ import { Button } from "@/components/ui/button";
 import {
   Plus, CalendarDays, Ticket, ShieldOff, ShoppingBag, Users,
   LayoutDashboard, BarChart3, Globe, Megaphone, Settings,
-  ChevronDown, Menu, X, Sparkles, TrendingUp, Eye,
-  MessageCircle, MapPin, ArrowUpRight, Tags, Layers, Settings2, ScanLine
+  ChevronDown, Menu, Sparkles,
+  MessageCircle, ArrowUpRight, Settings2, ScanLine
 } from "lucide-react";
 import EventForm from "../components/admin/EventForm";
 import EventTable from "../components/admin/EventTable";
 import BookingManager from "../components/admin/BookingManager";
-import RefreshmentsManager from "../components/admin/RefreshmentsManager";
 // Actually, let's keep the import name but change the label in Admin.
 import ExtrasManager from "../components/admin/RefreshmentsManager";
 import CategoryDesigner from "../components/admin/CategoryDesigner";

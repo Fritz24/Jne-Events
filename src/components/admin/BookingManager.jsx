@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CheckCircle, XCircle, UserCheck, Search, Trash2, Download } from "lucide-react";
-import { countUsedSlots, TICKET_CAPACITY, remainingSlots } from "@/utils/ticketCount";
+import { countUsedSlots, remainingSlots } from "@/utils/ticketCount";
 
 const STATUS_CONFIG = {
   pending: { label: "Pending", color: "bg-yellow-500/15 text-yellow-300" },
@@ -68,6 +68,15 @@ export default function BookingManager() {
     return matchSearch && matchStatus && matchEvent;
   });
 
+  const { data: eventsData = [] } = useQuery({
+    queryKey: ["events"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('jne_events').select('id, title, capacity');
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
   const downloadCSV = () => {
     const rows = [
       ["Attendee Name", "Ticket ID", "Event", "Tier", "Price", "Currency", "Status", "Date"],
@@ -97,8 +106,10 @@ export default function BookingManager() {
     return acc;
   }, {});
 
-  const usedSlots = countUsedSlots(bookings);
-  const remaining = remainingSlots(bookings);
+  const selectedEvent = filterEvent !== "all" ? eventsData.find(e => e.title === filterEvent) : null;
+  const eventCapacity = selectedEvent?.capacity || 50;
+  const usedSlots = countUsedSlots(filterEvent !== "all" ? filtered : bookings);
+  const remaining = filterEvent !== "all" ? remainingSlots(filtered, eventCapacity) : 0;
 
   if (isLoading) return (
     <div className="text-white/40 text-center py-10">Loading bookings...</div>
@@ -106,24 +117,26 @@ export default function BookingManager() {
 
   return (
     <div className="space-y-5">
-      {/* Capacity Bar */}
-      <div className="rounded-xl bg-white/[0.03] border border-white/5 p-4 space-y-2">
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-white/60 font-medium">Ticket Capacity</span>
-          <span className={`font-bold ${remaining === 0 ? "text-red-400" : "text-white"}`}>
-            {usedSlots} / {TICKET_CAPACITY} slots used
-            {remaining === 0 && " · SOLD OUT 🎉"}
-            {remaining > 0 && <span className="text-white/40 font-normal"> ({remaining} remaining)</span>}
-          </span>
+      {/* Capacity Bar - Only show when a specific event is selected */}
+      {filterEvent !== "all" && (
+        <div className="rounded-xl bg-white/[0.03] border border-white/5 p-4 space-y-2">
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-white/60 font-medium">Ticket Capacity ({filterEvent})</span>
+            <span className={`font-bold ${remaining === 0 ? "text-red-400" : "text-white"}`}>
+              {usedSlots} / {eventCapacity} slots used
+              {remaining === 0 && " · SOLD OUT 🎉"}
+              {remaining > 0 && <span className="text-white/40 font-normal"> ({remaining} remaining)</span>}
+            </span>
+          </div>
+          <div className="w-full bg-white/5 rounded-full h-2">
+            <div
+              className={`h-2 rounded-full transition-all ${remaining === 0 ? "bg-red-500" : "bg-violet-500"}`}
+              style={{ width: `${Math.min(100, (usedSlots / eventCapacity) * 100)}%` }}
+            />
+          </div>
+          <p className="text-xs text-white/30">Note: "Date Night" tier counts as 2 slots per booking.</p>
         </div>
-        <div className="w-full bg-white/5 rounded-full h-2">
-          <div
-            className={`h-2 rounded-full transition-all ${remaining === 0 ? "bg-red-500" : "bg-violet-500"}`}
-            style={{ width: `${Math.min(100, (usedSlots / TICKET_CAPACITY) * 100)}%` }}
-          />
-        </div>
-        <p className="text-xs text-white/30">Note: "Date Night" tier counts as 2 slots per booking.</p>
-      </div>
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">

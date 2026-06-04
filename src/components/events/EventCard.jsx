@@ -10,6 +10,7 @@ import TicketTiers from "./TicketTiers";
 import { useLocalized } from "@/lib/LanguageContext";
 import { useAuth } from "@/lib/AuthContext";
 import { logAnalyticsEvent } from "../../utils/analytics";
+import { remainingSlots } from "@/utils/ticketCount";
 
 export default function EventCard({ event, index = 0 }) {
   const [showTiers, setShowTiers] = useState(false);
@@ -37,6 +38,20 @@ export default function EventCard({ event, index = 0 }) {
     }
   });
 
+  // Fetch bookings from cache to calculate capacity
+  const { data: bookings = [] } = useQuery({
+    queryKey: ["bookings"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('jne_bookings').select('*').order('created_date', { ascending: false }).limit(200);
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const eventBookings = bookings.filter(b => b.event_id === event.id);
+  const eventCapacity = event.capacity || 50;
+  const remaining = remainingSlots(eventBookings, eventCapacity);
+  
   const category = categories.find(c => c.id === event.type);
 
   const typeConfig = {
@@ -107,10 +122,9 @@ export default function EventCard({ event, index = 0 }) {
 
         {/* Content */}
         <div className="p-5">
-          <h3 className="text-lg font-semibold text-white mb-1 line-clamp-1">{getField(event, "title")}</h3>
-          {event.artist_or_movie && (
-            <p className="text-sm text-white/40 mb-3">{event.artist_or_movie}</p>
-          )}
+          <h3 className="text-xl font-semibold tracking-tight text-white leading-snug mb-2 line-clamp-2">
+            {getField(event, "title")}
+          </h3>
 
           <div className="flex flex-col gap-2 mb-4">
             <div className="flex items-center gap-2 text-sm text-white/50">
@@ -126,14 +140,23 @@ export default function EventCard({ event, index = 0 }) {
             </div>
           </div>
 
-          <div className="flex items-center justify-between mb-4">
-            <div className="text-sm text-white/40">{t.ticketsFrom}</div>
-            <div className="text-lg font-bold text-white">
+          <div className="space-y-1 mb-4">
+            <div className="text-sm text-white/45">
+              {t.ticketsFrom}{" "}
               {(event.ticket_tiers?.length
-                ? Math.min(...event.ticket_tiers.map(t => t.price || 0))
+                ? Math.min(...event.ticket_tiers.map((t) => t.price || 0))
                 : (event.price || 0)
-              ).toLocaleString()} {event.currency || "XAF"}
+              ).toLocaleString()}{" "}
+              {event.currency || "XAF"}
             </div>
+            <div
+              className={`text-xs font-medium ${
+                remaining === 0 ? "text-red-400" : remaining <= 10 ? "text-amber-400" : "text-emerald-400/80"
+              }`}
+            >
+              {remaining === 0 ? t.soldOutLabel : `${remaining} / ${eventCapacity} ${t.slotsLeft}`}
+            </div>
+            {event.artist_or_movie && <div className="text-sm text-white/40">{event.artist_or_movie}</div>}
           </div>
 
           {isAvailable ? (

@@ -1,5 +1,3 @@
-export const TICKET_CAPACITY = 50;
-
 // "Date Night" tier counts as 2 tickets (it's for a couple)
 export const tierSlotCount = (tierLabel = "") => {
   return tierLabel.toLowerCase().includes("date night") ? 2 : 1;
@@ -12,8 +10,8 @@ export const countUsedSlots = (bookings = []) => {
     .reduce((sum, b) => sum + tierSlotCount(b.tier_label), 0);
 };
 
-export const isSoldOut = (bookings = []) =>
-  countUsedSlots(bookings) >= TICKET_CAPACITY;
+export const isSoldOut = (bookings = [], capacity = 50) =>
+  countUsedSlots(bookings) >= capacity;
 
-export const remainingSlots = (bookings = []) =>
-  Math.max(0, TICKET_CAPACITY - countUsedSlots(bookings));
+export const remainingSlots = (bookings = [], capacity = 50) =>
+  Math.max(0, capacity - countUsedSlots(bookings));

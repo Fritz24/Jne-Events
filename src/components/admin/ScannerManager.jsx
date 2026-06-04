@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
-import { Loader2, CheckCircle2, XCircle, ScanLine, Ticket, Camera, X } from "lucide-react";
+import { Loader2, CheckCircle2, XCircle, Ticket, Camera, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 

@@ -1,22 +1,39 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import EventCard from "../components/events/EventCard";
 import EventFilters from "../components/events/EventFilters";
-import SoldOutBanner from "../components/events/SoldOutBanner";
 import { Loader2 } from "lucide-react";
-import { isSoldOut, countUsedSlots, TICKET_CAPACITY } from "@/utils/ticketCount";
 import { useAuth } from "@/lib/AuthContext";
 import { useLang } from "@/lib/LanguageContext";
 import SEO from "../components/common/SEO";
+import { useSearchParams } from "react-router-dom";
 
 export default function Events() {
-  const [activeFilters, setActiveFilters] = useState({
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlSearch = (searchParams.get("search") || "").trim();
+
+  const [activeFilters, setActiveFilters] = useState(() => ({
     type: "all",
     genre: "all",
     location: "all",
-    search: ""
-  });
+    search: urlSearch,
+  }));
+
+  useEffect(() => {
+    setActiveFilters((prev) => (prev.search === urlSearch ? prev : { ...prev, search: urlSearch }));
+  }, [urlSearch]);
+
+  useEffect(() => {
+    const current = (searchParams.get("search") || "").trim();
+    if (activeFilters.search === current) return;
+
+    const next = new URLSearchParams(searchParams);
+    if (activeFilters.search) next.set("search", activeFilters.search);
+    else next.delete("search");
+
+    setSearchParams(next, { replace: true });
+  }, [activeFilters.search, searchParams, setSearchParams]);
 
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
@@ -54,9 +71,6 @@ export default function Events() {
       return data?.value ? JSON.parse(data.value) : [];
     }
   });
-
-  const soldOut = isSoldOut(bookings);
-  const usedSlots = countUsedSlots(bookings);
 
   // Get unique genres and cities from events
   const allGenres = ["all", ...new Set(events.map(e => e.genre).filter(Boolean))];
@@ -154,9 +168,6 @@ export default function Events() {
         <h1 className="text-3xl sm:text-4xl font-bold text-white mb-2">{t.eventsTitle}</h1>
         <p className="text-white/40">{t.eventsSubtitle}</p>
       </div>
-
-      {soldOut && <div className="mb-6"><SoldOutBanner /></div>}
-
 
       <EventFilters
         filters={activeFilters}

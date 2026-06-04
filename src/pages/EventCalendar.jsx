@@ -8,8 +8,7 @@ import {
 } from "lucide-react";
 import {
     format, startOfMonth, endOfMonth, eachDayOfInterval,
-    isSameDay, isSameMonth, addMonths, subMonths,
-    getDay, isToday, isPast, startOfWeek, endOfWeek
+    isSameDay, isSameMonth, addMonths, subMonths, isToday, isPast, startOfWeek, endOfWeek
 } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import SEO from "../components/common/SEO";

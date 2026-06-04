@@ -1,8 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import {
-    Mail, Calendar, Trash2, Search,
-    Download, Copy, Check, Loader2
+    Mail, Trash2, Search, Copy, Check, Loader2
 } from "lucide-react";
 import { useState } from "react";
 import { format } from "date-fns";

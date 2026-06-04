@@ -2,7 +2,7 @@ import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
-    Plus, Trash2, LayoutGrid, Check, Loader2,
+    Plus, Trash2, LayoutGrid, Loader2,
     Settings2, Utensils, GlassWater, Sparkles
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";

@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/lib/supabase";
-import { Save, X, Loader2, Plus, Trash2, MoreVertical, Check, Star, Users } from "lucide-react";
+import { Save, X, Loader2, Plus, Trash2, Check, Star, Users } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,

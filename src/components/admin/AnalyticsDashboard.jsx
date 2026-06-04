@@ -1,16 +1,14 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
-import {
-    BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-    ResponsiveContainer, AreaChart, Area, Cell, PieChart, Pie
+import { Bar, XAxis, YAxis, CartesianGrid, Tooltip,
+    ResponsiveContainer, AreaChart, Area
 } from 'recharts';
 import {
-    TrendingUp, Users, MessageCircle, Eye,
-    Calendar, ArrowUpRight, Filter, Download,
-    DollarSign, ChevronDown, CheckCircle2, AlertCircle
+    TrendingUp, MessageCircle, Eye, ArrowUpRight, Filter,
+    DollarSign, CheckCircle2
 } from "lucide-react";
-import { format, subDays, startOfDay, endOfDay, isAfter, isBefore } from "date-fns";
+import { format, subDays, startOfDay, endOfDay, isAfter } from "date-fns";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function AnalyticsDashboard() {
