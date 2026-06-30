@@ -1,11 +1,12 @@
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
-import { Film, Music, Calendar, Menu, X } from "lucide-react";
+import { Film, Music, Calendar, Menu, X, Heart, Ticket } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLang } from "@/lib/LanguageContext";
 import { useAuth } from "@/lib/AuthContext";
+import { migrateLocalFavoritesToSupabase } from "@/lib/favorites";
 import { LogOut, LayoutDashboard, LogIn } from "lucide-react";
 import SearchBar from "./common/SearchBar";
 
@@ -23,6 +24,18 @@ export default function Layout() {
     setNavSearch(searchValue);
   }, [location.search]);
 
+  // Migrate local favorites to Supabase when user logs in
+  useEffect(() => {
+    if (user?.id) {
+      migrateLocalFavoritesToSupabase(user.id).then(({ migrated }) => {
+        if (migrated && migrated > 0) {
+          // optionally show a toast or console log
+          console.log(`Migrated ${migrated} local favorites to server`);
+        }
+      });
+    }
+  }, [user?.id]);
+
   const submitNavSearch = () => {
     const q = navSearch.trim();
     if (!q) {
@@ -36,6 +49,8 @@ export default function Layout() {
 
   const navLinks = [
     { to: "/home", label: t.home, icon: Calendar },
+    { to: "/tickets", label: t.myTickets || "My Tickets", icon: Ticket },
+    { to: "/favorites", label: t.favorites || "Favorites", icon: Heart },
     { to: "/events", label: t.events, icon: Film },
     { to: "/calendar", label: t.calendar, icon: Calendar },
     { to: "/albums", label: t.memoriesNav, icon: Film },

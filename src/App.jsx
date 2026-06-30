@@ -3,6 +3,7 @@ import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
+import ScrollToTop from './components/ScrollToTop';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import { HelmetProvider } from 'react-helmet-async';
 import { LanguageProvider } from '@/lib/LanguageContext';
@@ -11,6 +12,8 @@ import { Navigate } from 'react-router-dom';
 import Layout from './components/Layout';
 import Home from './pages/Home';
 import Events from './pages/Events';
+import EventDetails from './pages/EventDetails';
+import Tickets from './pages/Tickets';
 import Admin from './pages/Admin';
 import ScanTicket from './pages/ScanTicket';
 import Login from './pages/Login';
@@ -20,6 +23,7 @@ import Privacy from './pages/Privacy';
 import Terms from './pages/Terms';
 import EventCalendar from './pages/EventCalendar';
 import Albums from './pages/Albums';
+import Favorites from './pages/Favorites';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -57,6 +61,9 @@ const AuthenticatedApp = () => {
         <Route path="/Home" element={<Navigate to="/home" replace />} />
         <Route path="/events" element={<Events />} />
         <Route path="/Events" element={<Navigate to="/events" replace />} />
+        <Route path="/tickets" element={<Tickets />} />
+        <Route path="/favorites" element={<Favorites />} />
+        <Route path="/events/:eventId" element={<EventDetails />} />
         <Route path="/calendar" element={<EventCalendar />} />
         <Route path="/Calendar" element={<Navigate to="/calendar" replace />} />
         <Route path="/albums" element={<Albums />} />
@@ -90,6 +97,7 @@ function App() {
         <LanguageProvider>
           <QueryClientProvider client={queryClientInstance}>
             <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+              <ScrollToTop />
               <AuthenticatedApp />
             </Router>
             <Toaster />

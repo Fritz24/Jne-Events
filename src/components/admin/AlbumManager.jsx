@@ -120,7 +120,7 @@ export default function AlbumManager() {
     <div className="space-y-6 max-w-5xl mx-auto">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold text-white tracking-tight">Photo Albums</h2>
-        <Button onClick={handleCreate} className="bg-emerald-500 hover:bg-emerald-400 text-black">
+        <Button onClick={handleCreate} className="bg-violet-600 hover:bg-violet-500 text-white">
           <Plus className="w-4 h-4 mr-2" />
           Create Album
         </Button>

@@ -33,12 +33,15 @@ export default function UpcomingPreview({ events }) {
           return (
             <div
               key={event.id}
-              className="relative flex flex-col sm:flex-row rounded-xl overflow-hidden bg-[#0d0d12] border border-white/[0.08] hover:bg-[#111118] hover:border-white/15 transition-all group shadow-2xl"
+              className="relative flex flex-col sm:flex-row rounded-2xl bg-[#14141c] hover:bg-[#1c1c28] transition-all group shadow-2xl"
             >
-              {/* Left cutout */}
-              <div className="hidden sm:block absolute top-1/2 -translate-y-1/2 -left-3 w-6 h-6 bg-[#0a0a0f] rounded-full border-r border-white/10 border-y border-transparent z-10 group-hover:border-white/20 transition-colors" />
+              {/* Card Border Overlay (allows children to render on top of border in z-20) */}
+              <div className="absolute inset-0 border border-white/[0.12] group-hover:border-white/20 rounded-2xl pointer-events-none transition-colors z-10" />
 
-              <div className="flex-1 flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 sm:px-6 sm:py-5 border-b sm:border-b-0 sm:border-r-[2px] border-dashed border-white/10">
+              {/* Left cutout (renders z-20 to cover sibling border overlay and blends seamlessly with page background #09090b) */}
+              <div className="hidden sm:block absolute top-1/2 -translate-y-1/2 -left-3 w-6 h-6 bg-[#09090b] rounded-full z-20" />
+ 
+              <div className="flex-1 flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 sm:px-6 sm:py-5 border-b sm:border-b-0 sm:border-r-[2px] border-dashed border-white/[0.12]">
                 <div className="flex items-center gap-5">
                   <div className="w-16 h-16 rounded-xl overflow-hidden shrink-0 border border-white/10 bg-white/5 flex items-center justify-center shadow-md">
                     {event.image_url ? (
@@ -66,9 +69,9 @@ export default function UpcomingPreview({ events }) {
                   </div>
                 </div>
               </div>
-
-              {/* Right Ticket Stub */}
-              <div className="flex sm:flex-col items-center justify-between sm:justify-center gap-3 p-4 sm:px-8 sm:py-0 bg-white/[0.02] sm:min-w-[160px]">
+ 
+              {/* Right Ticket Stub (rounded on the right corners to respect card boundaries) */}
+              <div className="flex sm:flex-col items-center justify-between sm:justify-center gap-3 p-4 sm:px-8 sm:py-0 bg-white/[0.01] sm:min-w-[160px] rounded-b-2xl sm:rounded-b-0 sm:rounded-r-2xl overflow-hidden">
                 <span className="text-[17px] font-black text-white tracking-tight">
                   {(event.ticket_tiers?.length
                     ? Math.min(...event.ticket_tiers.map(t => t.price || 0))
@@ -77,16 +80,16 @@ export default function UpcomingPreview({ events }) {
                 </span>
                 {event.status === "upcoming" && (
                   <Link
-                    to="/Events"
-                    className="inline-flex items-center justify-center min-w-[100px] px-4 py-2 rounded-lg bg-emerald-500/10 hover:bg-emerald-500 hover:text-white border border-emerald-500/30 text-emerald-400 text-sm font-semibold capitalize transition-all shadow-lg"
+                    to={`/events/${event.id}`}
+                    className="inline-flex items-center justify-center min-w-[100px] px-4 py-2 rounded-xl bg-violet-600/10 hover:bg-violet-600 hover:text-white border border-violet-500/30 text-violet-400 text-sm font-semibold capitalize transition-all shadow-lg"
                   >
                     {t.book}
                   </Link>
                 )}
               </div>
-
-              {/* Right cutout */}
-              <div className="hidden sm:block absolute top-1/2 -translate-y-1/2 -right-3 w-6 h-6 bg-[#0a0a0f] rounded-full border-l border-white/10 border-y border-transparent z-10 group-hover:border-white/20 transition-colors" />
+ 
+              {/* Right cutout (renders z-20 to cover sibling border overlay and blends seamlessly with page background #09090b) */}
+              <div className="hidden sm:block absolute top-1/2 -translate-y-1/2 -right-3 w-6 h-6 bg-[#09090b] rounded-full z-20" />
             </div>
           );
         })}

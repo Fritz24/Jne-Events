@@ -21,6 +21,7 @@ export default function BookingManager() {
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterEvent, setFilterEvent] = useState("all");
+  const [includePast, setIncludePast] = useState(false);
 
   const { data: bookings = [], isLoading } = useQuery({
     queryKey: ["bookings"],
@@ -56,6 +57,15 @@ export default function BookingManager() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["bookings"] }),
   });
 
+  const { data: eventsData = [] } = useQuery({
+    queryKey: ["events"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('jne_events').select('id, title, capacity, date');
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
   const eventTitles = [...new Set(bookings.map(b => b.event_title).filter(Boolean))];
 
   const filtered = bookings.filter(b => {
@@ -65,16 +75,21 @@ export default function BookingManager() {
       b.event_title?.toLowerCase().includes(search.toLowerCase());
     const matchStatus = filterStatus === "all" || b.status === filterStatus;
     const matchEvent = filterEvent === "all" || b.event_title === filterEvent;
-    return matchSearch && matchStatus && matchEvent;
-  });
 
-  const { data: eventsData = [] } = useQuery({
-    queryKey: ["events"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from('jne_events').select('id, title, capacity');
-      if (error) throw error;
-      return data || [];
-    },
+    // Check if the event's date is in the past, falling back to booking creation date
+    const eventObj = eventsData.find(e => e.id === b.event_id || e.title === b.event_title);
+    let isPast = false;
+    if (eventObj?.date) {
+      isPast = new Date(eventObj.date) < new Date();
+    } else if (b.created_date) {
+      // Fallback: If the booking itself was created over 24 hours ago, consider it past
+      const oneDayAgo = new Date();
+      oneDayAgo.setDate(oneDayAgo.getDate() - 1);
+      isPast = new Date(b.created_date) < oneDayAgo;
+    }
+    const matchPast = includePast || !isPast;
+
+    return matchSearch && matchStatus && matchEvent && matchPast;
   });
 
   const downloadCSV = () => {
@@ -183,12 +198,25 @@ export default function BookingManager() {
         </Select>
         <Button
           onClick={downloadCSV}
-          variant="outline"
-          className="border-emerald-500 text-black hover:bg-emerald-500/20 gap-2 shrink-0"
+          className="bg-violet-600 hover:bg-violet-500 text-white gap-2 shrink-0 border border-violet-500/20 shadow-md"
         >
           <Download className="w-4 h-4" />
           Export CSV
         </Button>
+      </div>
+
+      {/* Include Past Events Toggle */}
+      <div className="flex items-center gap-2 text-sm text-white/55 pl-1">
+        <input
+          type="checkbox"
+          id="includePast"
+          checked={includePast}
+          onChange={(e) => setIncludePast(e.target.checked)}
+          className="w-4 h-4 rounded border border-white/20 bg-zinc-950 text-violet-600 focus:ring-violet-500 focus:ring-offset-0 focus:ring-1 cursor-pointer accent-violet-600"
+        />
+        <label htmlFor="includePast" className="cursor-pointer select-none text-xs font-semibold text-white/50 hover:text-white transition-colors">
+          Show bookings for past events
+        </label>
       </div>
 
       {/* Table */}

@@ -1,32 +1,119 @@
-import { Calendar, MapPin, Film, Music, ChevronDown, ChevronUp } from "lucide-react";
+import { Film, Music, Heart, Zap, X } from "lucide-react";
+import { createPortal } from "react-dom";
 import { formatLocalizedDate } from "@/lib/localize";
-import { Badge } from "@/components/ui/badge";
-import { motion } from "framer-motion";
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
-import TicketTiers from "./TicketTiers";
 import { useLocalized } from "@/lib/LanguageContext";
 import { useAuth } from "@/lib/AuthContext";
 import { logAnalyticsEvent } from "../../utils/analytics";
 import { remainingSlots } from "@/utils/ticketCount";
+import {
+  getLocalFavorites,
+  addLocalFavorite,
+  removeLocalFavorite,
+  isFavorited,
+  addFavoriteToSupabase,
+  removeFavoriteFromSupabase,
+} from "@/lib/favorites";
+import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
+
+// Simple Apple-style share icon (square with arrow up)
+const AppleShareIcon = ({ className = "w-5 h-5", ...props }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
+    <rect x="3" y="3" width="18" height="18" rx="3" ry="3" />
+    <path d="M8 12l4-4 4 4" />
+    <path d="M12 8v8" />
+  </svg>
+);
 
 export default function EventCard({ event, index = 0 }) {
-  const [showTiers, setShowTiers] = useState(false);
+  const [liked, setLiked] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
   const navigate = useNavigate();
   const { t, lang, getField } = useLocalized();
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
 
-  const handleToggleTiers = () => {
-    const nextState = !showTiers;
-    setShowTiers(nextState);
+  const queryClient = useQueryClient();
 
-    // Log a view when they open the tiers
-    if (nextState) {
-      logAnalyticsEvent('event_view', event.id, event.title);
+  // initialize liked state from localStorage or Supabase
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        if (user?.id) {
+          const fav = await isFavorited(user.id, event.id);
+          if (mounted) setLiked(!!fav);
+        } else {
+          const local = getLocalFavorites();
+          if (mounted) setLiked(local.includes(event.id));
+        }
+      } catch (err) {
+        // ignore
+      }
+    })();
+
+    return () => { mounted = false; };
+  }, [user?.id, event.id]);
+
+  const handleCardClick = () => {
+    navigate(`/events/${event.id}`);
+    logAnalyticsEvent('event_card_click', event.id, event.title);
+  };
+
+  const handleShare = async (e) => {
+    e.stopPropagation();
+    const eventUrl = `${window.location.origin}/#/events/${event.id}`;
+    const shareText = `Check out ${getField(event, "title")} on ${event.date ? formatLocalizedDate(event.date, "MMM d", lang) : ""}`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: getField(event, "title"),
+          text: shareText,
+          url: eventUrl,
+        });
+        logAnalyticsEvent('event_share', event.id, event.title);
+      } catch (err) {
+        console.log('Share cancelled or failed', err);
+      }
+    } else {
+      // Fallback: copy event detail URL to clipboard
+      try {
+        await navigator.clipboard.writeText(eventUrl);
+        alert('Event link copied to clipboard!');
+      } catch (err) {
+        // If clipboard fails, navigate to the event detail page as a last resort
+        navigate(`/events/${event.id}`);
+      }
     }
+  };
+
+  const handleLike = async (e) => {
+    e.stopPropagation();
+    
+    // Prompt login or sign up for unauthenticated users
+    if (!user?.id) {
+      setShowAuthModal(true);
+      return;
+    }
+
+    const willLike = !liked;
+    setLiked(willLike);
+    logAnalyticsEvent(willLike ? 'event_like' : 'event_unlike', event.id, event.title);
+
+    if (willLike) {
+      addLocalFavorite(event.id);
+      await addFavoriteToSupabase(user.id, event.id);
+    } else {
+      removeLocalFavorite(event.id);
+      await removeFavoriteFromSupabase(user.id, event.id);
+    }
+
+    // Invalidate the favorites list query to trigger a smooth UI updates
+    queryClient.invalidateQueries({ queryKey: ['favorites_events'] });
   };
 
   // Fetch dynamic categories for labeling
@@ -81,6 +168,16 @@ export default function EventCard({ event, index = 0 }) {
   const status = statusConfig[event.status] || statusConfig.upcoming;
   const isAvailable = event.status !== "sold_out" && event.status !== "cancelled" && event.status !== "completed" && event.status !== "ongoing";
 
+  const getDaysLeft = () => {
+    if (!event.date) return null;
+    const eventDate = new Date(event.date);
+    const now = new Date();
+    const diffTime = eventDate - now;
+    if (diffTime <= 0) return null;
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  };
+  const daysLeft = getDaysLeft();
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -88,104 +185,172 @@ export default function EventCard({ event, index = 0 }) {
       transition={{ duration: 0.5, delay: index * 0.1 }}
       className="group"
     >
-      <div className="relative rounded-2xl bg-white/[0.03] border border-white/[0.06] overflow-hidden hover:border-white/10 hover:bg-white/[0.05] transition-all duration-300">
-        {/* Image */}
-        <div className="relative aspect-[16/10] overflow-hidden">
+      {/* Outer wrapper: transparent so text sits on app background (no card bg) */}
+      <div className="cursor-pointer h-full" onClick={handleCardClick}>
+        {/* Image block - rounded with shadow to match the poster look */}
+        <div className="relative w-full aspect-video overflow-hidden rounded-2xl shadow-lg group-hover:shadow-xl transition-shadow">
           {event.image_url ? (
             <img
               src={event.image_url}
               alt={getField(event, "title")}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
             />
           ) : (
-            <div className="w-full h-full bg-gradient-to-br from-violet-900/40 to-amber-900/20 flex items-center justify-center">
-              <TypeIcon className="w-12 h-12 text-white/20" />
+            <div className="w-full h-full bg-gradient-to-br from-zinc-800 to-zinc-900 flex items-center justify-center">
+              <TypeIcon className="w-24 h-24 text-zinc-700" />
             </div>
           )}
-          <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0f] via-transparent to-transparent" />
 
-          <div className="absolute top-3 left-3 flex gap-2">
-            <Badge
-              className={`${typeColor} border text-xs cursor-pointer hover:brightness-110`}
-              onClick={(e) => { e.stopPropagation(); navigate(`/events/category/${event.type}`); }}
-            >
-              <TypeIcon className="w-3 h-3 mr-1" />
-              {typeLabel}
-            </Badge>
-          </div>
-          {event.status === "sold_out" && (
-            <div className="absolute top-3 right-3">
-              <Badge className={`${status.color} text-xs`}>{status.label}</Badge>
+          {/* Time Urgency Badge (Top Left) */}
+          {daysLeft !== null && daysLeft <= 3 && (
+            <div className={`absolute top-4 left-4 px-2.5 py-1.5 rounded-xl text-[9px] font-extrabold tracking-wider shadow-md ${
+              daysLeft === 1 
+                ? "bg-amber-400 text-black border border-amber-500/10" 
+                : "bg-violet-600 text-white border border-violet-500/10"
+            }`}>
+              {daysLeft === 1 ? "Tomorrow" : `${daysLeft} days left`}
             </div>
           )}
+
+          {/* Availability Status Badge (Top Right) */}
+          {remaining === 0 ? (
+            <div className="absolute top-4 right-4 px-2.5 py-1.5 rounded-xl bg-red-500 text-white text-[9px] font-extrabold tracking-wider shadow-md border border-red-600/10">
+              Event full
+            </div>
+          ) : remaining <= 10 ? (
+            <div className="absolute top-4 right-4 px-2.5 py-1.5 rounded-xl bg-orange-500 text-white text-[9px] font-extrabold tracking-wider flex items-center gap-1 shadow-md border border-orange-600/10 animate-pulse">
+              <Zap className="w-2.5 h-2.5" />
+              <span>Few slots left</span>
+            </div>
+          ) : null}
         </div>
 
-        {/* Content */}
-        <div className="p-5">
-          <h3 className="text-xl font-semibold tracking-tight text-white leading-snug mb-2 line-clamp-2">
-            {getField(event, "title")}
-          </h3>
+        {/* Text on app background (separate from image) */}
+        <div className="mt-4 px-0">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex-1 pr-3">
+              <h2 className="text-2xl font-extrabold text-white leading-tight mb-2 line-clamp-2 group-hover:text-violet-300 transition-colors">
+                {getField(event, "title")}
+              </h2>
 
-          <div className="flex flex-col gap-2 mb-4">
-            <div className="flex items-center gap-2 text-sm text-white/50">
-              <Calendar className="w-3.5 h-3.5 shrink-0" />
-              {event.date ? formatLocalizedDate(event.date, "EEE, MMM d · HH:mm", lang) : t.tba}
+              {/* Single-line meta: Date • Time • Venue (no icons) */}
+              <p className="text-sm text-zinc-300">
+                {event.date ? formatLocalizedDate(event.date, "EEE, d MMM", lang) : t.tba}
+                {event.date && (
+                  <>
+                    {" \u2022 "}
+                    {formatLocalizedDate(event.date, "HH:mm", lang)}
+                  </>
+                )}
+                {event.venue && (
+                  <>
+                    {" \u2022 "}
+                    <span className="font-medium text-zinc-300">{getField(event, "venue")}</span>
+                  </>
+                )}
+              </p>
+
+              {/* Dynamic Slots Left indicator */}
+              <p className={`text-xs font-semibold mt-2 ${
+                remaining === 0 ? "text-red-400" : remaining <= 10 ? "text-amber-400" : "text-emerald-400"
+              }`}>
+                {remaining === 0 ? "Event full" : `${remaining} slots left`}
+              </p>
             </div>
-            <div
-              className="flex items-center gap-2 text-sm text-white/50 cursor-pointer hover:text-violet-400 transition-colors"
-              onClick={(e) => { e.stopPropagation(); navigate(`/events/city/${event.city || event.venue}`); }}
-            >
-              <MapPin className="w-3.5 h-3.5 shrink-0" />
-              {event.city ? `${getField(event, "venue")}, ${event.city}` : getField(event, "venue")}
+
+            {/* Action icons beside title (kept, same behavior) */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleShare}
+                onMouseDown={(e)=>e.stopPropagation()}
+                className="p-2 text-zinc-300 hover:text-violet-500 transition-colors"
+                title="Share"
+                aria-label="Share"
+              >
+                <AppleShareIcon className="w-6 h-6" />
+              </button>
+              <button
+                onClick={handleLike}
+                onMouseDown={(e)=>e.stopPropagation()}
+                className={`p-2 transition-colors ${liked ? 'text-red-600' : 'text-zinc-300 hover:text-violet-500'}`}
+                title={liked ? "Unlike" : "Like"}
+                aria-label={liked ? "Unlike" : "Like"}
+              >
+                <Heart className="w-6 h-6" fill={liked ? "currentColor" : "none"} />
+              </button>
             </div>
           </div>
 
-          <div className="space-y-1 mb-4">
-            <div className="text-sm text-white/45">
-              {t.ticketsFrom}{" "}
+          {/* Price row (simple, matching screenshot) */}
+          <div className="mt-3">
+            <p className="text-sm text-zinc-400 mb-1">From</p>
+            <p className="text-xl font-bold text-white">
               {(event.ticket_tiers?.length
                 ? Math.min(...event.ticket_tiers.map((t) => t.price || 0))
                 : (event.price || 0)
-              ).toLocaleString()}{" "}
-              {event.currency || "XAF"}
-            </div>
-            <div
-              className={`text-xs font-medium ${
-                remaining === 0 ? "text-red-400" : remaining <= 10 ? "text-amber-400" : "text-emerald-400/80"
-              }`}
-            >
-              {remaining === 0 ? t.soldOutLabel : `${remaining} / ${eventCapacity} ${t.slotsLeft}`}
-            </div>
-            {event.artist_or_movie && <div className="text-sm text-white/40">{event.artist_or_movie}</div>}
+              ).toLocaleString()} {" "}
+              <span className="text-sm text-zinc-400">{event.currency || "XAF"}</span>
+            </p>
           </div>
-
-          {isAvailable ? (
-            <button
-              onClick={handleToggleTiers}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-sm font-semibold transition-all"
-            >
-              {showTiers ? t.hidePackages : t.viewPackages}
-              {showTiers ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-            </button>
-          ) : (
-            <span className={`w-full flex justify-center px-4 py-2.5 rounded-xl text-sm font-medium ${status.color}`}>
-              {status.label}
-            </span>
-          )}
-
-          {/* Ticket Tiers */}
-          {showTiers && isAvailable && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              className="mt-4 pt-4 border-t border-white/5"
-            >
-              <TicketTiers event={event} compact showMobileMoney={isAdmin} />
-            </motion.div>
-          )}
         </div>
       </div>
+
+      {showAuthModal && createPortal(
+        <div 
+          onClick={(e) => e.stopPropagation()} 
+          onMouseDown={(e) => e.stopPropagation()}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-in fade-in duration-200 text-white"
+        >
+          <div className="relative w-full max-w-md bg-[#14141c] border border-white/10 rounded-3xl p-6 shadow-2xl space-y-6 text-center animate-in zoom-in-95 duration-200">
+            {/* Close button */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowAuthModal(false);
+              }}
+              className="absolute top-4 right-4 p-2 rounded-full bg-white/5 border border-white/10 text-white/60 hover:text-white hover:bg-white/10 transition-all"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <div className="mx-auto w-12 h-12 rounded-2xl bg-violet-600/10 border border-violet-500/20 flex items-center justify-center">
+              <Heart className="w-6 h-6 text-violet-400" fill="currentColor" />
+            </div>
+
+            <div className="space-y-2">
+              <h3 className="text-xl font-bold text-white tracking-tight">Save to Favorites</h3>
+              <p className="text-sm text-white/50 leading-relaxed">
+                Log in or create a JNE Events account to keep track of your favorite movies and music events.
+              </p>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-3 pt-2">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowAuthModal(false);
+                  navigate("/login");
+                }}
+                className="flex-1 py-3 rounded-xl bg-violet-600 hover:bg-violet-700 text-white font-bold text-sm transition-all shadow-lg shadow-violet-600/10"
+              >
+                Log In
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowAuthModal(false);
+                  navigate("/signup");
+                }}
+                className="flex-1 py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold text-sm transition-all"
+              >
+                Sign Up
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
     </motion.div>
   );
 }

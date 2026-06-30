@@ -2,7 +2,7 @@ import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
-    Plus, Trash2, Loader2, Star, MessageCircle, Phone
+    Plus, Trash2, Loader2, Star, MessageCircle, Phone, CreditCard
 } from "lucide-react";
 
 export default function SettingsPanel() {
@@ -19,6 +19,29 @@ export default function SettingsPanel() {
                 .maybeSingle();
             return data?.value ? JSON.parse(data.value) : [];
         }
+    });
+
+    // Payment Flow Setting
+    const { data: paymentFlow = "redirect", isLoading: loadingFlow } = useQuery({
+        queryKey: ["payment_flow"],
+        queryFn: async () => {
+            const { data } = await supabase
+                .from('jne_settings')
+                .select('value')
+                .eq('key', 'payment_flow')
+                .maybeSingle();
+            return data?.value || "redirect";
+        }
+    });
+
+    const savePaymentFlow = useMutation({
+        mutationFn: async (flow) => {
+            const { error } = await supabase
+                .from('jne_settings')
+                .upsert({ key: 'payment_flow', value: flow, updated_at: new Date().toISOString() });
+            if (error) throw error;
+        },
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: ["payment_flow"] })
     });
 
     const saveContacts = useMutation({
@@ -48,7 +71,7 @@ export default function SettingsPanel() {
         saveContacts.mutate(contacts.map(c => ({ ...c, isDefault: c.number === number })));
     };
 
-    if (loadingContacts) return <div className="flex justify-center p-12"><Loader2 className="w-5 h-5 animate-spin text-violet-400" /></div>;
+    if (loadingContacts || loadingFlow) return <div className="flex justify-center p-12"><Loader2 className="w-5 h-5 animate-spin text-violet-400" /></div>;
 
     return (
         <div className="space-y-10">
@@ -103,6 +126,43 @@ export default function SettingsPanel() {
                     {contacts.length === 0 && (
                         <p className="text-xs text-white/20 italic p-3">No contacts saved yet.</p>
                     )}
+                </div>
+            </section>
+
+            <section className="space-y-4 pt-6 border-t border-white/5">
+                <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-amber-500/10 flex items-center justify-center">
+                        <CreditCard className="w-[18px] h-[18px] text-amber-400" />
+                    </div>
+                    <div>
+                        <h3 className="text-base font-bold text-white">Payment Flow</h3>
+                        <p className="text-[11px] text-white/30">Choose how users experience the mobile money checkout.</p>
+                    </div>
+                </div>
+
+                <div className="flex gap-3">
+                    <button
+                        onClick={() => savePaymentFlow.mutate("redirect")}
+                        className={`flex-1 p-4 rounded-xl border text-left transition-all ${
+                            paymentFlow === "redirect" 
+                            ? "bg-amber-500/10 border-amber-500/40 ring-1 ring-amber-500/20" 
+                            : "bg-white/5 border-white/10 hover:bg-white/10 text-white/50"
+                        }`}
+                    >
+                        <h4 className={`text-sm font-bold ${paymentFlow === "redirect" ? "text-amber-400" : "text-white/70"}`}>Redirect to Payunit</h4>
+                        <p className="text-xs text-white/40 mt-1">Users are sent to Payunit's secure hosted page to complete payment.</p>
+                    </button>
+                    <button
+                        onClick={() => savePaymentFlow.mutate("in-app")}
+                        className={`flex-1 p-4 rounded-xl border text-left transition-all ${
+                            paymentFlow === "in-app" 
+                            ? "bg-amber-500/10 border-amber-500/40 ring-1 ring-amber-500/20" 
+                            : "bg-white/5 border-white/10 hover:bg-white/10 text-white/50"
+                        }`}
+                    >
+                        <h4 className={`text-sm font-bold ${paymentFlow === "in-app" ? "text-amber-400" : "text-white/70"}`}>In-App Prompt</h4>
+                        <p className="text-xs text-white/40 mt-1">Users enter their number and get an automatic USSD prompt on their phone.</p>
+                    </button>
                 </div>
             </section>
         </div>

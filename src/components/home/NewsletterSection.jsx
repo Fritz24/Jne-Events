@@ -70,18 +70,24 @@ export default function NewsletterSection() {
                                         href={whatsappLink}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="group relative flex items-center justify-between p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 hover:border-emerald-500/40 transition-all overflow-hidden"
+                                        className="group relative flex items-center justify-between p-4 rounded-2xl bg-violet-600/10 border border-violet-500/20 hover:border-violet-500/40 transition-all overflow-hidden"
                                     >
                                         <div className="flex items-center gap-4">
-                                            <div className="w-10 h-10 rounded-full bg-emerald-500 flex items-center justify-center text-white">
-                                                <MessageCircle className="w-5 h-5" />
+                                            <div className="w-10 h-10 rounded-full bg-[#25D366] flex items-center justify-center text-white">
+                                                <svg 
+                                                    viewBox="0 0 24 24" 
+                                                    fill="currentColor" 
+                                                    className="w-6 h-6"
+                                                >
+                                                    <path d="M12.031 2C6.479 2 2 6.477 2 12.029c0 1.91.533 3.78 1.543 5.425L2 22l4.708-1.503a9.98 9.98 0 0 0 5.321 1.531c5.551 0 10.03-4.478 10.03-10.029C22.059 6.477 17.582 2 12.031 2zm0 18.05c-1.637 0-3.238-.43-4.64-1.25l-.333-.194-2.772.885.9-.2.721-.23-.217-.34a8.156 8.156 0 0 1-1.238-4.288c0-4.52 3.676-8.2 8.196-8.2 2.19 0 4.248.85 5.797 2.4a8.134 8.134 0 0 1 2.4 5.8c0 4.52-3.678 8.2-8.197 8.2zm4.515-6.177c-.247-.124-1.464-.723-1.691-.806-.226-.083-.393-.124-.557.124-.165.247-.64.806-.784.97-.145.165-.29.185-.537.062a7.514 7.514 0 0 1-1.99-1.229 8.287 8.287 0 0 1-1.378-1.714c-.145-.248-.015-.38.109-.504.112-.112.247-.29.37-.434.125-.145.166-.248.248-.413.083-.165.042-.31-.02-.434-.063-.124-.558-1.343-.765-1.84-.2-.48-.426-.413-.558-.42l-.475-.007c-.165 0-.434.062-.66.31-.227.247-.867.847-.867 2.066 0 1.219.887 2.397 1.01 2.562.124.165 1.745 2.664 4.227 3.732.59.255 1.05.408 1.41.521.593.189 1.133.162 1.56.098.476-.072 1.464-.598 1.67-.1.175.207.5.423.558.82.057.396.057.737.028.862-.029.124-.165.185-.412.062z"/>
+                                                </svg>
                                             </div>
                                             <div className="text-left">
-                                                <p className="font-bold text-emerald-400">{t.whatsappCommunity}</p>
+                                                <p className="font-bold text-violet-400">{t.whatsappCommunity}</p>
                                                 <p className="text-xs text-white/40">{t.exclusiveAccess}</p>
                                             </div>
                                         </div>
-                                        <ArrowRight className="w-5 h-5 text-emerald-500 group-hover:translate-x-1 transition-transform" />
+                                        <ArrowRight className="w-5 h-5 text-violet-500 group-hover:translate-x-1 transition-transform" />
                                     </a>
                                 </motion.div>
                             ) : !submitted ? (
