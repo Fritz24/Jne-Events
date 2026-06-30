@@ -65,7 +65,7 @@ export default function EventCard({ event, index = 0 }) {
 
   const handleShare = async (e) => {
     e.stopPropagation();
-    const eventUrl = `${window.location.origin}/#/events/${event.id}`;
+    const eventUrl = `${window.location.origin}/events/${event.id}`;
     const shareText = `Check out ${getField(event, "title")} on ${event.date ? formatLocalizedDate(event.date, "MMM d", lang) : ""}`;
 
     if (navigator.share) {

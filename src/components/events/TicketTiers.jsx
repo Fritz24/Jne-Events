@@ -330,7 +330,7 @@ export default function TicketTiers({ event, compact = false, showMobileMoney = 
             setIsModalOpen(true);
             setCheckoutStep("select");
           }}
-          className="w-full flex items-center justify-center gap-2 px-6 py-4 rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-bold text-base transition-all shadow-lg shadow-violet-600/20"
+          className="hidden md:flex w-full items-center justify-center gap-2 px-6 py-4 rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-bold text-base transition-all shadow-lg shadow-violet-600/20"
         >
           {t.getTickets || "Get Tickets"}
           <ArrowRight className="w-5 h-5 ml-1" />

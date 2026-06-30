@@ -5,10 +5,12 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/AuthContext';
 import EventCard from '@/components/events/EventCard';
 import { getLocalFavorites, getFavoriteIdsForUser } from '@/lib/favorites';
+import { useLocalized } from '@/lib/LanguageContext';
 
 export default function Favorites() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { t } = useLocalized();
 
   const { data: events = [], isLoading } = useQuery({
     queryKey: ['favorites_events', user?.id],
@@ -35,7 +37,7 @@ export default function Favorites() {
   return (
     <div className="min-h-screen bg-[#0a0a0f] flex flex-col">
       <div className="max-w-4xl mx-auto px-4 py-12 w-full flex-1 flex flex-col">
-        <h1 className="text-3xl font-bold mb-12 text-white">Favorites</h1>
+        <h1 className="text-3xl font-bold mb-12 text-white">{t.favorites || "Favorites"}</h1>
 
         {isLoading && (
           <div className="flex items-center justify-center flex-1">
@@ -46,9 +48,9 @@ export default function Favorites() {
         {!isLoading && events.length === 0 && (
           <div className="flex-1 flex flex-col items-center justify-center py-20">
             <Heart className="w-16 h-16 text-zinc-600 mb-6" />
-            <h2 className="text-2xl font-bold text-white mb-2">No Favorites Yet</h2>
+            <h2 className="text-2xl font-bold text-white mb-2">{t.noFavoritesYet || "No Favorites Yet"}</h2>
             <p className="text-zinc-400 mb-8 text-center max-w-sm">
-              Tap the heart icon to save your faves so you don't forget later
+              {t.favoritesSubtitle || "Tap the heart icon to save your faves so you don't forget later"}
             </p>
             <button
               onClick={() => navigate('/events')}

@@ -1,7 +1,7 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
-import { ArrowLeft, Calendar, MapPin, Film, Music, AlertCircle } from "lucide-react";
+import { ArrowLeft, Calendar, MapPin, Film, Music, AlertCircle, Info } from "lucide-react";
 import { formatLocalizedDate } from "@/lib/localize";
 import { Badge } from "@/components/ui/badge";
 import { useLocalized } from "@/lib/LanguageContext";
@@ -200,26 +200,26 @@ export default function EventDetails() {
               </div>
 
               {/* Support Call & WhatsApp Box */}
-              <div className="p-5 rounded-2xl border border-white/[0.06] bg-white/[0.02] backdrop-blur-md flex items-center justify-between gap-4">
+              <div className="p-5 rounded-2xl border border-white/[0.06] bg-white/[0.02] backdrop-blur-md flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="space-y-1">
-                  <h3 className="text-xs font-bold text-white/40 tracking-wide">Support & Bookings</h3>
-                  <p className="text-sm font-medium text-white/90">Need help? Call or text us directly</p>
-                  <p className="text-xs text-white/40">Our team is available to assist you with booking issues or cash purchases</p>
+                  <h3 className="text-xs font-bold text-white/40 tracking-wide">{t.supportTitle || "Support & Bookings"}</h3>
+                  <p className="text-sm font-medium text-white/90">{t.supportSubtitle || "Need help? Call or text us directly"}</p>
+                  <p className="text-xs text-white/40">{t.supportDesc || "Our team is available to assist you with booking issues or cash purchases"}</p>
                 </div>
-                <div className="flex gap-2 shrink-0">
+                <div className="flex gap-2 w-full sm:w-auto shrink-0">
                   <a
                     href={`tel:${event.whatsapp_number || "+237681770020"}`}
-                    className="px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white font-semibold text-xs border border-white/10 transition-all"
+                    className="flex-1 sm:flex-none text-center px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white font-semibold text-xs border border-white/10 transition-all"
                   >
-                    Call us
+                    {t.callUs || "Call us"}
                   </a>
                   <a
                     href={`https://wa.me/${(event.whatsapp_number || "237681770020").replace(/[^0-9]/g, "")}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="px-4 py-2.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 font-semibold text-xs border border-emerald-500/20 transition-all"
+                    className="flex-1 sm:flex-none text-center px-4 py-2.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 font-semibold text-xs border border-emerald-500/20 transition-all"
                   >
-                    WhatsApp
+                    {t.whatsapp || "WhatsApp"}
                   </a>
                 </div>
               </div>
@@ -229,29 +229,29 @@ export default function EventDetails() {
                 <div className="flex items-center gap-3.5">
                   <Calendar className="w-5 h-5 text-violet-400 shrink-0" />
                   <div>
-                    <p className="text-[10px] font-bold text-white/40 tracking-wide">Date & Time</p>
-                    <p className="text-sm font-semibold">
-                      {event.date ? formatLocalizedDate(event.date, "EEEE, MMMM d, yyyy · HH:mm", lang) : t.tba}
+                    <p className="text-xs font-semibold text-white/30 mb-0.5">{t.dateTime || "Date & Time"}</p>
+                    <p className="text-[15px] font-semibold text-white">
+                      {event.date ? formatLocalizedDate(event.date, "EEEE, MMMM d, yyyy · HH:mm", lang) : "TBA"}
                     </p>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-3.5">
-                  <MapPin className="w-5 h-5 text-amber-400 shrink-0" />
+                  <MapPin className="w-5 h-5 text-violet-400 shrink-0" />
                   <div>
-                    <p className="text-[10px] font-bold text-white/40 tracking-wide">Location & Venue</p>
-                    <p className="text-sm font-semibold">
-                      {getField(event, "venue")}{event.city && ` · ${event.city}`}
+                    <p className="text-xs font-semibold text-white/30 mb-0.5">{t.locationVenue || "Location & Venue"}</p>
+                    <p className="text-[15px] font-semibold text-white">
+                      {event.venue ? `${event.venue}${event.city ? ` · ${event.city}` : ""}` : "TBA"}
                     </p>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-3.5">
-                  <AlertCircle className="w-5 h-5 text-emerald-400 shrink-0" />
+                  <Info className="w-5 h-5 text-violet-400 shrink-0" />
                   <div>
-                    <p className="text-[10px] font-bold text-white/40 tracking-wide">Availability</p>
-                    <p className={`text-sm font-bold ${
-                      remaining === 0 ? "text-red-400" : remaining <= 10 ? "text-amber-400" : "text-emerald-400"
+                    <p className="text-xs font-semibold text-white/30 mb-0.5">{t.availability || "Availability"}</p>
+                    <p className={`text-[15px] font-bold ${
+                      remaining === 0 ? "text-red-400" : "text-emerald-400"
                     }`}>
                       {remaining === 0 ? t.soldOutLabel : `${remaining} ${t.slotsLeft || "slots left"}`}
                     </p>
@@ -273,15 +273,15 @@ export default function EventDetails() {
 
              {/* Right Column (4 cols): Sticky Checkout Panel */}
              <div className="lg:col-span-4 lg:sticky lg:top-24">
-               <div className="rounded-3xl border border-white/[0.06] bg-white/[0.02] backdrop-blur-2xl p-6 shadow-[0_24px_50px_rgba(0,0,0,0.5)] space-y-5">
-                 <div>
-                   <p className="text-xs font-semibold text-white/40 tracking-wide mb-1">Tickets starting from</p>
-                   <p className="text-3xl font-extrabold text-white tracking-tight">
+               <div className="p-0 lg:p-6 lg:rounded-3xl lg:border lg:border-white/[0.06] lg:bg-white/[0.02] lg:backdrop-blur-2xl lg:shadow-[0_24px_50px_rgba(0,0,0,0.5)] space-y-5">
+                 <div className="flex items-center justify-between lg:block border border-white/[0.06] bg-white/[0.02] rounded-2xl p-4 lg:p-0 lg:border-none lg:bg-transparent">
+                   <p className="text-xs font-semibold text-white/40 tracking-wide lg:mb-1">{t.ticketsStartingFrom || "Tickets starting from"}</p>
+                   <p className="text-2xl lg:text-3xl font-extrabold text-white tracking-tight">
                      {(event.ticket_tiers?.length
                        ? Math.min(...event.ticket_tiers.map((t) => t.price || 0))
                        : (event.price || 0)
                      ).toLocaleString()}{" "}
-                     <span className="text-base font-semibold text-white/40">{event.currency || "XAF"}</span>
+                     <span className="text-sm lg:text-base font-semibold text-white/40">{event.currency || "XAF"}</span>
                    </p>
                  </div>
  

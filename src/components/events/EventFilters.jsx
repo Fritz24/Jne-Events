@@ -53,7 +53,7 @@ export default function EventFilters({ filters, onFilterChange, genres, cities }
       <div className="flex flex-wrap items-center gap-4 pt-1">
         {(genres.length > 1) && (
           <div className="flex items-center gap-2">
-            <div className="flex items-center gap-2 text-xs font-semibold text-white/30 uppercase tracking-wider">
+            <div className="flex items-center gap-2 text-xs font-semibold text-white/30">
               <Tag className="w-3 h-3" />
               {t.genreLabel}
             </div>
@@ -75,7 +75,7 @@ export default function EventFilters({ filters, onFilterChange, genres, cities }
 
         {(cities.length > 1) && (
           <div className="flex items-center gap-2">
-            <div className="flex items-center gap-2 text-xs font-semibold text-white/30 uppercase tracking-wider">
+            <div className="flex items-center gap-2 text-xs font-semibold text-white/30">
               <MapPin className="w-3 h-3" />
               {t.cityLabel}
             </div>

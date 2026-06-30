@@ -193,7 +193,7 @@ export default function Tickets() {
                 </div>
               ) : (
                 <div className="text-center py-12 rounded-3xl border border-white/5 bg-white/[0.01] text-white/40">
-                  No upcoming tickets.
+                  {t.noUpcomingTickets || "No upcoming tickets."}
                 </div>
               )}
 
@@ -206,7 +206,7 @@ export default function Tickets() {
                   >
                     <Clock className="w-4 h-4 text-violet-400" />
                     <span>
-                      {showPast ? `Hide past tickets (${pastTickets.length})` : `Show past tickets (${pastTickets.length})`}
+                      {showPast ? `${t.hidePastTickets || "Hide past tickets"} (${pastTickets.length})` : `${t.showPastTickets || "Show past tickets"} (${pastTickets.length})`}
                     </span>
                   </button>
 
@@ -214,7 +214,7 @@ export default function Tickets() {
                     <div className="w-full space-y-5 animate-in fade-in slide-in-from-bottom-2 duration-300">
                       <div className="flex items-center gap-3">
                         <div className="h-px flex-1 bg-white/10" />
-                        <span className="text-xs uppercase tracking-widest text-white/30 font-bold">Past Tickets</span>
+                        <span className="text-xs text-white/30 font-bold">{t.pastTickets || "Past Tickets"}</span>
                         <div className="h-px flex-1 bg-white/10" />
                       </div>
                       <div className="grid gap-4 sm:gap-5">
@@ -264,7 +264,7 @@ function TicketRow({ ticket, navigate, getField, lang, t }) {
           )}
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
           <div className="absolute bottom-4 left-4 right-4">
-            <p className="text-xs uppercase tracking-[0.2em] text-white/60 mb-2">Ticket ID</p>
+            <p className="text-xs text-white/60 mb-2">Ticket ID</p>
             <p className="text-white font-mono text-sm break-all">{ticket.ticket_id}</p>
           </div>
         </div>
@@ -272,7 +272,7 @@ function TicketRow({ ticket, navigate, getField, lang, t }) {
         <div className="p-5 sm:p-6 lg:p-7 flex flex-col gap-5">
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
             <div>
-              <p className="text-xs uppercase tracking-[0.2em] text-white/40 mb-2">
+              <p className="text-xs text-white/40 mb-2">
                 {ticket.source === 'guest' ? (t.ticketsSavedDevice || 'Saved on this device') : (t.ticketsPurchased || 'Purchased ticket')}
               </p>
               <h2 className="text-2xl font-semibold text-white leading-tight">
