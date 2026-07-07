@@ -59,8 +59,15 @@ export default function VerticalTicket({ booking, event, attendeeName, tierLabel
     el.style.transform = "none";
     el.style.transformOrigin = "initial";
 
-    // Small delay to let styles apply
-    await new Promise((resolve) => setTimeout(resolve, 150));
+    // Wait for the browser to FULLY reflow and repaint at native size
+    // Double requestAnimationFrame ensures layout is computed and painted
+    await new Promise(r => {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          setTimeout(r, 600);
+        });
+      });
+    });
 
     try {
       const canvas = await html2canvas(el, {
@@ -68,11 +75,13 @@ export default function VerticalTicket({ booking, event, attendeeName, tierLabel
         useCORS: true,
         backgroundColor: "#0a0a0f",
         logging: false,
+        width: 340,
+        height: 620,
       });
       const dataUrl = canvas.toDataURL("image/png");
       const a = document.createElement("a");
       a.href = dataUrl;
-      a.download = `JNE-Ticket-${ticketId || "preview"}.png`;
+      a.download = `JNE-Ticket-${ticketId || "ticket"}.png`;
       a.click();
     } catch (err) {
       console.error("Failed to download ticket", err);
@@ -100,10 +109,10 @@ export default function VerticalTicket({ booking, event, attendeeName, tierLabel
         className="w-full relative flex justify-center rounded-[32px]"
         style={{ minHeight: "300px" }}
       >
-        {/* Native Size Ticket (340px x 620px) */}
+        {/* Native Size Ticket (340px x 620px) - Relative layout prevents absolute coordinate screenshot bugs */}
         <div
           ref={ticketRef}
-          className="absolute top-0 w-[340px] h-[620px] rounded-[32px] overflow-hidden select-none shrink-0"
+          className="relative w-[340px] h-[620px] rounded-[32px] overflow-hidden select-none shrink-0"
           style={{
             background: "linear-gradient(165deg, #161622 0%, #0e0e16 60%, #0a0a0f 100%)",
             boxShadow: "0 24px 48px rgba(0,0,0,0.6), inset 0 0 0 1px rgba(255,255,255,0.06)",
@@ -115,6 +124,7 @@ export default function VerticalTicket({ booking, event, attendeeName, tierLabel
               <img
                 src={event.image_url}
                 alt=""
+                crossOrigin="anonymous"
                 className="w-full h-full object-cover"
               />
             ) : (
@@ -152,19 +162,19 @@ export default function VerticalTicket({ booking, event, attendeeName, tierLabel
                 <p className="text-[9px] text-white/30 font-semibold tracking-wider uppercase mb-0.5">
                   {t.ticketDateLabel || "Date"}
                 </p>
-                <p className="text-white text-xs font-bold leading-tight line-clamp-1">{dateStr}</p>
+                <p className="text-white text-xs font-bold leading-normal line-clamp-1">{dateStr}</p>
               </div>
               <div>
                 <p className="text-[9px] text-white/30 font-semibold tracking-wider uppercase mb-0.5">
                   {t.ticketTimeLabel || "Time"}
                 </p>
-                <p className="text-white text-xs font-bold leading-tight">{timeStr}</p>
+                <p className="text-white text-xs font-bold leading-normal">{timeStr}</p>
               </div>
               <div className="col-span-2">
                 <p className="text-[9px] text-white/30 font-semibold tracking-wider uppercase mb-0.5">
                   {t.ticketVenueLabel || "Venue"}
                 </p>
-                <p className="text-white text-xs font-bold leading-tight truncate">
+                <p className="text-white text-xs font-bold leading-normal truncate">
                   {event?.venue || "TBA"}{event?.city ? `, ${event.city}` : ""}
                 </p>
               </div>
@@ -181,7 +191,7 @@ export default function VerticalTicket({ booking, event, attendeeName, tierLabel
                 <p className="text-[9px] text-white/30 font-semibold tracking-wider uppercase">
                   {t.ticketAttendeeLabel || "Attendee"}
                 </p>
-                <p className="text-white text-xs font-bold truncate leading-tight mt-0.5">
+                <p className="text-white text-xs font-bold truncate leading-normal mt-0.5">
                   {displayAttendee}
                 </p>
               </div>
@@ -206,7 +216,7 @@ export default function VerticalTicket({ booking, event, attendeeName, tierLabel
               <p className="text-[9px] text-white/30 font-semibold tracking-wider uppercase mb-1">
                 {t.ticketIdLabel || "Ticket ID"}
               </p>
-              <p className="text-white font-mono text-[10px] break-all leading-relaxed max-w-[140px]">
+              <p className="text-white font-mono text-[10px] break-all leading-normal max-w-[140px]">
                 {displayId}
               </p>
             </div>
