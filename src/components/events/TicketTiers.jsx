@@ -88,6 +88,54 @@ export default function TicketTiers({ event, compact = false, showMobileMoney = 
     };
   }, []);
 
+  // Listen to returning transaction query parameters from Payunit hosted pages
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const txId = urlParams.get("transaction_id");
+    const bkId = urlParams.get("booking_id");
+    
+    if (txId && bkId) {
+      // Clean query parameters from URL to avoid re-triggering on page refresh
+      const cleanUrl = new URL(window.location.href);
+      cleanUrl.searchParams.delete("transaction_id");
+      cleanUrl.searchParams.delete("booking_id");
+      window.history.replaceState({}, document.title, cleanUrl.toString());
+
+      const checkBookingOnMount = async () => {
+        try {
+          const { data: booking, error } = await supabase
+            .from('jne_bookings')
+            .select('*')
+            .eq('id', bkId)
+            .single();
+
+          if (error || !booking) return;
+
+          setIsModalOpen(true);
+          setFinalBooking(booking);
+
+          if (booking.status === "confirmed") {
+            setPayState("success");
+            setCheckoutStep("success");
+            setFinalTicket(booking.ticket_id);
+          } else if (booking.status === "pending") {
+            setPayState("polling");
+            setCheckoutStep("polling");
+            pollTransaction(booking.ticket_id, booking.id, booking.ticket_id);
+          } else {
+            setPayState("error");
+            setCheckoutStep("billing");
+            setPayError(t.transactionFailed || "Transaction failed.");
+          }
+        } catch (err) {
+          console.error("Error checking transaction return parameters:", err);
+        }
+      };
+
+      checkBookingOnMount();
+    }
+  }, []);
+
   if (!tiers.length) return null;
 
   const setQty = (index, delta) => {
@@ -166,14 +214,19 @@ export default function TicketTiers({ event, compact = false, showMobileMoney = 
       }
       
       // Step 1: Initialize transaction
-      await initializePayment(totalPrice, booking.ticket_id, returnUrlStr);
+      const transactionUrl = await initializePayment(totalPrice, booking.ticket_id, returnUrlStr);
       
       // Step 2: Push direct payment
-      await makeDirectPayment(totalPrice, booking.ticket_id, phoneNumber, returnUrlStr);
-      
-      setPayState("polling");
-      setCheckoutStep("polling");
-      pollTransaction(booking.ticket_id, booking.id, booking.ticket_id);
+      try {
+        await makeDirectPayment(totalPrice, booking.ticket_id, phoneNumber, returnUrlStr);
+        setPayState("polling");
+        setCheckoutStep("polling");
+        pollTransaction(booking.ticket_id, booking.id, booking.ticket_id);
+      } catch (directErr) {
+        console.warn("Direct MoMo push failed, redirecting to hosted checkout:", directErr);
+        // Fallback: Redirect user's browser directly to the secure Payunit hosted payment page
+        window.location.href = transactionUrl;
+      }
 
     } catch (err) {
       console.error(err);
