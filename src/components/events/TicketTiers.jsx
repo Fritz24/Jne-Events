@@ -8,6 +8,7 @@ import { logAnalyticsEvent } from "../../utils/analytics";
 import { initializePayment, makeDirectPayment, checkTransactionStatus } from "@/lib/payunit";
 import { useLocalized } from "@/lib/LanguageContext";
 import GuestTicket from "./GuestTicket";
+import VerticalTicket from "./VerticalTicket";
 import { useAuth } from "@/lib/AuthContext";
 import { saveLocalTicket } from "@/lib/tickets";
 
@@ -375,7 +376,7 @@ export default function TicketTiers({ event, compact = false, showMobileMoney = 
             </button>
 
             {/* Left Panel: Ticket Selector or Payment Forms */}
-            <div className="flex-[3] flex flex-col justify-between h-full bg-[#181822] border-r border-white/[0.06]">
+            <div className="flex-[3] flex flex-col justify-between h-full bg-[#14141c] border-r border-white/[0.06]">
               
               {/* Header */}
               <div className="p-6 border-b border-white/[0.06] flex items-center gap-3">
@@ -536,7 +537,7 @@ export default function TicketTiers({ event, compact = false, showMobileMoney = 
                            placeholder={t.ticketNamePlaceholder || "Enter full name"}
                            value={attendeeName}
                            onChange={(e) => setAttendeeName(e.target.value)}
-                           className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3.5 text-white placeholder:text-white/20 focus:outline-none focus:ring-2 focus:ring-violet-500/40 focus:border-violet-500/40 transition-all font-medium text-sm"
+                           className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3.5 text-white placeholder:text-white/20 focus:outline-none focus:ring-2 focus:ring-violet-500/40 focus:border-violet-500/40 transition-all font-medium text-base"
                          />
                        </div>
  
@@ -565,7 +566,7 @@ export default function TicketTiers({ event, compact = false, showMobileMoney = 
                             placeholder="e.g. 670 00 00 00"
                             value={phoneNumber}
                             onChange={(e) => setPhoneNumber(e.target.value)}
-                            className="w-full bg-white/5 border border-white/10 rounded-2xl pl-11 pr-4 py-3.5 text-white placeholder:text-white/20 focus:outline-none focus:ring-2 focus:ring-violet-500/40 focus:border-violet-500/40 transition-all font-medium text-sm"
+                            className="w-full bg-white/5 border border-white/10 rounded-2xl pl-11 pr-4 py-3.5 text-white placeholder:text-white/20 focus:outline-none focus:ring-2 focus:ring-violet-500/40 focus:border-violet-500/40 transition-all font-medium text-base"
                           />
                           <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
                         </div>
@@ -616,17 +617,46 @@ export default function TicketTiers({ event, compact = false, showMobileMoney = 
                 {/* STEP 4: Success Ticket Render */}
                 {checkoutStep === "success" && (
                   <div className="max-w-md mx-auto py-2 animate-in zoom-in-95 duration-200">
-                    <GuestTicket 
-                      booking={finalBooking} 
-                      event={event} 
-                      onDone={() => {
-                        setIsModalOpen(false);
-                        setCheckoutStep("select");
-                        setPayState("idle");
-                        setAttendeeName("");
-                        setPhoneNumber("");
-                      }} 
-                    />
+                    {/* On mobile devices: Show the ticket right here inside the main scroll view */}
+                    <div className="md:hidden">
+                      <GuestTicket 
+                        booking={finalBooking} 
+                        event={event} 
+                        onDone={() => {
+                          setIsModalOpen(false);
+                          setCheckoutStep("select");
+                          setPayState("idle");
+                          setAttendeeName("");
+                          setPhoneNumber("");
+                        }} 
+                      />
+                    </div>
+
+                    {/* On desktop viewports: Show a congratulations panel since the ticket is forming in the right sidebar */}
+                    <div className="hidden md:flex flex-col items-center justify-center text-center p-8 space-y-6">
+                      <div className="w-16 h-16 bg-emerald-500/10 border border-emerald-500/20 rounded-full flex items-center justify-center text-emerald-400">
+                        <Check className="w-8 h-8" />
+                      </div>
+                      <div className="space-y-2">
+                        <h3 className="text-2xl font-extrabold text-white tracking-tight">{t.ticketConfirmed || "Booking Confirmed!"}</h3>
+                        <p className="text-white/60 text-sm max-w-sm">
+                          {t.ticketConfirmedDesc || "Your payment was processed successfully. You can download your ticket from the preview panel on the right."}
+                        </p>
+                      </div>
+                      
+                      <button
+                        onClick={() => {
+                          setIsModalOpen(false);
+                          setCheckoutStep("select");
+                          setPayState("idle");
+                          setAttendeeName("");
+                          setPhoneNumber("");
+                        }}
+                        className="px-8 py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white font-semibold transition-all"
+                      >
+                        {t.ticketDone || "Done"}
+                      </button>
+                    </div>
                   </div>
                 )}
 
@@ -680,93 +710,123 @@ export default function TicketTiers({ event, compact = false, showMobileMoney = 
 
             </div>
 
-            {/* Right Panel: Cart Summary (Dynamic Sidebar) */}
-            <div className="hidden md:flex flex-[2] flex-col h-full bg-[#1e1e2d] p-6 justify-between overflow-y-auto z-10 select-none">
-              <div className="space-y-6">
-                {/* Event Image */}
-                {event.image_url && (
-                  <img
-                    src={event.image_url}
-                    alt="Event poster"
-                    className="w-full aspect-[16/10] object-cover rounded-2xl border border-white/[0.06]"
-                  />
-                )}
+            {/* Right Panel: Cart Summary or Ticket Preview (Dynamic Sidebar) */}
+            <div className="hidden md:flex flex-[2] flex-col h-full bg-[#14141c] p-6 justify-between overflow-y-auto z-10 select-none">
+              
+              {checkoutStep === "select" ? (
+                <div className="space-y-6 h-full flex flex-col justify-between">
+                  <div className="space-y-6">
+                    {/* Event Image */}
+                    {event.image_url && (
+                      <img
+                        src={event.image_url}
+                        alt="Event poster"
+                        className="w-full aspect-[16/10] object-cover rounded-2xl border border-white/[0.06]"
+                      />
+                    )}
 
-                <div className="space-y-4">
-                  <h3 className="text-xs font-bold text-white/40 tracking-wide">Order Summary</h3>
-
-                  {totalTickets === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-10 text-center text-white/20 space-y-3">
-                      <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center">
-                        <ShoppingCart className="w-5 h-5 text-white/30" />
-                      </div>
-                      <p className="text-xs font-medium">Select tickets to continue</p>
-                    </div>
-                  ) : (
                     <div className="space-y-4">
-                      {/* Ticket rows in cart */}
-                      <div className="divide-y divide-white/[0.04] space-y-3">
-                        {tiers.map((tier, i) => {
-                          const qty = quantities[i] || 0;
-                          if (qty === 0) return null;
-                          return (
-                            <div key={i} className="flex justify-between items-start text-sm pt-3 first:pt-0">
-                              <div className="text-white/80">
-                                <span className="font-bold text-white mr-2">{qty}x</span>
-                                {tier.label}
-                              </div>
-                              <span className="text-white font-semibold">{(qty * tier.price).toLocaleString()} {currency}</span>
-                            </div>
-                          );
-                        })}
+                      <h3 className="text-xs font-bold text-white/40 tracking-wide">Order Summary</h3>
 
-                        {/* Addon rows in cart */}
-                        {tiers.map((tier, i) => {
-                          if (!quantities[i]) return null;
-                          return dynamicAddons
-                            .filter(a => addonQty[`${i}_${a.id}`] > 0)
-                            .map(a => {
-                              const aqty = addonQty[`${i}_${a.id}`];
+                      {totalTickets === 0 ? (
+                        <div className="flex flex-col items-center justify-center py-10 text-center text-white/20 space-y-3">
+                          <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center">
+                            <ShoppingCart className="w-5 h-5 text-white/30" />
+                          </div>
+                          <p className="text-xs font-medium">Select tickets to continue</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          {/* Ticket rows in cart */}
+                          <div className="divide-y divide-white/[0.04] space-y-3">
+                            {tiers.map((tier, i) => {
+                              const qty = quantities[i] || 0;
+                              if (qty === 0) return null;
                               return (
-                                <div key={a.id} className="flex justify-between items-center text-xs text-white/50 pt-2">
-                                  <span>{aqty}x {a.name} ({tier.label})</span>
-                                  <span>{(aqty * a.price).toLocaleString()} {currency}</span>
+                                <div key={i} className="flex justify-between items-start text-sm pt-3 first:pt-0">
+                                  <div className="text-white/80">
+                                    <span className="font-bold text-white mr-2">{qty}x</span>
+                                    {tier.label}
+                                  </div>
+                                  <span className="text-white font-semibold">{(qty * tier.price).toLocaleString()} {currency}</span>
                                 </div>
                               );
-                            });
-                        })}
-                      </div>
+                            })}
 
-                      {/* Total row */}
-                      <div className="border-t border-white/[0.06] pt-4 flex justify-between items-center">
-                        <span className="text-sm font-bold text-white/70">Total</span>
-                        <span className="text-xl font-extrabold text-white">{totalPrice.toLocaleString()} {currency}</span>
-                      </div>
+                            {/* Addon rows in cart */}
+                            {tiers.map((tier, i) => {
+                              if (!quantities[i]) return null;
+                              return dynamicAddons
+                                .filter(a => addonQty[`${i}_${a.id}`] > 0)
+                                .map(a => {
+                                  const aqty = addonQty[`${i}_${a.id}`];
+                                  return (
+                                    <div key={a.id} className="flex justify-between items-center text-xs text-white/50 pt-2">
+                                      <span>{aqty}x {a.name} ({tier.label})</span>
+                                      <span>{(aqty * a.price).toLocaleString()} {currency}</span>
+                                    </div>
+                                  );
+                                });
+                            })}
+                          </div>
+
+                          {/* Total row */}
+                          <div className="border-t border-white/[0.06] pt-4 flex justify-between items-center">
+                            <span className="text-sm font-bold text-white/70">Total</span>
+                            <span className="text-xl font-extrabold text-white">{totalPrice.toLocaleString()} {currency}</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {totalTickets > 0 && (
+                    <div className="border-t border-white/[0.04] pt-4 mt-6">
+                      {isAdmin && (
+                        <button
+                          onClick={() => setCheckoutStep("billing")}
+                          className="w-full py-3.5 rounded-xl bg-violet-600 hover:bg-violet-700 text-white font-bold text-sm transition-all mb-3 shadow-lg shadow-violet-600/10"
+                        >
+                          Check out
+                        </button>
+                      )}
+                      <a
+                        href={`https://wa.me/${whatsappBase}?text=${encodeURIComponent(buildWhatsAppMessage())}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={logClick}
+                        className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white/85 text-xs font-bold transition-all text-center"
+                      >
+                        {t.bookViaWhatsApp || "Book via WhatsApp"}
+                      </a>
                     </div>
                   )}
                 </div>
-              </div>
-
-              {/* Checkout actions at the bottom of Right Panel */}
-              {totalTickets > 0 && checkoutStep === "select" && (
-                <div className="border-t border-white/[0.04] pt-4 mt-6">
-                  {isAdmin && (
-                    <button
-                      onClick={() => setCheckoutStep("billing")}
-                      className="w-full py-3.5 rounded-xl bg-violet-600 hover:bg-violet-700 text-white font-bold text-sm transition-all mb-3 shadow-lg shadow-violet-600/10"
-                    >
-                      Check out
-                    </button>
-                  )}
-                  <a
-                    href={`https://wa.me/${whatsappBase}?text=${encodeURIComponent(buildWhatsAppMessage())}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={logClick}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white/85 text-xs font-bold transition-all text-center"
-                  >
-                    {t.bookViaWhatsApp || "Book via WhatsApp"}
-                  </a>
+              ) : (
+                // Live preview forming/completed ticket view
+                <div className="space-y-6 flex flex-col justify-start h-full pt-6 pb-12 overflow-y-auto animate-in fade-in duration-300">
+                  <div className="text-center space-y-1">
+                    <h3 className="text-xs font-bold text-white/40 tracking-wide">
+                      {checkoutStep === "success" ? "Your Ticket" : "Ticket Preview"}
+                    </h3>
+                  </div>
+                  
+                  <VerticalTicket
+                    booking={finalBooking}
+                    event={event}
+                    attendeeName={attendeeName}
+                    tierLabel={tiers.find((_, i) => quantities[i] > 0)?.label}
+                    ticketId={finalBooking?.ticket_id}
+                    showActions={checkoutStep === "success"}
+                    showDone={false}
+                    onDone={() => {
+                      setIsModalOpen(false);
+                      setCheckoutStep("select");
+                      setPayState("idle");
+                      setAttendeeName("");
+                      setPhoneNumber("");
+                    }}
+                  />
                 </div>
               )}
 

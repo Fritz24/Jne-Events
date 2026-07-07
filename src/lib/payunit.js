@@ -60,7 +60,7 @@ export async function makeDirectPayment(amount, transactionId, phoneNumber, retu
   
   // Auto-detect gateway (Orange or MTN Cameroon)
   let gateway = "CM_ORANGE"; // default
-  if (/^(237)?(67|650|651|652|653|654|680)/.test(formattedNumber)) {
+  if (/^(237)?(67|650|651|652|653|654|68)/.test(formattedNumber)) {
     gateway = "CM_MTN";
   } else if (/^(237)?(69|655|656|657|658|659)/.test(formattedNumber)) {
     gateway = "CM_ORANGE";

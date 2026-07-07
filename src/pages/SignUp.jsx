@@ -46,7 +46,7 @@ export default function SignUp() {
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="w-full max-w-sm"
+                className="w-full max-w-md"
             >
                 <div className="text-center space-y-2 mb-6">
                     <h1 className="text-3xl font-bold text-white tracking-tight">{t.signUpHeading || "Create account"}</h1>
@@ -71,7 +71,7 @@ export default function SignUp() {
                                     required
                                     value={fullName}
                                     onChange={(e) => setFullName(e.target.value)}
-                                    className="w-full bg-white/[0.05] border border-white/10 rounded-2xl py-3.5 pl-12 pr-4 text-white placeholder:text-white/10 focus:outline-none focus:border-amber-500/50 transition-all focus:ring-4 focus:ring-amber-500/10"
+                                    className="w-full bg-white/[0.05] border border-white/10 rounded-2xl py-3.5 pl-12 pr-4 text-white text-base placeholder:text-white/10 focus:outline-none focus:border-amber-500/50 transition-all focus:ring-4 focus:ring-amber-500/10"
                                     placeholder="John Doe"
                                 />
                             </div>
@@ -86,7 +86,7 @@ export default function SignUp() {
                                     required
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
-                                    className="w-full bg-white/[0.05] border border-white/10 rounded-2xl py-3.5 pl-12 pr-4 text-white placeholder:text-white/10 focus:outline-none focus:border-amber-500/50 transition-all focus:ring-4 focus:ring-amber-500/10"
+                                    className="w-full bg-white/[0.05] border border-white/10 rounded-2xl py-3.5 pl-12 pr-4 text-white text-base placeholder:text-white/10 focus:outline-none focus:border-amber-500/50 transition-all focus:ring-4 focus:ring-amber-500/10"
                                     placeholder="name@example.com"
                                 />
                             </div>
@@ -101,7 +101,7 @@ export default function SignUp() {
                                     required
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
-                                    className="w-full bg-white/[0.05] border border-white/10 rounded-2xl py-3.5 pl-12 pr-4 text-white placeholder:text-white/10 focus:outline-none focus:border-amber-500/50 transition-all focus:ring-4 focus:ring-amber-500/10"
+                                    className="w-full bg-white/[0.05] border border-white/10 rounded-2xl py-3.5 pl-12 pr-4 text-white text-base placeholder:text-white/10 focus:outline-none focus:border-amber-500/50 transition-all focus:ring-4 focus:ring-amber-500/10"
                                     placeholder="••••••••"
                                 />
                             </div>
@@ -110,7 +110,7 @@ export default function SignUp() {
                         <button
                             type="submit"
                             disabled={loading}
-                            className="w-full py-4 bg-gradient-to-r from-amber-600 to-rose-600 hover:from-amber-500 hover:to-rose-500 text-white font-semibold rounded-2xl transition-all relative overflow-hidden group active:scale-95 disabled:opacity-50 disabled:active:scale-100 mt-2"
+                            className="w-full py-4 bg-violet-600 hover:bg-violet-500 text-white font-semibold rounded-2xl transition-all relative overflow-hidden group active:scale-95 disabled:opacity-50 disabled:active:scale-100 mt-2"
                         >
                             <div className="relative z-10 flex items-center justify-center gap-2">
                                 {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <>{t.getStarted || "Get Started"} <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" /></>}

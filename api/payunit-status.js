@@ -20,7 +20,8 @@ export default async function handler(req, res) {
   const apiUser = cleanEnvVar(process.env.PAYUNIT_API_USER);
   const apiPassword = cleanEnvVar(process.env.PAYUNIT_API_PASSWORD);
   const apiKey = cleanEnvVar(process.env.PAYUNIT_API_KEY);
-  const mode = cleanEnvVar(process.env.PAYUNIT_MODE || "sandbox");
+  const rawMode = cleanEnvVar(process.env.PAYUNIT_MODE || "test");
+  const mode = rawMode === "sandbox" ? "test" : rawMode;
 
   if (!apiUser || !apiPassword || !apiKey) {
     return res.status(500).json({

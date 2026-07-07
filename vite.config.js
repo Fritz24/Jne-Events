@@ -13,7 +13,8 @@ export default defineConfig(({ mode }) => {
   const payunitApiUser = cleanEnvVar(env.PAYUNIT_API_USER || env.VITE_PAYUNIT_API_USER);
   const payunitApiPassword = cleanEnvVar(env.PAYUNIT_API_PASSWORD || env.VITE_PAYUNIT_API_PASSWORD);
   const payunitApiKey = cleanEnvVar(env.PAYUNIT_API_KEY || env.VITE_PAYUNIT_API_KEY);
-  const payunitMode = cleanEnvVar(env.PAYUNIT_MODE || env.VITE_PAYUNIT_MODE || 'sandbox');
+  const rawPayunitMode = cleanEnvVar(env.PAYUNIT_MODE || env.VITE_PAYUNIT_MODE || 'test');
+  const payunitMode = rawPayunitMode === 'sandbox' ? 'test' : rawPayunitMode;
   const payunitAuth = Buffer.from(`${payunitApiUser}:${payunitApiPassword}`).toString('base64');
   const payunitApi = cleanEnvVar(env.PAYUNIT_API_URL || env.VITE_PAYUNIT_API_URL || 'https://gateway.payunit.net').replace(/\/$/, '')
 

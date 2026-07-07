@@ -199,31 +199,6 @@ export default function EventDetails() {
                 )}
               </div>
 
-              {/* Support Call & WhatsApp Box */}
-              <div className="p-5 rounded-2xl border border-white/[0.06] bg-white/[0.02] backdrop-blur-md flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="space-y-1">
-                  <h3 className="text-xs font-bold text-white/40 tracking-wide">{t.supportTitle || "Support & Bookings"}</h3>
-                  <p className="text-sm font-medium text-white/90">{t.supportSubtitle || "Need help? Call or text us directly"}</p>
-                  <p className="text-xs text-white/40">{t.supportDesc || "Our team is available to assist you with booking issues or cash purchases"}</p>
-                </div>
-                <div className="flex gap-2 w-full sm:w-auto shrink-0">
-                  <a
-                    href={`tel:${event.whatsapp_number || "+237681770020"}`}
-                    className="flex-1 sm:flex-none text-center px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white font-semibold text-xs border border-white/10 transition-all"
-                  >
-                    {t.callUs || "Call us"}
-                  </a>
-                  <a
-                    href={`https://wa.me/${(event.whatsapp_number || "237681770020").replace(/[^0-9]/g, "")}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex-1 sm:flex-none text-center px-4 py-2.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 font-semibold text-xs border border-emerald-500/20 transition-all"
-                  >
-                    {t.whatsapp || "WhatsApp"}
-                  </a>
-                </div>
-              </div>
-
               {/* Consolidated Inline Icon-Text Metadata (NO CARDS, very compact) */}
               <div className="space-y-4 pt-4 border-t border-white/[0.04] text-white/80">
                 <div className="flex items-center gap-3.5">
@@ -268,6 +243,31 @@ export default function EventDetails() {
                   </p>
                 </div>
               )}
+
+              {/* Support Call & WhatsApp Box */}
+              <div className="p-5 rounded-2xl border border-white/[0.06] bg-white/[0.02] backdrop-blur-md flex flex-col sm:flex-row sm:items-center justify-between gap-4 mt-6 border-t border-white/[0.04]">
+                <div className="space-y-1">
+                  <h3 className="text-xs font-bold text-white/40 tracking-wide">{t.supportTitle || "Support & Bookings"}</h3>
+                  <p className="text-sm font-medium text-white/90">{t.supportSubtitle || "Need help? Call or text us directly"}</p>
+                  <p className="text-xs text-white/40">{t.supportDesc || "Our team is available to assist you with booking issues or cash purchases"}</p>
+                </div>
+                <div className="flex gap-2 w-full sm:w-auto shrink-0">
+                  <a
+                    href={`tel:${event.whatsapp_number || "+237681770020"}`}
+                    className="flex-1 sm:flex-none text-center px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white font-semibold text-xs border border-white/10 transition-all"
+                  >
+                    {t.callUs || "Call us"}
+                  </a>
+                  <a
+                    href={`https://wa.me/${(event.whatsapp_number || "237681770020").replace(/[^0-9]/g, "")}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 sm:flex-none text-center px-4 py-2.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 font-semibold text-xs border border-emerald-500/20 transition-all"
+                  >
+                    {t.whatsapp || "WhatsApp"}
+                  </a>
+                </div>
+              </div>
               
             </div>
 

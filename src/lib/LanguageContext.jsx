@@ -165,8 +165,8 @@ export const translations = {
     ticketDateLabel: "Date",
     ticketTimeLabel: "Time",
     ticketVenueLabel: "Venue",
-    ticketSave: "Save Ticket",
-    ticketSaving: "Saving…",
+    ticketSave: "Download Ticket",
+    ticketSaving: "Downloading…",
     ticketDone: "Done",
     // Event card capacity
     cardSlotsLeft: "slots left",
@@ -402,8 +402,8 @@ export const translations = {
     ticketDateLabel: "Date",
     ticketTimeLabel: "Heure",
     ticketVenueLabel: "Lieu",
-    ticketSave: "Sauvegarder le Billet",
-    ticketSaving: "Enregistrement…",
+    ticketSave: "Télécharger le Billet",
+    ticketSaving: "Téléchargement…",
     ticketDone: "Terminé",
     // Event card capacity
     cardSlotsLeft: "places restantes",
