@@ -64,7 +64,7 @@ export async function makeDirectPayment(amount, transactionId, phoneNumber, retu
   if (!gateway) {
     gateway = "CM_ORANGE"; // default fallback
     if (/^(237)?(67|650|651|652|653|654|68)/.test(formattedNumber)) {
-      gateway = "CM_MTN";
+      gateway = "CM_MTNMOMO";
     } else if (/^(237)?(69|655|656|657|658|659)/.test(formattedNumber)) {
       gateway = "CM_ORANGE";
     }

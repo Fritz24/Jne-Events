@@ -74,7 +74,7 @@ export default function TicketTiers({ event, compact = false, showMobileMoney = 
 
   // Mobile Money Payment State
   const [phoneNumber, setPhoneNumber] = useState("");
-  const [selectedGateway, setSelectedGateway] = useState(""); // "CM_MTN" | "CM_ORANGE"
+  const [selectedGateway, setSelectedGateway] = useState(""); // "CM_MTNMOMO" | "CM_ORANGE"
   const [attendeeName, setAttendeeName] = useState("");
   const [payState, setPayState] = useState("idle"); // idle, processing, polling, success, error
   const [payError, setPayError] = useState("");
@@ -620,9 +620,9 @@ export default function TicketTiers({ event, compact = false, showMobileMoney = 
                           <div className="grid grid-cols-2 gap-3">
                             <button
                               type="button"
-                              onClick={() => setSelectedGateway("CM_MTN")}
+                              onClick={() => setSelectedGateway("CM_MTNMOMO")}
                               className={`flex items-center justify-center gap-2 py-3 rounded-2xl border font-bold text-sm transition-all ${
-                                selectedGateway === "CM_MTN"
+                                selectedGateway === "CM_MTNMOMO"
                                   ? "bg-[#ffcc00] border-[#ffcc00] text-black shadow-lg"
                                   : "bg-white/5 border-white/10 text-white/60 hover:bg-white/10"
                               }`}
