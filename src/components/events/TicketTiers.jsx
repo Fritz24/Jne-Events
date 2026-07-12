@@ -224,10 +224,7 @@ export default function TicketTiers({ event, compact = false, showMobileMoney = 
         returnUrlStr = returnUrl.toString();
       }
       
-      // Step 1: Initialize transaction
-      const transactionUrl = await initializePayment(totalPrice, booking.ticket_id, returnUrlStr);
-      
-      // Step 2: Push direct payment with explicit gateway and local 9-digit number
+      // Direct MoMo push — no initialize needed (separate flow from hosted page)
       const formattedPhone = (() => {
         const clean = phoneNumber.replace(/[^0-9]/g, "");
         // Extract the last 9 digits (standard Cameroon mobile format e.g. 6xxxxxxxx)
