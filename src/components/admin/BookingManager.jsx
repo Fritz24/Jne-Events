@@ -6,14 +6,15 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CheckCircle, XCircle, UserCheck, Search, Trash2, Download } from "lucide-react";
+import { XCircle, UserCheck, Search, Trash2, Download, RefreshCw } from "lucide-react";
 import { countUsedSlots, remainingSlots } from "@/utils/ticketCount";
 
 const STATUS_CONFIG = {
   pending: { label: "Pending", color: "bg-yellow-500/15 text-yellow-300" },
   confirmed: { label: "Confirmed", color: "bg-blue-500/15 text-blue-300" },
   checked_in: { label: "Checked In", color: "bg-emerald-500/15 text-emerald-300" },
-  cancelled: { label: "Cancelled", color: "bg-red-500/15 text-red-300" },
+  cancelled: { label: "Cancelled", color: "bg-zinc-500/15 text-zinc-300" },
+  failed: { label: "Failed", color: "bg-red-500/15 text-red-400 border border-red-500/10" },
 };
 
 export default function BookingManager() {
@@ -22,6 +23,31 @@ export default function BookingManager() {
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterEvent, setFilterEvent] = useState("all");
   const [includePast, setIncludePast] = useState(false);
+  const [verifyingId, setVerifyingId] = useState(null);
+
+  const verifyPaymentStatus = async (booking) => {
+    setVerifyingId(booking.id);
+    try {
+      const response = await fetch(`/api/payunit-status?transactionId=${booking.ticket_id}`);
+      const data = await response.json();
+      if (response.ok && (data.status === "SUCCESS" || data.data?.transaction_status === "SUCCESS")) {
+        const { error } = await supabase
+          .from('jne_bookings')
+          .update({ status: 'confirmed' })
+          .eq('id', booking.id);
+        if (error) throw error;
+        qc.invalidateQueries({ queryKey: ["bookings"] });
+        alert(`Payment verified successfully! Status updated to Confirmed for ${booking.attendee_name}.`);
+      } else {
+        alert(`Payment verification failed: Status on PayUnit is ${data.data?.transaction_status || data.message || "FAILED"}.`);
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error verifying payment: " + err.message);
+    } finally {
+      setVerifyingId(null);
+    }
+  };
 
   const { data: bookings = [], isLoading } = useQuery({
     queryKey: ["bookings"],
@@ -154,7 +180,7 @@ export default function BookingManager() {
       )}
 
       {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
         {Object.entries(STATUS_CONFIG).map(([key, cfg]) => (
           <div key={key} className="rounded-xl bg-white/[0.03] border border-white/5 p-3">
             <div className="text-2xl font-bold text-white">{counts[key] || 0}</div>
@@ -257,11 +283,12 @@ export default function BookingManager() {
                           <Button
                             size="icon"
                             variant="ghost"
-                            title="Confirm"
-                            onClick={() => updateStatus.mutate({ id: b.id, status: "confirmed" })}
-                            className="w-7 h-7 text-blue-400/60 hover:text-blue-400 hover:bg-blue-500/10"
+                            title="Verify Payment Status"
+                            disabled={verifyingId === b.id}
+                            onClick={() => verifyPaymentStatus(b)}
+                            className="w-7 h-7 text-violet-400/60 hover:text-violet-400 hover:bg-violet-500/10"
                           >
-                            <CheckCircle className="w-3.5 h-3.5" />
+                            <RefreshCw className={`w-3.5 h-3.5 ${verifyingId === b.id ? "animate-spin" : ""}`} />
                           </Button>
                         )}
                         {b.status !== "checked_in" && (

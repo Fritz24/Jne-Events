@@ -117,7 +117,7 @@ export default function Admin() {
       return {
         totalBookings: bookings?.length || 0,
         uniqueUsers: uniqueUsers.size,
-        confirmedBookings: bookings?.filter(b => b.status === 'confirmed').length || 0,
+        confirmedBookings: bookings?.filter(b => b.status === 'confirmed' || b.status === 'checked_in').length || 0,
         whatsappClicks: whatsappClicks || 0,
         totalUsers: totalUsersCount || uniqueUsers.size // Fallback to unique bookers if ecosystem count fails
       };

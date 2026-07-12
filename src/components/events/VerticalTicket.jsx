@@ -1,7 +1,7 @@
 import { useRef, useState, useEffect } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import html2canvas from "html2canvas";
-import { Download, Calendar, MapPin, Clock, ArrowLeft } from "lucide-react";
+import { Download } from "lucide-react";
 import { useLocalized } from "@/lib/LanguageContext";
 import { formatLocalizedDate } from "@/lib/localize";
 

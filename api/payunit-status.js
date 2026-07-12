@@ -29,7 +29,7 @@ export default async function handler(req, res) {
     });
   }
 
-  const baseUrl = cleanEnvVar(process.env.PAYUNIT_API_URL || "https://gateway.payunit.net").replace(/\/$/, "");
+  const baseUrl = "https://gateway.payunit.net";
   const authHeader = `Basic ${Buffer.from(`${apiUser}:${apiPassword}`).toString("base64")}`;
 
   if (mode === "test" && transactionId && transactionId.endsWith("MOCK")) {

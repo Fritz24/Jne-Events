@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
-import { Headphones, Armchair, Cookie, Coffee, Plus, Minus, Loader2, Utensils, GlassWater, Check, Phone, ArrowRight, X, ShoppingCart, ArrowLeft } from "lucide-react";
+import { Headphones, Armchair, Cookie, Coffee, Plus, Minus, Loader2, Utensils, GlassWater, Check, ArrowRight, X, ShoppingCart, ArrowLeft } from "lucide-react";
 import { formatLocalizedDate, getLocalizedEventField } from "@/lib/localize";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
@@ -627,7 +627,7 @@ export default function TicketTiers({ event, compact = false, showMobileMoney = 
                                   : "bg-white/5 border-white/10 text-white/60 hover:bg-white/10"
                               }`}
                             >
-                              <span className="text-base">📲</span> MTN MoMo
+                              MTN MoMo
                             </button>
                             <button
                               type="button"
@@ -638,7 +638,7 @@ export default function TicketTiers({ event, compact = false, showMobileMoney = 
                                   : "bg-white/5 border-white/10 text-white/60 hover:bg-white/10"
                               }`}
                             >
-                              <span className="text-base">📲</span> Orange Money
+                              Orange Money
                             </button>
                           </div>
                         </div>

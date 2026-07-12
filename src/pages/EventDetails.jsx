@@ -3,7 +3,6 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { ArrowLeft, Calendar, MapPin, Film, Music, AlertCircle, Info } from "lucide-react";
 import { formatLocalizedDate } from "@/lib/localize";
-import { Badge } from "@/components/ui/badge";
 import { useLocalized } from "@/lib/LanguageContext";
 import { useAuth } from "@/lib/AuthContext";
 import TicketTiers from "@/components/events/TicketTiers";

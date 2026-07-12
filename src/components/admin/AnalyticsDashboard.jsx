@@ -68,16 +68,16 @@ export default function AnalyticsDashboard() {
     const stats = useMemo(() => {
         const views = filteredData.analytics.filter(d => d.type === 'event_view').length;
         const clicks = filteredData.analytics.filter(d => d.type === 'whatsapp_click').length;
-        const confirmedBookings = filteredData.bookings.filter(b => b.status === 'confirmed');
-        const revenue = confirmedBookings.reduce((sum, b) => sum + (Number(b.tier_price) || 0), 0);
+        const successfulBookings = filteredData.bookings.filter(b => b.status === 'confirmed' || b.status === 'checked_in');
+        const revenue = successfulBookings.reduce((sum, b) => sum + (Number(b.tier_price) || 0), 0);
 
         return {
             views,
             clicks,
             bookingsCount: filteredData.bookings.length,
-            confirmedCount: confirmedBookings.length,
+            confirmedCount: successfulBookings.length,
             revenue,
-            conversion: views > 0 ? ((confirmedBookings.length / views) * 100).toFixed(1) : 0,
+            conversion: views > 0 ? ((successfulBookings.length / views) * 100).toFixed(1) : 0,
             clickRate: views > 0 ? ((clicks / views) * 100).toFixed(1) : 0
         };
     }, [filteredData]);
@@ -108,7 +108,7 @@ export default function AnalyticsDashboard() {
             const evClicks = filteredData.analytics.filter(r => r.event_id === e.id && r.type === 'whatsapp_click').length;
             const evBookings = filteredData.bookings.filter(b => b.event_id === e.id).length;
             const evRevenue = filteredData.bookings
-                .filter(b => b.event_id === e.id && b.status === 'confirmed')
+                .filter(b => b.event_id === e.id && (b.status === 'confirmed' || b.status === 'checked_in'))
                 .reduce((sum, b) => sum + (Number(b.tier_price) || 0), 0);
 
             return {
