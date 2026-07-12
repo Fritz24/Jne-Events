@@ -227,14 +227,11 @@ export default function TicketTiers({ event, compact = false, showMobileMoney = 
       // Step 1: Initialize transaction
       const transactionUrl = await initializePayment(totalPrice, booking.ticket_id, returnUrlStr);
       
-      // Step 2: Push direct payment with explicit gateway and +237 prefix
+      // Step 2: Push direct payment with explicit gateway and local 9-digit number
       const formattedPhone = (() => {
         const clean = phoneNumber.replace(/[^0-9]/g, "");
-        // If user typed 9-digit local number, prepend 237
-        if (clean.length === 9) return "237" + clean;
-        // If already has 237 prefix (12 digits)
-        if (clean.startsWith("237") && clean.length === 12) return clean;
-        return "237" + clean;
+        // Extract the last 9 digits (standard Cameroon mobile format e.g. 6xxxxxxxx)
+        return clean.length >= 9 ? clean.slice(-9) : clean;
       })();
 
       try {

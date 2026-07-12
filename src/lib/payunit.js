@@ -52,11 +52,9 @@ export async function initializePayment(amount, transactionId, returnUrl, notify
  * @returns {Promise<object>} The payment response data.
  */
 export async function makeDirectPayment(amount, transactionId, phoneNumber, returnUrl, explicitGateway = "", notifyUrl = "") {
-  // Format phone number - expect it to already be formatted by caller
-  let formattedNumber = phoneNumber.replace(/[^0-9]/g, "");
-  if (formattedNumber.length === 9) {
-    formattedNumber = "237" + formattedNumber;
-  }
+  // Format phone number to local 9-digit format (e.g. 6xxxxxxxx)
+  let cleanNumber = phoneNumber.replace(/[^0-9]/g, "");
+  let formattedNumber = cleanNumber.length >= 9 ? cleanNumber.slice(-9) : cleanNumber;
   
   // Use explicitly selected gateway (from user choice), or fallback to auto-detect
   let gateway = explicitGateway;
