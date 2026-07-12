@@ -189,7 +189,12 @@ export default function TicketTiers({ event, compact = false, showMobileMoney = 
            tier_price: totalPrice,
            attendee_name: attendeeName.trim(),
            status: "pending",
-           ticket_id: `JNE-${Math.floor(Date.now() / 1000)}-${Math.floor(Math.random() * 1000)}`
+           ticket_id: (() => {
+              const clean = phoneNumber.replace(/[^0-9]/g, "");
+              const isMockPhone = clean.endsWith("0000") || clean.startsWith("600") || clean.startsWith("237600");
+              const baseId = `JNE-${Math.floor(Date.now() / 1000)}-${Math.floor(Math.random() * 1000)}`;
+              return isMockPhone ? `${baseId}-MOCK` : baseId;
+            })()
         }])
         .select()
         .single();

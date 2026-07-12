@@ -39,6 +39,18 @@ export default async function handler(req, res) {
     body = req.body || {};
   }
 
+  if (mode === "test" && body.transaction_id && body.transaction_id.endsWith("-MOCK")) {
+    return res.status(200).json({
+      status: "SUCCESS",
+      message: "Direct payment push simulated successfully (Mock Mode)",
+      description: "payment successfully completed",
+      data: {
+        transaction_id: body.transaction_id,
+        transaction_status: "SUCCESS"
+      }
+    });
+  }
+
   try {
     const upstream = await fetch(`${baseUrl}/api/gateway/makepayment`, {
       method: "POST",

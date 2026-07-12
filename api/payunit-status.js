@@ -32,6 +32,18 @@ export default async function handler(req, res) {
   const baseUrl = cleanEnvVar(process.env.PAYUNIT_API_URL || "https://gateway.payunit.net").replace(/\/$/, "");
   const authHeader = `Basic ${Buffer.from(`${apiUser}:${apiPassword}`).toString("base64")}`;
 
+  if (mode === "test" && transactionId && transactionId.endsWith("-MOCK")) {
+    return res.status(200).json({
+      status: "SUCCESS",
+      message: "Mock payment status verified",
+      data: {
+        status: "SUCCESS",
+        transaction_status: "SUCCESS",
+        transaction_id: transactionId
+      }
+    });
+  }
+
   try {
     const upstream = await fetch(`${baseUrl}/api/gateway/paymentstatus/${transactionId}`, {
       method: "GET",
