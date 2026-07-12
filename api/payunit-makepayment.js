@@ -39,7 +39,7 @@ export default async function handler(req, res) {
     body = req.body || {};
   }
 
-  if (mode === "test" && body.transaction_id && body.transaction_id.endsWith("-MOCK")) {
+  if (mode === "test" && body.transaction_id && body.transaction_id.endsWith("MOCK")) {
     return res.status(200).json({
       status: "SUCCESS",
       message: "Direct payment push simulated successfully (Mock Mode)",
@@ -58,7 +58,8 @@ export default async function handler(req, res) {
         "Content-Type": "application/json",
         "Authorization": authHeader,
         "x-api-key": apiKey,
-        "mode": mode
+        "mode": mode,
+        "Expect": "" // Suppress 100-continue header that causes 417
       },
       body: JSON.stringify(body),
     });

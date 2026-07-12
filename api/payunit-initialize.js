@@ -46,7 +46,8 @@ export default async function handler(req, res) {
         "Content-Type": "application/json",
         "Authorization": authHeader,
         "x-api-key": apiKey,
-        "mode": mode
+        "mode": mode,
+        "Expect": "" // Suppress 100-continue header that causes 417
       },
       body: JSON.stringify(body),
     });
