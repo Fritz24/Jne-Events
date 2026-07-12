@@ -101,7 +101,29 @@ export default function VerticalTicket({ booking, event, attendeeName, tierLabel
       });
 
       pdf.addImage(dataUrl, "PNG", 0, 0, 340, 620, undefined, 'FAST');
-      pdf.save(`JNE-Ticket-${ticketId || "ticket"}.pdf`);
+      
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+      if (isMobile) {
+        const blob = pdf.output('blob');
+        const blobUrl = URL.createObjectURL(blob);
+        
+        // Attempt download via anchor link
+        const a = document.createElement("a");
+        a.href = blobUrl;
+        a.download = `JNE-Ticket-${ticketId || "ticket"}.pdf`;
+        a.target = "_blank";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        
+        // Strict webview fallback (Telegram, WhatsApp, Instagram in-app browsers):
+        // redirect current window to display the PDF directly
+        setTimeout(() => {
+          window.location.href = blobUrl;
+        }, 150);
+      } else {
+        pdf.save(`JNE-Ticket-${ticketId || "ticket"}.pdf`);
+      }
     } catch (err) {
       console.error("Failed to download PDF ticket", err);
     } finally {
