@@ -74,6 +74,7 @@ export default function TicketTiers({ event, compact = false, showMobileMoney = 
 
   // Mobile Money Payment State
   const [phoneNumber, setPhoneNumber] = useState("");
+  const [selectedGateway, setSelectedGateway] = useState(""); // "CM_MTN" | "CM_ORANGE"
   const [attendeeName, setAttendeeName] = useState("");
   const [payState, setPayState] = useState("idle"); // idle, processing, polling, success, error
   const [payError, setPayError] = useState("");
@@ -163,6 +164,10 @@ export default function TicketTiers({ event, compact = false, showMobileMoney = 
       setPayError(t.enterName || "Please enter the primary attendee's full name");
       return;
     }
+    if (!selectedGateway) {
+      setPayError("Please select a Mobile Money provider (MTN or Orange).");
+      return;
+    }
     if (!phoneNumber.trim()) {
       setPayError(t.enterMobileMoney || "Please enter a Mobile Money phone number");
       return;
@@ -221,9 +226,18 @@ export default function TicketTiers({ event, compact = false, showMobileMoney = 
       // Step 1: Initialize transaction
       const transactionUrl = await initializePayment(totalPrice, booking.ticket_id, returnUrlStr);
       
-      // Step 2: Push direct payment
+      // Step 2: Push direct payment with explicit gateway and +237 prefix
+      const formattedPhone = (() => {
+        const clean = phoneNumber.replace(/[^0-9]/g, "");
+        // If user typed 9-digit local number, prepend 237
+        if (clean.length === 9) return "237" + clean;
+        // If already has 237 prefix (12 digits)
+        if (clean.startsWith("237") && clean.length === 12) return clean;
+        return "237" + clean;
+      })();
+
       try {
-        await makeDirectPayment(totalPrice, booking.ticket_id, phoneNumber, returnUrlStr);
+        await makeDirectPayment(totalPrice, booking.ticket_id, formattedPhone, returnUrlStr, selectedGateway);
         setPayState("polling");
         setCheckoutStep("polling");
         pollTransaction(booking.ticket_id, booking.id, booking.ticket_id);
@@ -597,37 +611,54 @@ export default function TicketTiers({ event, compact = false, showMobileMoney = 
                            className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3.5 text-white placeholder:text-white/20 focus:outline-none focus:ring-2 focus:ring-violet-500/40 focus:border-violet-500/40 transition-all font-medium text-base"
                          />
                        </div>
- 
-                       {/* Phone Input with MOMO Auto-Detection */}
-                       <div className="flex flex-col">
-                         <div className="flex items-center justify-between mb-2">
-                           <label className="text-xs font-semibold text-white/50">
-                             Mobile Money Phone Number
-                           </label>
-                          {(() => {
-                            const cleanPhone = phoneNumber.replace(/\D/g, '');
-                            if (cleanPhone.length >= 2) {
-                              if (/^(67|650|651|652|653|654|68)/.test(cleanPhone)) {
-                                return <span className="text-[9px] font-bold bg-[#ffcc00] text-black px-2 py-0.5 rounded shadow-sm">MTN MOMO</span>;
-                              }
-                              if (/^(69|655|656|657|658|659)/.test(cleanPhone)) {
-                                return <span className="text-[9px] font-bold bg-[#ff6600] text-white px-2 py-0.5 rounded shadow-sm">ORANGE MONEY</span>;
-                              }
-                            }
-                            return null;
-                          })()}
+
+                        {/* Provider Selector */}
+                        <div className="flex flex-col">
+                          <label className="text-xs font-semibold text-white/50 mb-2">Mobile Money Provider</label>
+                          <div className="grid grid-cols-2 gap-3">
+                            <button
+                              type="button"
+                              onClick={() => setSelectedGateway("CM_MTN")}
+                              className={`flex items-center justify-center gap-2 py-3 rounded-2xl border font-bold text-sm transition-all ${
+                                selectedGateway === "CM_MTN"
+                                  ? "bg-[#ffcc00] border-[#ffcc00] text-black shadow-lg"
+                                  : "bg-white/5 border-white/10 text-white/60 hover:bg-white/10"
+                              }`}
+                            >
+                              <span className="text-base">📲</span> MTN MoMo
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setSelectedGateway("CM_ORANGE")}
+                              className={`flex items-center justify-center gap-2 py-3 rounded-2xl border font-bold text-sm transition-all ${
+                                selectedGateway === "CM_ORANGE"
+                                  ? "bg-[#ff6600] border-[#ff6600] text-white shadow-lg"
+                                  : "bg-white/5 border-white/10 text-white/60 hover:bg-white/10"
+                              }`}
+                            >
+                              <span className="text-base">📲</span> Orange Money
+                            </button>
+                          </div>
                         </div>
-                        <div className="relative">
-                          <input
-                            type="tel"
-                            placeholder="e.g. 670 00 00 00"
-                            value={phoneNumber}
-                            onChange={(e) => setPhoneNumber(e.target.value)}
-                            className="w-full bg-white/5 border border-white/10 rounded-2xl pl-11 pr-4 py-3.5 text-white placeholder:text-white/20 focus:outline-none focus:ring-2 focus:ring-violet-500/40 focus:border-violet-500/40 transition-all font-medium text-base"
-                          />
-                          <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
+
+                        {/* Phone Input with +237 prefix */}
+                        <div className="flex flex-col">
+                          <label className="text-xs font-semibold text-white/50 mb-2">Phone Number</label>
+                          <div className="flex gap-2">
+                            <div className="flex items-center gap-1.5 px-3 py-3.5 bg-white/5 border border-white/10 rounded-2xl text-white/60 font-bold text-sm shrink-0">
+                              🇨🇲 +237
+                            </div>
+                            <div className="relative flex-1">
+                              <input
+                                type="tel"
+                                placeholder="6XX XXX XXX"
+                                value={phoneNumber}
+                                onChange={(e) => setPhoneNumber(e.target.value)}
+                                className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3.5 text-white placeholder:text-white/20 focus:outline-none focus:ring-2 focus:ring-violet-500/40 focus:border-violet-500/40 transition-all font-medium text-base"
+                              />
+                            </div>
+                          </div>
                         </div>
-                      </div>
                     </div>
 
                     {payError && (
@@ -708,6 +739,7 @@ export default function TicketTiers({ event, compact = false, showMobileMoney = 
                           setPayState("idle");
                           setAttendeeName("");
                           setPhoneNumber("");
+                          setSelectedGateway("");
                         }}
                         className="px-8 py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white font-semibold transition-all"
                       >
@@ -754,7 +786,7 @@ export default function TicketTiers({ event, compact = false, showMobileMoney = 
                     <span className="text-[11px] text-white/40 font-semibold tracking-wide">Powered by JNE Events</span>
                     <button
                       onClick={handlePayment}
-                      disabled={payState === "processing" || !phoneNumber || !attendeeName}
+                      disabled={payState === "processing" || !phoneNumber || !attendeeName || !selectedGateway}
                       className="flex items-center justify-center gap-2 px-8 py-3.5 rounded-2xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 disabled:opacity-40 text-black font-extrabold text-sm tracking-wide transition-all shadow-lg shadow-amber-500/10"
                     >
                       {payState === "processing" ? <Loader2 className="w-4 h-4 animate-spin" /> : t.payNow || "Pay Now"}

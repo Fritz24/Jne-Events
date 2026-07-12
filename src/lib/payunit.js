@@ -51,19 +51,22 @@ export async function initializePayment(amount, transactionId, returnUrl, notify
  * @param {string} notifyUrl - Optional webhook URL.
  * @returns {Promise<object>} The payment response data.
  */
-export async function makeDirectPayment(amount, transactionId, phoneNumber, returnUrl, notifyUrl = "") {
-  // Format phone number
+export async function makeDirectPayment(amount, transactionId, phoneNumber, returnUrl, explicitGateway = "", notifyUrl = "") {
+  // Format phone number - expect it to already be formatted by caller
   let formattedNumber = phoneNumber.replace(/[^0-9]/g, "");
   if (formattedNumber.length === 9) {
     formattedNumber = "237" + formattedNumber;
   }
   
-  // Auto-detect gateway (Orange or MTN Cameroon)
-  let gateway = "CM_ORANGE"; // default
-  if (/^(237)?(67|650|651|652|653|654|68)/.test(formattedNumber)) {
-    gateway = "CM_MTN";
-  } else if (/^(237)?(69|655|656|657|658|659)/.test(formattedNumber)) {
-    gateway = "CM_ORANGE";
+  // Use explicitly selected gateway (from user choice), or fallback to auto-detect
+  let gateway = explicitGateway;
+  if (!gateway) {
+    gateway = "CM_ORANGE"; // default fallback
+    if (/^(237)?(67|650|651|652|653|654|68)/.test(formattedNumber)) {
+      gateway = "CM_MTN";
+    } else if (/^(237)?(69|655|656|657|658|659)/.test(formattedNumber)) {
+      gateway = "CM_ORANGE";
+    }
   }
 
   const reqBody = {
