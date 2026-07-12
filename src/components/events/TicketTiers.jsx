@@ -253,7 +253,11 @@ export default function TicketTiers({ event, compact = false, showMobileMoney = 
           console.error("Failed to update booking status to failed:", dbErr);
         }
       }
-      setPayError(err.message || t.paymentError);
+      let userFriendlyError = err.message || t.paymentError || "Payment initialization failed. Please try again.";
+      if (typeof userFriendlyError === "string" && userFriendlyError.toLowerCase().includes("payment request failed")) {
+        userFriendlyError = "Payment request failed. This usually means you have insufficient funds in your MoMo wallet, the phone number doesn't match the selected provider, or your network requires you to dial a code (like #150*50# for Orange) to authorize payments first.";
+      }
+      setPayError(userFriendlyError);
       setPayState("error");
     }
   };
