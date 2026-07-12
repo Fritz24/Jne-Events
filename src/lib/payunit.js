@@ -3,13 +3,13 @@
  */
 
 /**
- * Initiates a Payunit transaction and returns the hosted page URL.
+ * Initiates a Payunit transaction and returns both the PayUnit transaction ID and hosted page URL.
  * 
  * @param {number|string} amount - The total amount to charge.
  * @param {string} transactionId - Unique identifier for the transaction (e.g., ticket_id).
  * @param {string} returnUrl - URL to redirect the user back to after payment.
  * @param {string} notifyUrl - Optional webhook URL for server-to-server confirmation.
- * @returns {Promise<string>} The Payunit hosted transaction URL.
+ * @returns {Promise<{payunitTransactionId: string, transactionUrl: string}>}
  */
 export async function initializePayment(amount, transactionId, returnUrl, notifyUrl = "") {
   const reqBody = {
@@ -37,8 +37,11 @@ export async function initializePayment(amount, transactionId, returnUrl, notify
     throw new Error(data.message || "Failed to initialize Payunit transaction");
   }
 
-  // The hosted payment page URL
-  return data.data.transaction_url;
+  // Return PayUnit's assigned transaction_id (needed for makepayment) and the hosted page URL
+  return {
+    payunitTransactionId: data.data.transaction_id,
+    transactionUrl: data.data.transaction_url,
+  };
 }
 
 /**
