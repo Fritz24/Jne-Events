@@ -138,7 +138,7 @@ export default function VerticalTicket({ booking, event, attendeeName, tierLabel
                 <span className="w-1.5 h-1.5 rounded-full bg-violet-400" />
                 {t.ticketBrandLabel || "JNE Events"}
               </div>
-              <h2 className="text-white font-extrabold text-xl leading-tight line-clamp-2 tracking-tight drop-shadow">
+              <h2 className="text-white font-extrabold text-xl leading-tight tracking-tight drop-shadow">
                 {event ? event.title : "Special Event"}
               </h2>
             </div>
@@ -162,7 +162,7 @@ export default function VerticalTicket({ booking, event, attendeeName, tierLabel
                 <p className="text-[9px] text-white/30 font-semibold tracking-wider uppercase mb-0.5">
                   {t.ticketDateLabel || "Date"}
                 </p>
-                <p className="text-white text-xs font-bold leading-normal line-clamp-1">{dateStr}</p>
+                <p className="text-white text-xs font-bold leading-normal">{dateStr}</p>
               </div>
               <div>
                 <p className="text-[9px] text-white/30 font-semibold tracking-wider uppercase mb-0.5">
@@ -174,7 +174,7 @@ export default function VerticalTicket({ booking, event, attendeeName, tierLabel
                 <p className="text-[9px] text-white/30 font-semibold tracking-wider uppercase mb-0.5">
                   {t.ticketVenueLabel || "Venue"}
                 </p>
-                <p className="text-white text-xs font-bold leading-normal truncate">
+                <p className="text-white text-xs font-bold leading-normal">
                   {event?.venue || "TBA"}{event?.city ? `, ${event.city}` : ""}
                 </p>
               </div>
@@ -191,7 +191,7 @@ export default function VerticalTicket({ booking, event, attendeeName, tierLabel
                 <p className="text-[9px] text-white/30 font-semibold tracking-wider uppercase">
                   {t.ticketAttendeeLabel || "Attendee"}
                 </p>
-                <p className="text-white text-xs font-bold truncate leading-normal mt-0.5">
+                <p className="text-white text-xs font-bold leading-normal mt-0.5">
                   {displayAttendee}
                 </p>
               </div>

@@ -33,7 +33,7 @@ export default function Login() {
     };
 
     return (
-        <div className="min-h-screen flex flex-col items-center pt-8 sm:pt-20 pb-12 px-6">
+        <div className="min-h-screen flex flex-col items-center pt-24 sm:pt-32 pb-12 px-6">
             <SEO
                 title={t.login || "Login"}
                 description={t.loginSubtitle || "Log in to manage your events and bookings"}
