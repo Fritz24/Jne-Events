@@ -21,10 +21,11 @@ export default async function handler(req, res) {
   if (!apiUser || !apiPassword || !apiKey) {
     return res.status(500).json({
       message: "Payunit credentials are not fully configured in environment variables.",
+      debug: { hasUser: !!apiUser, hasPassword: !!apiPassword, hasKey: !!apiKey }
     });
   }
 
-  const baseUrl = cleanEnvVar(process.env.PAYUNIT_API_URL || "https://gateway.payunit.net").replace(/\/$/, "");
+  const baseUrl = "https://gateway.payunit.net"; // hardcoded to avoid any env var issue
   const authHeader = `Basic ${Buffer.from(`${apiUser}:${apiPassword}`).toString("base64")}`;
 
   // Read raw body safely
@@ -39,20 +40,35 @@ export default async function handler(req, res) {
     body = req.body || {};
   }
 
+  console.log("PayUnit Initialize Request:", {
+    url: `${baseUrl}/api/gateway/initialize`,
+    mode,
+    body: JSON.stringify(body),
+    apiKeyPrefix: apiKey.substring(0, 8),
+    authHeaderLength: authHeader.length
+  });
+
   try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 25000); // 25 second timeout
+
     const upstream = await fetch(`${baseUrl}/api/gateway/initialize`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "Authorization": authHeader,
         "x-api-key": apiKey,
-        "mode": mode,
-        "Expect": "" // Suppress 100-continue header that causes 417
+        "mode": mode
       },
       body: JSON.stringify(body),
+      signal: controller.signal
     });
 
+    clearTimeout(timeout);
+
     const text = await upstream.text();
+    console.log("PayUnit Initialize Response:", upstream.status, text.substring(0, 500));
+
     let data;
     try {
       data = text ? JSON.parse(text) : {};
@@ -62,7 +78,12 @@ export default async function handler(req, res) {
 
     return res.status(upstream.status).json(data);
   } catch (err) {
-    console.error("Payunit initialization error:", err);
-    return res.status(502).json({ message: err.message || "Payunit proxy failed", status: "FAILED" });
+    console.error("Payunit initialization error:", err.name, err.message, err.cause);
+    return res.status(502).json({
+      message: err.message || "Payunit proxy failed",
+      status: "FAILED",
+      errorType: err.name,
+      cause: err.cause?.message || err.cause?.code || null
+    });
   }
 }

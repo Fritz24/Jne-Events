@@ -21,10 +21,11 @@ export default async function handler(req, res) {
   if (!apiUser || !apiPassword || !apiKey) {
     return res.status(500).json({
       message: "Payunit credentials are not fully configured in environment variables.",
+      debug: { hasUser: !!apiUser, hasPassword: !!apiPassword, hasKey: !!apiKey }
     });
   }
 
-  const baseUrl = cleanEnvVar(process.env.PAYUNIT_API_URL || "https://gateway.payunit.net").replace(/\/$/, "");
+  const baseUrl = "https://gateway.payunit.net"; // hardcoded to avoid any env var issue
   const authHeader = `Basic ${Buffer.from(`${apiUser}:${apiPassword}`).toString("base64")}`;
 
   // Read raw body safely
@@ -39,6 +40,7 @@ export default async function handler(req, res) {
     body = req.body || {};
   }
 
+  // Mock mode bypass
   if (mode === "test" && body.transaction_id && body.transaction_id.endsWith("MOCK")) {
     return res.status(200).json({
       status: "SUCCESS",
@@ -51,20 +53,36 @@ export default async function handler(req, res) {
     });
   }
 
+  console.log("PayUnit MakePayment Request:", {
+    mode,
+    gateway: body.gateway,
+    amount: body.amount,
+    transactionId: body.transaction_id,
+    phonePrefix: body.phone_number ? body.phone_number.substring(0, 5) : "none",
+    currency: body.currency
+  });
+
   try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 25000); // 25 second timeout
+
     const upstream = await fetch(`${baseUrl}/api/gateway/makepayment`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "Authorization": authHeader,
         "x-api-key": apiKey,
-        "mode": mode,
-        "Expect": "" // Suppress 100-continue header that causes 417
+        "mode": mode
       },
       body: JSON.stringify(body),
+      signal: controller.signal
     });
 
+    clearTimeout(timeout);
+
     const text = await upstream.text();
+    console.log("PayUnit MakePayment Response:", upstream.status, text.substring(0, 500));
+
     let data;
     try {
       data = text ? JSON.parse(text) : {};
@@ -74,7 +92,12 @@ export default async function handler(req, res) {
 
     return res.status(upstream.status).json(data);
   } catch (err) {
-    console.error("Payunit makepayment error:", err);
-    return res.status(502).json({ message: err.message || "Payunit proxy failed", status: "FAILED" });
+    console.error("Payunit makepayment error:", err.name, err.message, err.cause);
+    return res.status(502).json({
+      message: err.message || "Payunit proxy failed",
+      status: "FAILED",
+      errorType: err.name,
+      cause: err.cause?.message || err.cause?.code || null
+    });
   }
 }
