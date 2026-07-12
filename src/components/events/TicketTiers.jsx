@@ -214,7 +214,7 @@ export default function TicketTiers({ event, compact = false, showMobileMoney = 
       returnUrl.searchParams.set("transaction_id", booking.ticket_id);
       returnUrl.searchParams.set("booking_id", booking.id);
       
-      let returnUrlStr = returnUrl.toString();
+      let returnUrlStr = "";
       if (returnUrl.hostname === "localhost" || returnUrl.hostname === "127.0.0.1") {
         returnUrl.protocol = "https:";
         returnUrl.host = "jneevents.bookontransapp.com";
@@ -224,10 +224,10 @@ export default function TicketTiers({ event, compact = false, showMobileMoney = 
         returnUrlStr = returnUrl.toString();
       }
       
-      // Step 1: Initialize transaction — get PayUnit's own transaction_id
-      const { payunitTransactionId } = await initializePayment(totalPrice, booking.ticket_id, returnUrlStr);
+      // Step 1: Initialize transaction — registers transaction under our custom ID
+      await initializePayment(totalPrice, booking.ticket_id, returnUrlStr);
 
-      // Step 2: Push direct MoMo using PayUnit's transaction_id (not our custom one)
+      // Step 2: Push direct MoMo using the SAME custom transaction ID
       const formattedPhone = (() => {
         const clean = phoneNumber.replace(/[^0-9]/g, "");
         // Extract the last 9 digits (standard Cameroon mobile format e.g. 6xxxxxxxx)
@@ -235,7 +235,7 @@ export default function TicketTiers({ event, compact = false, showMobileMoney = 
       })();
 
       try {
-        await makeDirectPayment(totalPrice, payunitTransactionId, formattedPhone, returnUrlStr, selectedGateway);
+        await makeDirectPayment(totalPrice, booking.ticket_id, formattedPhone, returnUrlStr, selectedGateway);
         setPayState("polling");
         setCheckoutStep("polling");
         pollTransaction(booking.ticket_id, booking.id, booking.ticket_id);
