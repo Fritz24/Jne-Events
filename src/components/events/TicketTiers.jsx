@@ -223,9 +223,8 @@ export default function TicketTiers({ event, compact = false, showMobileMoney = 
         setCheckoutStep("polling");
         pollTransaction(booking.ticket_id, booking.id, booking.ticket_id);
       } catch (directErr) {
-        console.warn("Direct MoMo push failed, redirecting to hosted checkout:", directErr);
-        // Fallback: Redirect user's browser directly to the secure Payunit hosted payment page
-        window.location.href = transactionUrl;
+        console.warn("Direct MoMo push failed:", directErr);
+        throw directErr;
       }
 
     } catch (err) {

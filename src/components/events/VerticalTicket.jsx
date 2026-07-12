@@ -51,43 +51,61 @@ export default function VerticalTicket({ booking, event, attendeeName, tierLabel
     if (!ticketRef.current || downloading) return;
     setDownloading(true);
     
-    const el = ticketRef.current;
-    const savedTransform = el.style.transform;
-    const savedTransformOrigin = el.style.transformOrigin;
+    // Create an off-screen container for clean rendering (prevents mobile/scroll crop bugs)
+    const renderContainer = document.createElement("div");
+    renderContainer.style.position = "absolute";
+    renderContainer.style.left = "-9999px";
+    renderContainer.style.top = "-9999px";
+    renderContainer.style.width = "340px";
+    renderContainer.style.height = "620px";
+    renderContainer.style.overflow = "hidden";
+    document.body.appendChild(renderContainer);
 
-    // Temporarily reset scaling for html2canvas to capture at native 340x620 size
-    el.style.transform = "none";
-    el.style.transformOrigin = "initial";
+    // Clone the ticket element
+    const clone = ticketRef.current.cloneNode(true);
+    clone.style.transform = "none";
+    clone.style.transformOrigin = "initial";
+    clone.style.width = "340px";
+    clone.style.height = "620px";
+    clone.style.position = "relative";
+    clone.style.margin = "0";
+    clone.style.boxShadow = "none"; // Remove shadow to prevent html2canvas canvas artifacts
+    
+    renderContainer.appendChild(clone);
 
-    // Wait for the browser to FULLY reflow and repaint at native size
-    // Double requestAnimationFrame ensures layout is computed and painted
-    await new Promise(r => {
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          setTimeout(r, 600);
-        });
-      });
-    });
+    // Wait for the browser to ensure layout and image sources are populated
+    await new Promise(r => setTimeout(r, 400));
 
     try {
-      const canvas = await html2canvas(el, {
-        scale: 3, // Output a high-resolution 1020x1860 image
+      const canvas = await html2canvas(clone, {
+        scale: 3, // Output a high-resolution canvas
         useCORS: true,
         backgroundColor: "#0a0a0f",
         logging: false,
         width: 340,
         height: 620,
+        scrollX: 0,
+        scrollY: 0,
+        windowWidth: 340,
+        windowHeight: 620,
       });
+
       const dataUrl = canvas.toDataURL("image/png");
-      const a = document.createElement("a");
-      a.href = dataUrl;
-      a.download = `JNE-Ticket-${ticketId || "ticket"}.png`;
-      a.click();
+      
+      // Load jsPDF dynamically to keep initial load lightweight
+      const { jsPDF } = await import("jspdf");
+      const pdf = new jsPDF({
+        orientation: "portrait",
+        unit: "px",
+        format: [340, 620]
+      });
+
+      pdf.addImage(dataUrl, "PNG", 0, 0, 340, 620, undefined, 'FAST');
+      pdf.save(`JNE-Ticket-${ticketId || "ticket"}.pdf`);
     } catch (err) {
-      console.error("Failed to download ticket", err);
+      console.error("Failed to download PDF ticket", err);
     } finally {
-      el.style.transform = savedTransform;
-      el.style.transformOrigin = savedTransformOrigin;
+      document.body.removeChild(renderContainer);
       setDownloading(false);
     }
   };

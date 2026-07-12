@@ -46,7 +46,7 @@ export default function SignUp() {
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="w-full max-w-md"
+                className="w-full max-w-lg"
             >
                 <div className="text-center space-y-2 mb-6">
                     <h1 className="text-3xl font-bold text-white tracking-tight">{t.signUpHeading || "Create account"}</h1>
@@ -65,13 +65,13 @@ export default function SignUp() {
                         <div className="space-y-2">
                             <label className="text-xs font-semibold text-white/40 ml-1">{t.fullNameLabel || "Full Name"}</label>
                             <div className="relative group">
-                                <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20 group-focus-within:text-amber-400 transition-colors" />
+                                <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20 group-focus-within:text-violet-400 transition-colors" />
                                 <input
                                     type="text"
                                     required
                                     value={fullName}
                                     onChange={(e) => setFullName(e.target.value)}
-                                    className="w-full bg-white/[0.05] border border-white/10 rounded-2xl py-3.5 pl-12 pr-4 text-white text-base placeholder:text-white/10 focus:outline-none focus:border-amber-500/50 transition-all focus:ring-4 focus:ring-amber-500/10"
+                                    className="w-full bg-white/[0.05] border border-white/10 rounded-2xl py-3.5 pl-12 pr-4 text-white text-base placeholder:text-white/10 focus:outline-none focus:border-violet-500/50 transition-all focus:ring-4 focus:ring-violet-500/10"
                                     placeholder="John Doe"
                                 />
                             </div>
@@ -80,13 +80,13 @@ export default function SignUp() {
                         <div className="space-y-2">
                             <label className="text-xs font-semibold text-white/40 ml-1">{t.emailLabel || "Email"}</label>
                             <div className="relative group">
-                                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20 group-focus-within:text-amber-400 transition-colors" />
+                                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20 group-focus-within:text-violet-400 transition-colors" />
                                 <input
                                     type="email"
                                     required
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
-                                    className="w-full bg-white/[0.05] border border-white/10 rounded-2xl py-3.5 pl-12 pr-4 text-white text-base placeholder:text-white/10 focus:outline-none focus:border-amber-500/50 transition-all focus:ring-4 focus:ring-amber-500/10"
+                                    className="w-full bg-white/[0.05] border border-white/10 rounded-2xl py-3.5 pl-12 pr-4 text-white text-base placeholder:text-white/10 focus:outline-none focus:border-violet-500/50 transition-all focus:ring-4 focus:ring-violet-500/10"
                                     placeholder="name@example.com"
                                 />
                             </div>
@@ -95,13 +95,13 @@ export default function SignUp() {
                         <div className="space-y-2">
                             <label className="text-xs font-semibold text-white/40 ml-1">{t.passwordLabel || "Password"}</label>
                             <div className="relative group">
-                                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20 group-focus-within:text-amber-400 transition-colors" />
+                                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20 group-focus-within:text-violet-400 transition-colors" />
                                 <input
                                     type="password"
                                     required
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
-                                    className="w-full bg-white/[0.05] border border-white/10 rounded-2xl py-3.5 pl-12 pr-4 text-white text-base placeholder:text-white/10 focus:outline-none focus:border-amber-500/50 transition-all focus:ring-4 focus:ring-amber-500/10"
+                                    className="w-full bg-white/[0.05] border border-white/10 rounded-2xl py-3.5 pl-12 pr-4 text-white text-base placeholder:text-white/10 focus:outline-none focus:border-violet-500/50 transition-all focus:ring-4 focus:ring-violet-500/10"
                                     placeholder="••••••••"
                                 />
                             </div>
@@ -121,7 +121,7 @@ export default function SignUp() {
                     <div className="mt-8 pt-8 border-t border-white/5 text-center">
                         <p className="text-white/40 text-sm">
                             {t.alreadyHaveAccount || "Already have an account?"}{" "}
-                            <Link to="/login" className="text-amber-400 font-semibold hover:text-amber-300">{t.login || "Log in"}</Link>
+                            <Link to="/login" className="text-violet-400 font-semibold hover:text-violet-300">{t.login || "Log in"}</Link>
                         </p>
                     </div>
                 </div>
