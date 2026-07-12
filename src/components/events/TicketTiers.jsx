@@ -727,15 +727,13 @@ export default function TicketTiers({ event, compact = false, showMobileMoney = 
                     
                     {/* Mobile Viewports: Stack buttons vertically in Left Panel sticky footer */}
                     <div className="flex flex-col w-full gap-3 md:hidden">
-                      {isAdmin && (
-                        <button
-                          onClick={() => setCheckoutStep("billing")}
-                          disabled={totalTickets === 0}
-                          className="w-full py-3.5 rounded-xl bg-violet-600 hover:bg-violet-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold text-sm transition-all shadow-lg shadow-violet-600/10"
-                        >
-                          Check out
-                        </button>
-                      )}
+                      <button
+                        onClick={() => setCheckoutStep("billing")}
+                        disabled={totalTickets === 0}
+                        className="w-full py-3.5 rounded-xl bg-violet-600 hover:bg-violet-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold text-sm transition-all shadow-lg shadow-violet-600/10"
+                      >
+                        Check out
+                      </button>
                       {totalTickets > 0 && (
                         <a
                           href={`https://wa.me/${whatsappBase}?text=${encodeURIComponent(buildWhatsAppMessage())}`}
@@ -839,14 +837,12 @@ export default function TicketTiers({ event, compact = false, showMobileMoney = 
 
                   {totalTickets > 0 && (
                     <div className="border-t border-white/[0.04] pt-4 mt-6">
-                      {isAdmin && (
-                        <button
-                          onClick={() => setCheckoutStep("billing")}
-                          className="w-full py-3.5 rounded-xl bg-violet-600 hover:bg-violet-700 text-white font-bold text-sm transition-all mb-3 shadow-lg shadow-violet-600/10"
-                        >
-                          Check out
-                        </button>
-                      )}
+                      <button
+                        onClick={() => setCheckoutStep("billing")}
+                        className="w-full py-3.5 rounded-xl bg-violet-600 hover:bg-violet-700 text-white font-bold text-sm transition-all mb-3 shadow-lg shadow-violet-600/10"
+                      >
+                        Check out
+                      </button>
                       <a
                         href={`https://wa.me/${whatsappBase}?text=${encodeURIComponent(buildWhatsAppMessage())}`}
                         target="_blank"

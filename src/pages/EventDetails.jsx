@@ -287,7 +287,7 @@ export default function EventDetails() {
  
                  <div>
                    {isAvailable ? (
-                     <TicketTiers event={event} showMobileMoney={isAdmin} compact={true} />
+                     <TicketTiers event={event} compact={true} />
                    ) : (
                      <div className="rounded-2xl border border-white/[0.05] bg-red-500/10 p-4 text-center">
                        <p className={`font-semibold text-sm ${status.color}`}>{status.label}</p>
