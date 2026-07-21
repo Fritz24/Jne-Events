@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { Calendar, ChevronRight, Clock, Loader2, MapPin, Ticket, TicketCheck, User } from "lucide-react";
+import { Calendar, ChevronRight, Clock, ExternalLink, Loader2, MapPin, Ticket, User } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/AuthContext";
 import { useLocalized } from "@/lib/LanguageContext";
@@ -244,15 +245,42 @@ export default function Tickets() {
 function TicketRow({ ticket, navigate, getField, lang, t }) {
   const event = ticket.event;
   const dateValue = event?.date || ticket.created_date || ticket.saved_at;
-  const status = ticket.status === 'checked_in' ? 'Checked In' : 'Confirmed';
-  const statusClass = ticket.status === 'checked_in'
-    ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/20'
-    : 'bg-violet-500/15 text-violet-300 border-violet-500/20';
+  const isCheckedIn = ticket.status === 'checked_in';
+  const isConfirmed = ticket.status === 'confirmed';
+
+  const statusLabel = isCheckedIn ? 'Checked In' : isConfirmed ? 'Confirmed' : 'Pending';
+  const statusStyle = isCheckedIn
+    ? { background: 'rgba(52,211,153,0.12)', border: '1px solid rgba(52,211,153,0.25)', color: '#6ee7b7' }
+    : isConfirmed
+    ? { background: 'rgba(212,175,55,0.12)', border: '1px solid rgba(212,175,55,0.3)', color: '#d4af37' }
+    : { background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.5)' };
+
+  const displayName = ticket.attendee_name || 'Guest';
+  const displayId = ticket.ticket_id || 'N/A';
+  const shortId = displayId.slice(-8).toUpperCase();
 
   return (
-    <article className="rounded-[1.75rem] border border-white/10 bg-white/[0.03] backdrop-blur-xl overflow-hidden shadow-[0_24px_64px_rgba(0,0,0,0.28)]">
-      <div className="grid lg:grid-cols-[220px_1fr]">
-        <div className="relative min-h-[220px] lg:min-h-full">
+    <article
+      className="relative overflow-hidden"
+      style={{
+        borderRadius: '20px',
+        background: 'linear-gradient(160deg, #0f0f1c 0%, #0a0a12 100%)',
+        boxShadow: '0 20px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(212,175,55,0.12)',
+      }}
+    >
+      {/* Top gold accent line */}
+      <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(to right, transparent, rgba(212,175,55,0.5), transparent)' }} />
+
+      <div className="grid lg:grid-cols-[200px_1fr_auto]">
+        {/* === LEFT: Poster Image === */}
+        <div className="relative min-h-[180px] lg:min-h-full overflow-hidden" style={{ borderRadius: '20px 0 0 20px' }}>
+          {/* Film strip holes along top */}
+          <div className="absolute top-0 left-0 right-0 h-5 flex items-center justify-around px-2 z-10" style={{ background: 'rgba(0,0,0,0.5)' }}>
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="w-2.5 h-3 rounded-sm" style={{ background: '#0a0a12', border: '1px solid rgba(212,175,55,0.15)' }} />
+            ))}
+          </div>
+
           {event?.image_url ? (
             <img
               src={event.image_url}
@@ -260,70 +288,120 @@ function TicketRow({ ticket, navigate, getField, lang, t }) {
               className="absolute inset-0 w-full h-full object-cover"
             />
           ) : (
-            <div className="absolute inset-0 bg-gradient-to-br from-violet-900/50 via-zinc-900 to-amber-900/20" />
+            <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, #1a0a2e 0%, #2d1b00 50%, #0a0a12 100%)' }} />
           )}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
-          <div className="absolute bottom-4 left-4 right-4">
-            <p className="text-xs text-white/60 mb-2">Ticket ID</p>
-            <p className="text-white font-mono text-sm break-all">{ticket.ticket_id}</p>
+          <div className="absolute inset-0" style={{ background: 'linear-gradient(to right, rgba(13,13,28,0) 50%, rgba(10,10,18,0.95) 100%)' }} />
+          <div className="absolute inset-0" style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.4) 0%, transparent 30%)' }} />
+
+          {/* ADMIT ONE badge */}
+          <div className="absolute bottom-3 left-3 px-2 py-0.5 text-[8px] font-black tracking-[0.2em] uppercase" style={{ background: 'linear-gradient(135deg, #d4af37, #f5d96b)', color: '#0a0a12', borderRadius: '4px' }}>
+            ADMIT ONE
           </div>
         </div>
 
-        <div className="p-5 sm:p-6 lg:p-7 flex flex-col gap-5">
-          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-            <div>
-              <p className="text-xs text-white/40 mb-2">
-                {ticket.source === 'guest' ? (t.ticketsSavedDevice || 'Saved on this device') : (t.ticketsPurchased || 'Purchased ticket')}
-              </p>
-              <h2 className="text-2xl font-semibold text-white leading-tight">
+        {/* === MIDDLE: Ticket Info === */}
+        <div className="relative p-5 sm:p-6 flex flex-col gap-4">
+          {/* Vertical dashed tear line on right (desktop) */}
+          <div className="hidden lg:block absolute right-0 top-4 bottom-4 w-px" style={{ borderRight: '1.5px dashed rgba(212,175,55,0.2)' }} />
+          <div className="hidden lg:block absolute right-[-9px] top-[50%] translate-y-[-50%] w-[18px] h-[18px] rounded-full z-20" style={{ background: '#0a0a12', border: '1px solid rgba(212,175,55,0.2)' }} />
+
+          {/* Header row */}
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+            <div className="min-w-0">
+              {/* Source label */}
+              <div className="flex items-center gap-1.5 mb-2">
+                <div className="w-1 h-1 rounded-full" style={{ background: '#d4af37' }} />
+                <span className="text-[9px] font-bold tracking-[0.2em] uppercase" style={{ color: 'rgba(212,175,55,0.6)' }}>
+                  JNE Events {ticket.source === 'guest' ? '· Guest Ticket' : '· Account Ticket'}
+                </span>
+              </div>
+              <h2 className="text-xl sm:text-2xl font-black text-white leading-tight">
                 {event ? getField(event, 'title') : ticket.event_title}
               </h2>
-              <p className="text-white/45 mt-2 max-w-2xl line-clamp-2">
-                {ticket.tier_label}
-                {ticket.attendee_name ? ` • ${ticket.attendee_name}` : ''}
-              </p>
+              <div
+                className="inline-flex items-center gap-1.5 mt-2 px-2.5 py-1 text-[10px] font-bold tracking-wider uppercase rounded-full"
+                style={{ background: 'rgba(212,175,55,0.1)', border: '1px solid rgba(212,175,55,0.25)', color: '#d4af37' }}
+              >
+                {ticket.tier_label || 'Standard'}
+              </div>
             </div>
 
-            <span className={`inline-flex items-center self-start px-3 py-1.5 rounded-full border text-xs font-semibold ${statusClass}`}>
-              {status}
+            <span
+              className="inline-flex items-center self-start px-3 py-1.5 rounded-full text-xs font-bold shrink-0"
+              style={statusStyle}
+            >
+              {statusLabel}
             </span>
           </div>
 
-          <div className="grid sm:grid-cols-3 gap-3 text-sm">
-            <TicketMeta icon={Calendar} label="Date" value={dateValue ? formatLocalizedDate(dateValue, 'EEE, MMM d, yyyy', lang) : 'TBA'} />
+          {/* Meta info row */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+            <TicketMeta icon={Calendar} label="Date" value={dateValue ? formatLocalizedDate(dateValue, 'EEE, MMM d', lang) : 'TBA'} />
             <TicketMeta icon={Clock} label="Time" value={dateValue ? formatLocalizedDate(dateValue, 'HH:mm', lang) : 'TBA'} />
             <TicketMeta icon={MapPin} label="Venue" value={event?.venue || 'TBA'} />
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between pt-1">
-            <div className="flex items-center gap-2 text-white/45 text-sm">
-              <TicketCheck className="w-4 h-4 text-emerald-400" />
-              <span>{ticket.currency || event?.currency || 'XAF'} {Number(ticket.tier_price || 0).toLocaleString()}</span>
+          {/* Attendee + price + action row */}
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3 pt-1">
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              <div
+                className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 font-black text-xs"
+                style={{ background: 'linear-gradient(135deg, #d4af37, #b8940a)', color: '#0a0a12' }}
+              >
+                {displayName.charAt(0).toUpperCase()}
+              </div>
+              <div className="min-w-0">
+                <p className="text-[9px] font-bold tracking-widest uppercase" style={{ color: 'rgba(212,175,55,0.5)' }}>Attendee</p>
+                <p className="text-white text-sm font-semibold truncate">{displayName}</p>
+              </div>
+              <div className="ml-auto sm:ml-4 text-right">
+                <p className="text-[9px] font-bold tracking-widest uppercase" style={{ color: 'rgba(212,175,55,0.5)' }}>Paid</p>
+                <p className="text-white text-sm font-bold">{ticket.currency || event?.currency || 'XAF'} {Number(ticket.tier_price || 0).toLocaleString()}</p>
+              </div>
             </div>
 
             <button
               onClick={() => event?.id && navigate(`/events/${event.id}`)}
               disabled={!event?.id}
-              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-full bg-white/[0.06] hover:bg-white/[0.1] border border-white/10 text-sm font-medium text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-full text-sm font-semibold text-white transition-all shrink-0 disabled:opacity-40 disabled:cursor-not-allowed"
+              style={{ background: 'rgba(212,175,55,0.1)', border: '1px solid rgba(212,175,55,0.25)' }}
             >
               {t.ticketsOpenEvent || 'Open Event'}
-              <ChevronRight className="w-4 h-4" />
+              <ExternalLink className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>
+
+        {/* === RIGHT STUB: QR Code === */}
+        <div className="hidden lg:flex flex-col items-center justify-center px-5 gap-3" style={{ background: 'rgba(0,0,0,0.3)' }}>
+          <div className="p-2 rounded-xl" style={{ background: '#fff' }}>
+            <QRCodeSVG
+              value={displayId}
+              size={72}
+              level="H"
+              includeMargin={false}
+              fgColor="#0a0a12"
+              bgColor="#ffffff"
+            />
+          </div>
+          <p className="text-[8px] font-mono text-white/30 text-center tracking-wider">{shortId}</p>
+        </div>
       </div>
+
+      {/* Bottom gold accent line */}
+      <div className="absolute bottom-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(to right, transparent, rgba(212,175,55,0.3), transparent)' }} />
     </article>
   );
 }
 
 function TicketMeta({ icon: Icon, label, value }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3">
-      <div className="flex items-center gap-2 text-white/35 text-[11px] uppercase tracking-[0.18em] mb-2">
-        <Icon className="w-3.5 h-3.5" />
-        {label}
+    <div className="rounded-xl px-3 py-2.5" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(212,175,55,0.1)' }}>
+      <div className="flex items-center gap-1.5 mb-1" style={{ color: 'rgba(212,175,55,0.5)' }}>
+        <Icon className="w-3 h-3" />
+        <span className="text-[8px] font-bold tracking-widest uppercase">{label}</span>
       </div>
-      <p className="text-white text-sm font-medium leading-snug">{value}</p>
+      <p className="text-white text-xs font-semibold leading-snug">{value}</p>
     </div>
   );
 }

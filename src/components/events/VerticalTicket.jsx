@@ -12,7 +12,6 @@ export default function VerticalTicket({ booking, event, attendeeName, tierLabel
   const [downloading, setDownloading] = useState(false);
   const { t, lang } = useLocalized();
 
-  // Scroll to download buttons when ticket matches success stage
   useEffect(() => {
     if (showActions) {
       const timer = setTimeout(() => {
@@ -22,25 +21,20 @@ export default function VerticalTicket({ booking, event, attendeeName, tierLabel
     }
   }, [showActions]);
 
-  // Handle scaling to fit container width responsively
   useEffect(() => {
     const handleResize = () => {
       if (!wrapperRef.current || !ticketRef.current) return;
       const parentWidth = wrapperRef.current.offsetWidth;
       const nativeWidth = 340;
-      const nativeHeight = 620;
-      const scale = Math.min(parentWidth / nativeWidth, 1.2); // Cap scaling a bit for desktop
-      
+      const nativeHeight = 640;
+      const scale = Math.min(parentWidth / nativeWidth, 1.2);
       ticketRef.current.style.transform = `scale(${scale})`;
       ticketRef.current.style.transformOrigin = "top center";
       wrapperRef.current.style.height = `${Math.ceil(nativeHeight * scale)}px`;
     };
-
     handleResize();
     window.addEventListener("resize", handleResize);
-    // Extra timeout to ensure parent elements have rendered/sized
     const timer = setTimeout(handleResize, 100);
-
     return () => {
       window.removeEventListener("resize", handleResize);
       clearTimeout(timer);
@@ -50,64 +44,45 @@ export default function VerticalTicket({ booking, event, attendeeName, tierLabel
   const downloadTicket = async () => {
     if (!ticketRef.current || downloading) return;
     setDownloading(true);
-    
-    // Create an off-screen container for clean rendering (prevents mobile/scroll crop bugs)
     const renderContainer = document.createElement("div");
     renderContainer.style.position = "absolute";
     renderContainer.style.left = "-9999px";
     renderContainer.style.top = "-9999px";
     renderContainer.style.width = "340px";
-    renderContainer.style.height = "620px";
+    renderContainer.style.height = "640px";
     renderContainer.style.overflow = "hidden";
     document.body.appendChild(renderContainer);
-
-    // Clone the ticket element
     const clone = ticketRef.current.cloneNode(true);
     clone.style.transform = "none";
     clone.style.transformOrigin = "initial";
     clone.style.width = "340px";
-    clone.style.height = "620px";
+    clone.style.height = "640px";
     clone.style.position = "relative";
     clone.style.margin = "0";
-    clone.style.boxShadow = "none"; // Remove shadow to prevent html2canvas canvas artifacts
-    
+    clone.style.boxShadow = "none";
     renderContainer.appendChild(clone);
-
-    // Wait for the browser to ensure layout and image sources are populated
     await new Promise(r => setTimeout(r, 400));
-
     try {
       const canvas = await html2canvas(clone, {
-        scale: 3, // Output a high-resolution canvas
+        scale: 3,
         useCORS: true,
-        backgroundColor: "#0a0a0f",
+        backgroundColor: "#0d0d14",
         logging: false,
         width: 340,
-        height: 620,
+        height: 640,
         scrollX: 0,
         scrollY: 0,
         windowWidth: 340,
-        windowHeight: 620,
+        windowHeight: 640,
       });
-
       const dataUrl = canvas.toDataURL("image/png");
-      
-      // Load jsPDF dynamically to keep initial load lightweight
       const { jsPDF } = await import("jspdf");
-      const pdf = new jsPDF({
-        orientation: "portrait",
-        unit: "px",
-        format: [340, 620]
-      });
-
-      pdf.addImage(dataUrl, "PNG", 0, 0, 340, 620, undefined, 'FAST');
-      
+      const pdf = new jsPDF({ orientation: "portrait", unit: "px", format: [340, 640] });
+      pdf.addImage(dataUrl, "PNG", 0, 0, 340, 640, undefined, "FAST");
       const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
       if (isMobile) {
-        const blob = pdf.output('blob');
+        const blob = pdf.output("blob");
         const blobUrl = URL.createObjectURL(blob);
-        
-        // Attempt download via anchor link
         const a = document.createElement("a");
         a.href = blobUrl;
         a.download = `JNE-Ticket-${ticketId || "ticket"}.pdf`;
@@ -115,12 +90,7 @@ export default function VerticalTicket({ booking, event, attendeeName, tierLabel
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
-        
-        // Strict webview fallback (Telegram, WhatsApp, Instagram in-app browsers):
-        // redirect current window to display the PDF directly
-        setTimeout(() => {
-          window.location.href = blobUrl;
-        }, 150);
+        setTimeout(() => { window.location.href = blobUrl; }, 150);
       } else {
         pdf.save(`JNE-Ticket-${ticketId || "ticket"}.pdf`);
       }
@@ -133,33 +103,44 @@ export default function VerticalTicket({ booking, event, attendeeName, tierLabel
   };
 
   const eventDate = event?.date ? new Date(event.date) : null;
-  const dateStr = eventDate ? formatLocalizedDate(event.date, "EEEE, MMMM d, yyyy", lang) : "TBA";
+  const dateStr = eventDate ? formatLocalizedDate(event.date, "EEE, MMM d yyyy", lang) : "TBA";
   const timeStr = eventDate ? formatLocalizedDate(event.date, "HH:mm", lang) : "TBA";
-
   const displayAttendee = attendeeName || booking?.attendee_name || "Guest";
   const displayTier = tierLabel || booking?.tier_label || "Standard";
   const displayId = ticketId || booking?.ticket_id || "JNE-PREVIEW-TICKET";
 
+  // Film strip holes — decorative perforations along left edge
+  const filmHoles = Array.from({ length: 10 });
+
   return (
     <div className="flex flex-col items-center w-full max-w-[340px] mx-auto animate-in fade-in zoom-in-95 duration-300">
-      
-      {/* Scaling Container Wrapper */}
-      <div 
-        ref={wrapperRef} 
-        className="w-full relative flex justify-center rounded-[32px]"
-        style={{ minHeight: "300px" }}
-      >
-        {/* Native Size Ticket (340px x 620px) - Relative layout prevents absolute coordinate screenshot bugs */}
+      <div ref={wrapperRef} className="w-full relative flex justify-center" style={{ minHeight: "300px" }}>
+        {/* Native 340x640 ticket */}
         <div
           ref={ticketRef}
-          className="relative w-[340px] h-[620px] rounded-[32px] overflow-hidden select-none shrink-0"
+          className="relative w-[340px] h-[640px] select-none shrink-0 overflow-hidden"
           style={{
-            background: "linear-gradient(165deg, #161622 0%, #0e0e16 60%, #0a0a0f 100%)",
-            boxShadow: "0 24px 48px rgba(0,0,0,0.6), inset 0 0 0 1px rgba(255,255,255,0.06)",
+            background: "linear-gradient(160deg, #0d0d18 0%, #0a0a12 100%)",
+            boxShadow: "0 32px 64px rgba(0,0,0,0.7), 0 0 0 1px rgba(212,175,55,0.15)",
+            borderRadius: "20px",
           }}
         >
-          {/* Top Event Poster Backdrop with Gradient Mask */}
-          <div className="relative w-full h-[220px] overflow-hidden">
+          {/* === FILM STRIP PERFORATIONS (left edge) === */}
+          <div className="absolute left-0 top-0 bottom-0 w-[22px] flex flex-col justify-around items-center z-30 py-3" style={{ background: "rgba(0,0,0,0.4)" }}>
+            {filmHoles.map((_, i) => (
+              <div
+                key={i}
+                className="w-[10px] h-[7px] rounded-sm"
+                style={{ background: "#0a0a12", border: "1px solid rgba(212,175,55,0.2)" }}
+              />
+            ))}
+          </div>
+
+          {/* Gold left border accent */}
+          <div className="absolute left-[22px] top-0 bottom-0 w-px" style={{ background: "linear-gradient(to bottom, rgba(212,175,55,0.5), rgba(212,175,55,0.1), rgba(212,175,55,0.5))" }} />
+
+          {/* === TOP: Event Poster Section === */}
+          <div className="absolute left-[23px] right-0 top-0 h-[230px] overflow-hidden">
             {event?.image_url ? (
               <img
                 src={event.image_url}
@@ -168,127 +149,142 @@ export default function VerticalTicket({ booking, event, attendeeName, tierLabel
                 className="w-full h-full object-cover"
               />
             ) : (
-              <div className="w-full h-full bg-gradient-to-br from-violet-900/50 via-zinc-900 to-amber-900/20" />
+              <div className="w-full h-full" style={{ background: "linear-gradient(135deg, #1a0a2e 0%, #2d1b00 50%, #0a0a12 100%)" }} />
             )}
-            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#0e0e16]/80 to-[#0e0e16]" />
-            
-            {/* Overlay Branding & Title */}
-            <div className="absolute inset-x-0 bottom-4 px-6">
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-violet-500/10 border border-violet-500/20 text-[9px] font-bold tracking-wider text-violet-400 uppercase mb-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-violet-400" />
-                {t.ticketBrandLabel || "JNE Events"}
-              </div>
-              <h2 className="text-white font-extrabold text-xl leading-tight tracking-tight drop-shadow">
-                {event ? event.title : "Special Event"}
-              </h2>
+            {/* Gradient fade into body */}
+            <div className="absolute inset-0" style={{ background: "linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, rgba(13,13,24,0.6) 70%, rgba(13,13,24,1) 100%)" }} />
+
+            {/* ADMIT ONE badge */}
+            <div
+              className="absolute top-3 right-3 px-2.5 py-1 text-[9px] font-black tracking-[0.2em] uppercase"
+              style={{
+                background: "linear-gradient(135deg, #d4af37, #f5d96b, #b8940a)",
+                color: "#0a0a12",
+                borderRadius: "4px",
+                letterSpacing: "0.2em",
+              }}
+            >
+              ADMIT ONE
             </div>
           </div>
 
-          {/* Ticket Information Body */}
-          <div className="px-6 pt-4 pb-3 flex flex-col justify-between h-[255px]">
-            {/* Tier Type & Meta info */}
-            <div>
-              <p className="text-[10px] text-white/30 font-semibold tracking-wider uppercase mb-1">
-                {t.ticketTypeLabel || "Ticket Type"}
-              </p>
-              <h3 className="text-lg font-bold text-violet-300 leading-tight">
-                {displayTier}
-              </h3>
+          {/* === MIDDLE: Title & Info Body === */}
+          <div className="absolute left-[23px] right-0 top-[190px] px-5 pt-2 pb-0">
+            {/* JNE branding tag */}
+            <div className="flex items-center gap-1.5 mb-2">
+              <div className="w-1 h-1 rounded-full" style={{ background: "#d4af37" }} />
+              <span className="text-[8px] font-bold tracking-[0.25em] uppercase" style={{ color: "#d4af37" }}>
+                JNE Events
+              </span>
             </div>
 
-            {/* DateTime & Location details */}
-            <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+            {/* Event Title */}
+            <h2 className="text-white font-black text-[18px] leading-tight tracking-tight mb-3" style={{ textShadow: "0 2px 8px rgba(0,0,0,0.8)" }}>
+              {event ? event.title : "Special Event"}
+            </h2>
+
+            {/* Tier Badge */}
+            <div
+              className="inline-flex items-center gap-1.5 px-3 py-1 mb-4 text-[10px] font-bold tracking-wider uppercase rounded-full"
+              style={{ background: "rgba(212,175,55,0.12)", border: "1px solid rgba(212,175,55,0.3)", color: "#d4af37" }}
+            >
+              {displayTier}
+            </div>
+
+            {/* Info grid */}
+            <div className="grid grid-cols-2 gap-x-3 gap-y-3 mb-3">
               <div>
-                <p className="text-[9px] text-white/30 font-semibold tracking-wider uppercase mb-0.5">
-                  {t.ticketDateLabel || "Date"}
-                </p>
-                <p className="text-white text-xs font-bold leading-normal">{dateStr}</p>
+                <p className="text-[8px] font-bold tracking-widest uppercase mb-0.5" style={{ color: "rgba(212,175,55,0.5)" }}>Date</p>
+                <p className="text-white text-[11px] font-bold leading-tight">{dateStr}</p>
               </div>
               <div>
-                <p className="text-[9px] text-white/30 font-semibold tracking-wider uppercase mb-0.5">
-                  {t.ticketTimeLabel || "Time"}
-                </p>
-                <p className="text-white text-xs font-bold leading-normal">{timeStr}</p>
+                <p className="text-[8px] font-bold tracking-widest uppercase mb-0.5" style={{ color: "rgba(212,175,55,0.5)" }}>Time</p>
+                <p className="text-white text-[11px] font-bold">{timeStr}</p>
               </div>
               <div className="col-span-2">
-                <p className="text-[9px] text-white/30 font-semibold tracking-wider uppercase mb-0.5">
-                  {t.ticketVenueLabel || "Venue"}
-                </p>
-                <p className="text-white text-xs font-bold leading-normal">
+                <p className="text-[8px] font-bold tracking-widest uppercase mb-0.5" style={{ color: "rgba(212,175,55,0.5)" }}>Venue</p>
+                <p className="text-white text-[11px] font-bold leading-tight">
                   {event?.venue || "TBA"}{event?.city ? `, ${event.city}` : ""}
                 </p>
               </div>
             </div>
 
-            {/* Attendee Name Display */}
-            <div className="flex items-center gap-3 rounded-2xl bg-white/[0.03] border border-white/[0.05] p-3">
-              <div className="w-8 h-8 rounded-full bg-violet-500/10 border border-violet-500/20 flex items-center justify-center shrink-0">
-                <span className="text-violet-300 text-xs font-bold">
-                  {(displayAttendee).charAt(0).toUpperCase()}
-                </span>
+            {/* Attendee row */}
+            <div
+              className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl"
+              style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(212,175,55,0.12)" }}
+            >
+              <div
+                className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 font-black text-xs"
+                style={{ background: "linear-gradient(135deg, #d4af37, #b8940a)", color: "#0a0a12" }}
+              >
+                {displayAttendee.charAt(0).toUpperCase()}
               </div>
-              <div className="min-w-0">
-                <p className="text-[9px] text-white/30 font-semibold tracking-wider uppercase">
-                  {t.ticketAttendeeLabel || "Attendee"}
-                </p>
-                <p className="text-white text-xs font-bold leading-normal mt-0.5">
-                  {displayAttendee}
-                </p>
+              <div>
+                <p className="text-[8px] font-bold tracking-widest uppercase" style={{ color: "rgba(212,175,55,0.5)" }}>Attendee</p>
+                <p className="text-white text-[11px] font-bold mt-0.5">{displayAttendee}</p>
               </div>
             </div>
           </div>
 
-          {/* Cohesive Tear-off Separator Line (with round notch bites on left/right edges) */}
-          <div className="relative flex items-center h-5 select-none pointer-events-none">
-            {/* Left circular bite */}
-            <div className="absolute left-[-10px] w-5 h-5 rounded-full bg-[#0a0a0f] border border-white/[0.06] shadow-inner shrink-0 z-20" />
-            
-            {/* Dashed line */}
-            <div className="w-full border-t border-dashed border-white/10 mx-3 z-10" />
-            
-            {/* Right circular bite */}
-            <div className="absolute right-[-10px] w-5 h-5 rounded-full bg-[#0a0a0f] border border-white/[0.06] shadow-inner shrink-0 z-20" />
+          {/* === TEAR LINE === */}
+          <div className="absolute left-[23px] right-0 flex items-center" style={{ top: "440px" }}>
+            {/* Left notch bite */}
+            <div className="absolute left-[-10px] w-[20px] h-[20px] rounded-full z-20" style={{ background: "#0a0a12", border: "1px solid rgba(212,175,55,0.2)" }} />
+            {/* Dashed gold line */}
+            <div className="w-full mx-2" style={{ borderTop: "1.5px dashed rgba(212,175,55,0.25)" }} />
+            {/* Right notch bite */}
+            <div className="absolute right-[-10px] w-[20px] h-[20px] rounded-full z-20" style={{ background: "#0a0a12", border: "1px solid rgba(212,175,55,0.2)" }} />
           </div>
 
-          {/* Bottom QR Code Stub */}
-          <div className="h-[120px] flex items-center justify-between px-6 pb-2">
-            <div className="min-w-0 pr-4">
-              <p className="text-[9px] text-white/30 font-semibold tracking-wider uppercase mb-1">
-                {t.ticketIdLabel || "Ticket ID"}
-              </p>
-              <p className="text-white font-mono text-[10px] break-all leading-normal max-w-[140px]">
-                {displayId}
-              </p>
+          {/* === BOTTOM STUB: QR + Ticket ID === */}
+          <div className="absolute left-[23px] right-0 flex items-center justify-between px-5" style={{ top: "452px", bottom: "0" }}>
+            <div className="flex-1 pr-3 min-w-0">
+              <p className="text-[8px] font-bold tracking-widest uppercase mb-1.5" style={{ color: "rgba(212,175,55,0.5)" }}>Ticket ID</p>
+              <p className="font-mono text-[9px] text-white/70 break-all leading-relaxed">{displayId}</p>
+
+              {/* Mini barcode lines decorative */}
+              <div className="flex gap-px mt-3">
+                {[3,1,4,1,5,2,3,1,2,4,1,3,2,5,1,3,4].map((h, i) => (
+                  <div
+                    key={i}
+                    style={{ width: "2px", height: `${h * 4}px`, background: i % 3 === 0 ? "rgba(212,175,55,0.6)" : "rgba(255,255,255,0.2)", borderRadius: "1px" }}
+                  />
+                ))}
+              </div>
             </div>
-            
+
             {/* QR Code */}
-            <div className="p-2 bg-white rounded-xl shadow-lg shrink-0">
+            <div className="shrink-0 p-2 rounded-xl" style={{ background: "#ffffff" }}>
               <QRCodeSVG
                 value={displayId}
-                size={80}
+                size={82}
                 level="H"
                 includeMargin={false}
-                fgColor="#0a0a0f"
+                fgColor="#0a0a12"
                 bgColor="#ffffff"
               />
             </div>
           </div>
-          
+
+          {/* Gold bottom border accent */}
+          <div className="absolute left-[23px] right-0 bottom-0 h-px" style={{ background: "linear-gradient(to right, rgba(212,175,55,0.5), rgba(212,175,55,0.1))" }} />
         </div>
       </div>
 
-      {/* Action buttons (only rendered when success is confirmed) */}
+      {/* Action buttons */}
       {showActions && (
         <div ref={actionsRef} className="w-full flex flex-col gap-2.5 mt-6 z-10">
           <button
             onClick={downloadTicket}
             disabled={downloading}
-            className="w-full py-3.5 rounded-2xl text-sm font-bold flex items-center justify-center gap-2 transition-all disabled:opacity-70 bg-gradient-to-r from-violet-600 to-violet-700 hover:from-violet-500 hover:to-violet-600 text-white shadow-lg shadow-violet-600/20"
+            className="w-full py-3.5 rounded-2xl text-sm font-bold flex items-center justify-center gap-2 transition-all disabled:opacity-70 text-[#0a0a12]"
+            style={{ background: "linear-gradient(135deg, #d4af37, #f5d96b, #b8940a)", boxShadow: "0 8px 24px rgba(212,175,55,0.3)" }}
           >
             <Download className="w-4 h-4" />
             {downloading ? t.ticketSaving || "Saving..." : t.ticketSave || "Save Ticket"}
           </button>
-          
+
           {showDone && onDone && (
             <button
               onClick={onDone}
