@@ -34,8 +34,10 @@ export function removeLocalFavorite(id) {
   saveLocalFavorites(filtered);
 }
 
+const USE_SUPABASE_FAVORITES = false; // Set to true after running the database migration for public.jne_favorites
+
 export async function isFavorited(userId, eventId) {
-  if (!userId) return getLocalFavorites().includes(eventId);
+  if (!USE_SUPABASE_FAVORITES || !userId) return getLocalFavorites().includes(eventId);
   try {
     const { data, error } = await supabase
       .from('jne_favorites')
@@ -54,7 +56,7 @@ export async function isFavorited(userId, eventId) {
 
 export async function addFavoriteToSupabase(userId, eventId) {
   addLocalFavorite(eventId);
-  if (!userId) return true;
+  if (!USE_SUPABASE_FAVORITES || !userId) return true;
   try {
     const { error } = await supabase
       .from('jne_favorites')
@@ -70,7 +72,7 @@ export async function addFavoriteToSupabase(userId, eventId) {
 
 export async function removeFavoriteFromSupabase(userId, eventId) {
   removeLocalFavorite(eventId);
-  if (!userId) return true;
+  if (!USE_SUPABASE_FAVORITES || !userId) return true;
   try {
     const { error } = await supabase
       .from('jne_favorites')
@@ -87,7 +89,7 @@ export async function removeFavoriteFromSupabase(userId, eventId) {
 }
 
 export async function getFavoriteIdsForUser(userId) {
-  if (!userId) return getLocalFavorites();
+  if (!USE_SUPABASE_FAVORITES || !userId) return getLocalFavorites();
   try {
     const { data, error } = await supabase
       .from('jne_favorites')
@@ -103,7 +105,7 @@ export async function getFavoriteIdsForUser(userId) {
 }
 
 export async function migrateLocalFavoritesToSupabase(userId) {
-  if (!userId) return { migrated: 0 };
+  if (!USE_SUPABASE_FAVORITES || !userId) return { migrated: 0 };
   const local = getLocalFavorites();
   if (!local || local.length === 0) return { migrated: 0 };
 
