@@ -34,7 +34,7 @@ export default function NewsletterSection() {
         }
     };
 
-    const whatsappLink = "https://chat.whatsapp.com/your-group-id";
+    const whatsappLink = "https://whatsapp.com/channel/0029VbCtd8yBVJl0zHMb0s0j";
 
     return (
         <section className="py-20 relative overflow-hidden">

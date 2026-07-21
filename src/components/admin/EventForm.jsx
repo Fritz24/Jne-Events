@@ -103,6 +103,7 @@ export default function EventForm({ event, onSave, onCancel }) {
   const [uploading, setUploading] = useState(false);
   const [whatsappContacts, setWhatsappContacts] = useState([]); // Array of { number, label, isDefault }
   const [savedInclusions, setSavedInclusions] = useState([]); // Array of strings
+  const [templates, setTemplates] = useState([]);
 
   const { data: categories = [] } = useQuery({
     queryKey: ["event_categories"],
@@ -216,6 +217,83 @@ export default function EventForm({ event, onSave, onCancel }) {
 
   const removeSavedInclusion = (incToRemove) => {
     handleUpdateSavedInclusions(savedInclusions.filter(inc => inc !== incToRemove));
+  };
+
+  // Fetch saved templates
+  useEffect(() => {
+    async function fetchTemplates() {
+      const { data } = await supabase
+        .from('jne_settings')
+        .select('value')
+        .eq('key', 'event_templates')
+        .maybeSingle();
+
+      if (data?.value) {
+        setTemplates(JSON.parse(data.value));
+      }
+    }
+    fetchTemplates();
+  }, []);
+
+  const handleSaveTemplate = async () => {
+    const name = prompt("Enter a name for this template:");
+    if (!name || !name.trim()) return;
+
+    const templateForm = {
+      ...form,
+      date: "",
+    };
+
+    const newTemplate = {
+      id: `${Date.now()}`,
+      name: name.trim(),
+      form: templateForm,
+      tiers
+    };
+
+    const updated = [...templates, newTemplate];
+    const { error } = await supabase
+      .from('jne_settings')
+      .upsert({
+        key: 'event_templates',
+        value: JSON.stringify(updated),
+        updated_at: new Date().toISOString()
+      });
+
+    if (!error) {
+      setTemplates(updated);
+      alert(`Template "${name}" saved successfully!`);
+    } else {
+      alert("Failed to save template: " + error.message);
+    }
+  };
+
+  const handleLoadTemplate = (template) => {
+    setForm(prev => ({
+      ...template.form,
+      date: prev.date || buildInitialForm(event).date,
+    }));
+    setTiers(template.tiers);
+  };
+
+  const handleDeleteTemplate = async (e, id) => {
+    e.stopPropagation();
+    if (!confirm("Are you sure you want to delete this template?")) return;
+
+    const updated = templates.filter(t => t.id !== id);
+    const { error } = await supabase
+      .from('jne_settings')
+      .upsert({
+        key: 'event_templates',
+        value: JSON.stringify(updated),
+        updated_at: new Date().toISOString()
+      });
+
+    if (!error) {
+      setTemplates(updated);
+    } else {
+      alert("Failed to delete template: " + error.message);
+    }
   };
 
   // Auto-generate WhatsApp message behind the scenes
@@ -348,6 +426,54 @@ export default function EventForm({ event, onSave, onCancel }) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Templates Management Row */}
+      <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-2xl bg-white/[0.02] border border-white/5 shadow-inner">
+        <div className="space-y-0.5">
+          <h4 className="text-sm font-bold text-white">Event Templates</h4>
+          <p className="text-xs text-white/40">Pre-fill form and ticket tiers using a saved configuration template</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          {templates.length > 0 && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button type="button" variant="outline" className="bg-white/5 border-white/10 hover:bg-white/10 text-white text-xs px-3 py-1.5 h-auto">
+                  Load Template ({templates.length})
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-64 bg-[#111118] border-white/10 text-white">
+                <DropdownMenuLabel className="text-white/40 text-[10px] uppercase tracking-wider">Available Templates</DropdownMenuLabel>
+                <DropdownMenuSeparator className="bg-white/5" />
+                {templates.map(t => (
+                  <div key={t.id} className="flex items-center justify-between group px-1">
+                    <DropdownMenuItem
+                      onClick={() => handleLoadTemplate(t)}
+                      className="flex-1 focus:bg-violet-500/10 focus:text-white cursor-pointer text-sm font-medium py-2"
+                    >
+                      {t.name}
+                    </DropdownMenuItem>
+                    <button
+                      type="button"
+                      onClick={(e) => handleDeleteTemplate(e, t.id)}
+                      className="p-1.5 rounded hover:bg-red-500/20 text-red-400 opacity-0 group-hover:opacity-100 transition-opacity pr-2"
+                      title="Delete template"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+          <Button
+            type="button"
+            onClick={handleSaveTemplate}
+            className="bg-violet-600/20 hover:bg-violet-600/40 text-violet-300 border border-violet-500/30 text-xs px-3 py-1.5 h-auto"
+          >
+            Save as Template
+          </Button>
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label className="text-white/70">Title (English) *</Label>
