@@ -131,12 +131,9 @@ export default function EventTable({ events, onEdit, onDelete }) {
                           </AlertDialogHeader>
                           <AlertDialogFooter>
                             <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={() => onDelete(event.id)}
-                              className="bg-red-600 hover:bg-red-500"
-                            >
-                              Delete
-                            </AlertDialogAction>
+                             <AlertDialogAction onClick={() => onDelete(event.id)}>
+                               Delete
+                             </AlertDialogAction>
                           </AlertDialogFooter>
                         </AlertDialogContent>
                       </AlertDialog>

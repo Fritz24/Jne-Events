@@ -569,10 +569,7 @@ export default function EventForm({ event, onSave, onCancel }) {
       {/* Ticket Tiers */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <div>
-            <Label className="text-white/70 text-base">Ticket Tiers</Label>
-            <p className="text-xs text-emerald-400/90 mt-0.5 font-medium">💡 Set price to 0 to make a tier FREE</p>
-          </div>
+          <Label className="text-white/70 text-base">Ticket Tiers</Label>
           <Button type="button" size="sm" onClick={addTier} className="bg-violet-600/20 hover:bg-violet-600/40 text-violet-300 border border-violet-500/30">
             <Plus className="w-3.5 h-3.5 mr-1" /> Add Tier
           </Button>
@@ -601,6 +598,7 @@ export default function EventForm({ event, onSave, onCancel }) {
                   <Label className="text-white/50 text-xs">Price *</Label>
                   <Input type="number" step="0.01" className={inputClass} placeholder="0" value={tier.price}
                     onChange={e => handleTierChange(i, "price", e.target.value)} />
+                  <p className="text-[10px] text-violet-400 font-medium">Set price to 0 to make this tier free</p>
                 </div>
               </div>
 
