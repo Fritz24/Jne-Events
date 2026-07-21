@@ -35,7 +35,7 @@ export function removeLocalFavorite(id) {
 }
 
 export async function isFavorited(userId, eventId) {
-  if (!userId) return false;
+  if (!userId) return getLocalFavorites().includes(eventId);
   try {
     const { data, error } = await supabase
       .from('jne_favorites')
@@ -43,52 +43,62 @@ export async function isFavorited(userId, eventId) {
       .eq('user_id', userId)
       .eq('event_id', eventId)
       .limit(1);
-    if (error) return false;
+    if (error) {
+      return getLocalFavorites().includes(eventId);
+    }
     return (data && data.length > 0);
   } catch (err) {
-    return false;
+    return getLocalFavorites().includes(eventId);
   }
 }
 
 export async function addFavoriteToSupabase(userId, eventId) {
-  if (!userId) return false;
+  addLocalFavorite(eventId);
+  if (!userId) return true;
   try {
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('jne_favorites')
       .insert({ user_id: userId, event_id: eventId, created_at: new Date().toISOString() });
-    if (error) return false;
+    if (error) {
+      console.warn("Could not sync favorite to Supabase (falling back to local):", error.message);
+    }
     return true;
   } catch (err) {
-    return false;
+    return true;
   }
 }
 
 export async function removeFavoriteFromSupabase(userId, eventId) {
-  if (!userId) return false;
+  removeLocalFavorite(eventId);
+  if (!userId) return true;
   try {
     const { error } = await supabase
       .from('jne_favorites')
       .delete()
       .eq('user_id', userId)
       .eq('event_id', eventId);
-    if (error) return false;
+    if (error) {
+      console.warn("Could not unsync favorite from Supabase (falling back to local):", error.message);
+    }
     return true;
   } catch (err) {
-    return false;
+    return true;
   }
 }
 
 export async function getFavoriteIdsForUser(userId) {
-  if (!userId) return [];
+  if (!userId) return getLocalFavorites();
   try {
     const { data, error } = await supabase
       .from('jne_favorites')
       .select('event_id')
       .eq('user_id', userId);
-    if (error) return [];
+    if (error) {
+      return getLocalFavorites();
+    }
     return (data || []).map((r) => r.event_id);
   } catch (err) {
-    return [];
+    return getLocalFavorites();
   }
 }
 
@@ -98,21 +108,24 @@ export async function migrateLocalFavoritesToSupabase(userId) {
   if (!local || local.length === 0) return { migrated: 0 };
 
   try {
-    // fetch existing remote favorites
-    const { data: existing = [] } = await supabase
+    const { data: existing = [], error: getError } = await supabase
       .from('jne_favorites')
       .select('event_id')
       .eq('user_id', userId);
+      
+    if (getError) throw getError;
+    
     const existingIds = (existing || []).map((r) => r.event_id);
     const toInsert = local.filter((id) => !existingIds.includes(id));
     if (toInsert.length > 0) {
       const payload = toInsert.map((id) => ({ user_id: userId, event_id: id, created_at: new Date().toISOString() }));
-      await supabase.from('jne_favorites').insert(payload);
+      const { error: insError } = await supabase.from('jne_favorites').insert(payload);
+      if (insError) throw insError;
     }
-    // clear local storage after migrating
     saveLocalFavorites([]);
     return { migrated: toInsert.length };
   } catch (err) {
+    console.warn("Local favorites migration skipped (Supabase table not found or unavailable).");
     return { migrated: 0 };
   }
 }
