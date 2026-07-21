@@ -549,19 +549,21 @@ export default function EventForm({ event, onSave, onCancel }) {
           <Label className="text-white/70">Currency *</Label>
           <Input className={inputClass} value={form.currency} onChange={e => handleChange("currency", e.target.value)} placeholder="XAF" required />
         </div>
-        <div className="space-y-2">
-          <Label className="text-white/70">Status</Label>
-          <Select value={form.status} onValueChange={v => handleChange("status", v)}>
-            <SelectTrigger className={inputClass}><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="upcoming">Upcoming</SelectItem>
-              <SelectItem value="ongoing">Ongoing</SelectItem>
-              <SelectItem value="sold_out">Sold Out</SelectItem>
-              <SelectItem value="cancelled">Cancelled</SelectItem>
-              <SelectItem value="completed">Completed</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        {isEdit && (
+          <div className="space-y-2">
+            <Label className="text-white/70">Status</Label>
+            <Select value={form.status} onValueChange={v => handleChange("status", v)}>
+              <SelectTrigger className={inputClass}><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="upcoming">Upcoming</SelectItem>
+                <SelectItem value="ongoing">Ongoing</SelectItem>
+                <SelectItem value="sold_out">Sold Out</SelectItem>
+                <SelectItem value="cancelled">Cancelled</SelectItem>
+                <SelectItem value="completed">Completed</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        )}
       </div>
 
       {/* Ticket Tiers */}
