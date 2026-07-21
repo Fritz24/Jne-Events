@@ -11,6 +11,25 @@ export default function Albums() {
   const [selectedAlbum, setSelectedAlbum] = useState(null);
   const [fullscreenImage, setFullscreenImage] = useState(null);
 
+  const handleDownload = async (e, url, title) => {
+    e.stopPropagation();
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = blobUrl;
+      a.download = `${title || "jne-memory"}-${Date.now()}.jpg`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(blobUrl);
+    } catch (err) {
+      console.error("Failed to download image:", err);
+      window.open(url, "_blank");
+    }
+  };
+
   const { data: albums = [], isLoading } = useQuery({
     queryKey: ["public_albums"],
     queryFn: async () => {
@@ -161,17 +180,13 @@ export default function Albums() {
           onClick={() => setFullscreenImage(null)}
         >
           <div className="absolute top-6 right-6 sm:top-10 sm:right-10 flex items-center gap-4 z-50">
-            <a 
-              href={fullscreenImage}
-              download
-              target="_blank"
-              rel="noreferrer"
-              onClick={(e) => e.stopPropagation()}
+            <button 
+              onClick={(e) => handleDownload(e, fullscreenImage, selectedAlbum?.title)}
               className="w-12 h-12 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white transition-colors cursor-pointer"
               title={t.downloadImage}
             >
               <Download className="w-5 h-5" />
-            </a>
+            </button>
             <button 
               className="w-12 h-12 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white transition-colors cursor-pointer"
               onClick={(e) => { e.stopPropagation(); setFullscreenImage(null); }}

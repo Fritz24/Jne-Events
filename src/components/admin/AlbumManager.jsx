@@ -5,11 +5,24 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2, Plus, Image as ImageIcon, Trash2, Upload } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function AlbumManager() {
   const qc = useQueryClient();
   const [editingAlbum, setEditingAlbum] = useState(null);
   const [uploading, setUploading] = useState(false);
+
+  // Fetch minimal events list for selection
+  const { data: events = [] } = useQuery({
+    queryKey: ["events_minimal_album"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('jne_events')
+        .select('id, title, date')
+        .order('date', { ascending: false });
+      return data || [];
+    }
+  });
 
   // Fetch Albums from jne_settings
   const { data: albums = [], isLoading } = useQuery({
@@ -37,14 +50,15 @@ export default function AlbumManager() {
 
   const saveAlbums = useMutation({
     mutationFn: async (newAlbums) => {
-      const { data } = await supabase.from('jne_settings').select('id').eq('key', 'albums').maybeSingle();
       const stringified = JSON.stringify(newAlbums);
-
-      if (data) {
-        await supabase.from('jne_settings').update({ value: stringified }).eq('key', 'albums');
-      } else {
-        await supabase.from('jne_settings').insert([{ key: 'albums', value: stringified }]);
-      }
+      const { error } = await supabase
+        .from('jne_settings')
+        .upsert({
+          key: 'albums',
+          value: stringified,
+          updated_at: new Date().toISOString()
+        });
+      if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["albums_settings"] })
   });
@@ -55,9 +69,14 @@ export default function AlbumManager() {
       title: "New Album",
       date: new Date().toISOString().split('T')[0],
       coverImage: "",
-      images: []
+      images: [],
+      event_id: null
     };
-    saveAlbums.mutate([...albums, newAlbum]);
+    saveAlbums.mutate([...albums, newAlbum], {
+      onSuccess: () => {
+        setEditingAlbum(newAlbum);
+      }
+    });
   };
 
   const handleDelete = (id) => {
@@ -164,7 +183,7 @@ export default function AlbumManager() {
         <div className="col-span-1 md:col-span-2">
           {editingAlbum ? (
             <div className="bg-white/5 border border-white/10 rounded-2xl p-6 space-y-6">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label className="text-white/70">Album Title</Label>
                   <Input 
@@ -181,6 +200,25 @@ export default function AlbumManager() {
                     onChange={(e) => handleUpdateAlbum({ date: e.target.value })}
                     className="bg-black/40 border-white/10 text-white"
                   />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-white/70">Tied Event (Optional)</Label>
+                  <Select
+                    value={editingAlbum.event_id || "none"}
+                    onValueChange={(val) => handleUpdateAlbum({ event_id: val === "none" ? null : val })}
+                  >
+                    <SelectTrigger className="bg-black/40 border-white/10 text-white">
+                      <SelectValue placeholder="Select an event" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-[#111118] border-white/10 text-white">
+                      <SelectItem value="none">None / General Album</SelectItem>
+                      {events.map(ev => (
+                        <SelectItem key={ev.id} value={ev.id}>
+                          {ev.title} ({ev.date ? new Date(ev.date).toLocaleDateString() : ""})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
