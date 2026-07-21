@@ -168,7 +168,7 @@ export default function TicketTiers({ event, compact = false, showMobileMoney = 
       setPayError("Please select a payment method (MTN MoMo, Orange Money, or Credit Card).");
       return;
     }
-    if (selectedGateway !== "CARD" && !phoneNumber.trim()) {
+    if (totalPrice > 0 && selectedGateway !== "CARD" && !phoneNumber.trim()) {
       setPayError(t.enterMobileMoney || "Please enter a Mobile Money phone number");
       return;
     }
@@ -184,6 +184,45 @@ export default function TicketTiers({ event, compact = false, showMobileMoney = 
         .filter(Boolean)
         .join(", ");
 
+      const ticketIdStr = `JNE${Math.floor(Date.now() / 1000)}${Math.floor(Math.random() * 9000 + 1000)}`;
+
+      // Free Ticket Flow (price is 0)
+      if (totalPrice === 0) {
+        const { data: booking, error: dbError } = await supabase
+          .from('jne_bookings')
+          .insert([{
+             event_id: event.id,
+             event_title: event.title,
+             user_id: user?.id || null,
+             tier_label: tierLabel || "Free Ticket",
+             tier_price: 0,
+             attendee_name: attendeeName.trim(),
+             status: "confirmed",
+             ticket_id: ticketIdStr
+          }])
+          .select()
+          .single();
+
+        if (dbError) throw dbError;
+
+        saveLocalTicket({
+          ticket_id: booking.ticket_id,
+          event_id: event.id,
+          event_title: event.title,
+          tier_label: tierLabel || "Free Ticket",
+          tier_price: 0,
+          attendee_name: attendeeName.trim(),
+          status: "confirmed",
+          event_snapshot: event,
+          currency: event?.currency || "XAF"
+        });
+
+        setFinalBooking(booking);
+        setPayState("confirmed");
+        setCheckoutStep("success");
+        return;
+      }
+
       const { data: booking, error: dbError } = await supabase
         .from('jne_bookings')
         .insert([{
@@ -197,7 +236,6 @@ export default function TicketTiers({ event, compact = false, showMobileMoney = 
            ticket_id: (() => {
               const clean = (phoneNumber || "").replace(/[^0-9]/g, "");
               const isMockPhone = clean ? (clean.endsWith("0000") || clean.startsWith("600") || clean.startsWith("237600")) : false;
-              // Use alphanumeric only - no hyphens - PayUnit rejects transaction IDs with special chars
               const baseId = `JNE${Math.floor(Date.now() / 1000)}${Math.floor(Math.random() * 9000 + 1000)}`;
               return isMockPhone ? `${baseId}MOCK` : baseId;
             })()
@@ -494,7 +532,13 @@ export default function TicketTiers({ event, compact = false, showMobileMoney = 
                             <div className="space-y-1 flex-1">
                               <h4 className="font-bold text-white text-base tracking-tight">{tier.label}</h4>
                               <p className="text-sm font-semibold text-white/70">
-                                {tier.price?.toLocaleString()} {currency}
+                                {Number(tier.price) === 0 ? (
+                                  <span className="inline-block px-2.5 py-0.5 rounded text-[11px] font-black uppercase tracking-wider bg-emerald-500/15 border border-emerald-500/30 text-emerald-400">
+                                    FREE
+                                  </span>
+                                ) : (
+                                  `${tier.price?.toLocaleString()} ${currency}`
+                                )}
                               </p>
                               {tier.description && (
                                 <p className="text-xs text-white/40 leading-relaxed pt-1">{tier.description}</p>
@@ -601,10 +645,16 @@ export default function TicketTiers({ event, compact = false, showMobileMoney = 
                  {checkoutStep === "billing" && (
                    <div className="space-y-6 max-w-md mx-auto py-4">
                      <div>
-                       <h3 className="text-lg font-bold text-white tracking-tight">Billing & Attendee Info</h3>
-                       <p className="text-xs text-white/40 mt-1">Enter details to complete the Mobile Money transaction push</p>
+                       <h3 className="text-lg font-bold text-white tracking-tight">
+                         {totalPrice === 0 ? "Free Registration" : "Billing & Attendee Info"}
+                       </h3>
+                       <p className="text-xs text-white/40 mt-1">
+                         {totalPrice === 0 
+                           ? "Enter attendee name to claim your free ticket"
+                           : "Enter details to complete your order"}
+                       </p>
                      </div>
- 
+
                      <div className="space-y-4">
                        {/* Name Input */}
                        <div className="flex flex-col">
@@ -620,65 +670,68 @@ export default function TicketTiers({ event, compact = false, showMobileMoney = 
                          />
                        </div>
 
-                       {/* Provider Selector */}
-                       <div className="flex flex-col">
-                         <label className="text-xs font-semibold text-white/50 mb-2">Payment Method</label>
-                         <div className="grid grid-cols-3 gap-2">
-                           <button
-                             type="button"
-                             onClick={() => setSelectedGateway("CM_MTNMOMO")}
-                             className={`flex items-center justify-center py-3 rounded-2xl border font-bold text-xs transition-all ${
-                               selectedGateway === "CM_MTNMOMO"
-                                 ? "bg-[#ffcc00] border-[#ffcc00] text-black shadow-lg"
-                                 : "bg-white/5 border-white/10 text-white/60 hover:bg-white/10"
-                             }`}
-                           >
-                             MTN MoMo
-                           </button>
-                           <button
-                             type="button"
-                             onClick={() => setSelectedGateway("CM_ORANGE")}
-                             className={`flex items-center justify-center py-3 rounded-2xl border font-bold text-xs transition-all ${
-                               selectedGateway === "CM_ORANGE"
-                                 ? "bg-[#ff6600] border-[#ff6600] text-white shadow-lg"
-                                 : "bg-white/5 border-white/10 text-white/60 hover:bg-white/10"
-                             }`}
-                           >
-                             Orange
-                           </button>
-                           <button
-                             type="button"
-                             onClick={() => setSelectedGateway("CARD")}
-                             className={`flex items-center justify-center py-3 rounded-2xl border font-bold text-xs transition-all ${
-                               selectedGateway === "CARD"
-                                 ? "bg-violet-600 border-violet-600 text-white shadow-lg"
-                                 : "bg-white/5 border-white/10 text-white/60 hover:bg-white/10"
-                             }`}
-                           >
-                             Credit Card
-                           </button>
-                         </div>
-                       </div>
-
-                       {/* Phone Input with +237 prefix */}
-                       {selectedGateway !== "CARD" && (
-                         <div className="flex flex-col animate-in fade-in slide-in-from-top-1 duration-200">
-                           <label className="text-xs font-semibold text-white/50 mb-2">Phone Number</label>
-                           <div className="flex gap-2">
-                             <div className="flex items-center gap-1.5 px-3 py-3.5 bg-white/5 border border-white/10 rounded-2xl text-white/60 font-bold text-sm shrink-0">
-                               🇨🇲 +237
-                             </div>
-                             <div className="relative flex-1">
-                               <input
-                                 type="tel"
-                                 placeholder="6XX XXX XXX"
-                                 value={phoneNumber}
-                                 onChange={(e) => setPhoneNumber(e.target.value)}
-                                 className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3.5 text-white placeholder:text-white/20 focus:outline-none focus:ring-2 focus:ring-violet-500/40 focus:border-violet-500/40 transition-all font-medium text-base"
-                               />
+                       {/* Payment Provider Options (Paid Tickets only) */}
+                       {totalPrice > 0 && (
+                         <>
+                           <div className="flex flex-col">
+                             <label className="text-xs font-semibold text-white/50 mb-2">Payment Method</label>
+                             <div className="grid grid-cols-3 gap-2">
+                               <button
+                                 type="button"
+                                 onClick={() => setSelectedGateway("CM_MTNMOMO")}
+                                 className={`flex items-center justify-center py-3 rounded-2xl border font-bold text-xs transition-all ${
+                                   selectedGateway === "CM_MTNMOMO"
+                                     ? "bg-[#ffcc00] border-[#ffcc00] text-black shadow-lg"
+                                     : "bg-white/5 border-white/10 text-white/60 hover:bg-white/10"
+                                 }`}
+                               >
+                                 MTN MoMo
+                               </button>
+                               <button
+                                 type="button"
+                                 onClick={() => setSelectedGateway("CM_ORANGE")}
+                                 className={`flex items-center justify-center py-3 rounded-2xl border font-bold text-xs transition-all ${
+                                   selectedGateway === "CM_ORANGE"
+                                     ? "bg-[#ff6600] border-[#ff6600] text-white shadow-lg"
+                                     : "bg-white/5 border-white/10 text-white/60 hover:bg-white/10"
+                                 }`}
+                               >
+                                 Orange
+                               </button>
+                               <button
+                                 type="button"
+                                 onClick={() => setSelectedGateway("CARD")}
+                                 className={`flex items-center justify-center py-3 rounded-2xl border font-bold text-xs transition-all ${
+                                   selectedGateway === "CARD"
+                                     ? "bg-violet-600 border-violet-600 text-white shadow-lg"
+                                     : "bg-white/5 border-white/10 text-white/60 hover:bg-white/10"
+                                 }`}
+                               >
+                                 Credit Card
+                               </button>
                              </div>
                            </div>
-                         </div>
+
+                           {selectedGateway !== "CARD" && (
+                             <div className="flex flex-col animate-in fade-in slide-in-from-top-1 duration-200">
+                               <label className="text-xs font-semibold text-white/50 mb-2">Phone Number</label>
+                               <div className="flex gap-2">
+                                 <div className="flex items-center gap-1.5 px-3 py-3.5 bg-white/5 border border-white/10 rounded-2xl text-white/60 font-bold text-sm shrink-0">
+                                   🇨🇲 +237
+                                 </div>
+                                 <div className="relative flex-1">
+                                   <input
+                                     type="tel"
+                                     placeholder="6XX XXX XXX"
+                                     value={phoneNumber}
+                                     onChange={(e) => setPhoneNumber(e.target.value)}
+                                     className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3.5 text-white placeholder:text-white/20 focus:outline-none focus:ring-2 focus:ring-violet-500/40 focus:border-violet-500/40 transition-all font-medium text-base"
+                                   />
+                                 </div>
+                               </div>
+                             </div>
+                           )}
+                         </>
                        )}
                      </div>
 

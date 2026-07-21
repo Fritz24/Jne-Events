@@ -273,16 +273,31 @@ export default function EventDetails() {
              {/* Right Column (4 cols): Sticky Checkout Panel */}
              <div className="lg:col-span-4 lg:sticky lg:top-24">
                <div className="p-0 lg:p-6 lg:rounded-3xl lg:border lg:border-white/[0.06] lg:bg-white/[0.02] lg:backdrop-blur-2xl lg:shadow-[0_24px_50px_rgba(0,0,0,0.5)] space-y-5">
-                 <div className="flex items-center justify-between lg:block border border-white/[0.06] bg-white/[0.02] rounded-2xl p-4 lg:p-0 lg:border-none lg:bg-transparent">
-                   <p className="text-xs font-semibold text-white/40 tracking-wide lg:mb-1">{t.ticketsStartingFrom || "Tickets starting from"}</p>
-                   <p className="text-2xl lg:text-3xl font-extrabold text-white tracking-tight">
-                     {(event.ticket_tiers?.length
-                       ? Math.min(...event.ticket_tiers.map((t) => t.price || 0))
-                       : (event.price || 0)
-                     ).toLocaleString()}{" "}
-                     <span className="text-sm lg:text-base font-semibold text-white/40">{event.currency || "XAF"}</span>
-                   </p>
-                 </div>
+                  <div className="flex items-center justify-between lg:block border border-white/[0.06] bg-white/[0.02] rounded-2xl p-4 lg:p-0 lg:border-none lg:bg-transparent">
+                    <p className="text-xs font-semibold text-white/40 tracking-wide lg:mb-1">{t.ticketsStartingFrom || "Tickets starting from"}</p>
+                    {(() => {
+                      const minPrice = event.ticket_tiers?.length
+                        ? Math.min(...event.ticket_tiers.map((t) => Number(t.price) || 0))
+                        : (Number(event.price) || 0);
+
+                      if (minPrice === 0) {
+                        return (
+                          <div className="mt-1">
+                            <span className="inline-block px-3 py-1 rounded-full text-sm font-black tracking-wider uppercase bg-emerald-500/15 border border-emerald-500/30 text-emerald-400">
+                              FREE
+                            </span>
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <p className="text-2xl lg:text-3xl font-extrabold text-white tracking-tight">
+                          {minPrice.toLocaleString()}{" "}
+                          <span className="text-sm lg:text-base font-semibold text-white/40">{event.currency || "XAF"}</span>
+                        </p>
+                      );
+                    })()}
+                  </div>
  
                  <div>
                    {isAvailable ? (

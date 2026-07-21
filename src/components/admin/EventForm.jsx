@@ -392,11 +392,11 @@ export default function EventForm({ event, onSave, onCancel }) {
     setSaving(true);
     const data = {
       ...form,
-      price: Number(form.price),
+      price: form.price !== "" && form.price !== null ? Number(form.price) : 0,
       capacity: form.capacity ? Number(form.capacity) : undefined,
       date: form.date ? new Date(form.date).toISOString() : undefined,
       ticket_tiers: tiers
-        .filter(t => t.label && t.price)
+        .filter(t => t.label && t.price !== "" && t.price !== null && t.price !== undefined)
         .map(t => ({ ...t, price: Number(t.price) })),
     };
 
@@ -569,7 +569,10 @@ export default function EventForm({ event, onSave, onCancel }) {
       {/* Ticket Tiers */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <Label className="text-white/70 text-base">Ticket Tiers</Label>
+          <div>
+            <Label className="text-white/70 text-base">Ticket Tiers</Label>
+            <p className="text-xs text-emerald-400/90 mt-0.5 font-medium">💡 Set price to 0 to make a tier FREE</p>
+          </div>
           <Button type="button" size="sm" onClick={addTier} className="bg-violet-600/20 hover:bg-violet-600/40 text-violet-300 border border-violet-500/30">
             <Plus className="w-3.5 h-3.5 mr-1" /> Add Tier
           </Button>

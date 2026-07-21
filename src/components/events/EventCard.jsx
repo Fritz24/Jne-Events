@@ -281,16 +281,33 @@ export default function EventCard({ event, index = 0 }) {
             </div>
           </div>
 
-          {/* Price row (simple, matching screenshot) */}
+          {/* Price row */}
           <div className="mt-3">
-            <p className="text-sm text-zinc-400 mb-1">From</p>
-            <p className="text-xl font-bold text-white">
-              {(event.ticket_tiers?.length
-                ? Math.min(...event.ticket_tiers.map((t) => t.price || 0))
-                : (event.price || 0)
-              ).toLocaleString()} {" "}
-              <span className="text-sm text-zinc-400">{event.currency || "XAF"}</span>
-            </p>
+            {(() => {
+              const minPrice = event.ticket_tiers?.length
+                ? Math.min(...event.ticket_tiers.map((t) => Number(t.price) || 0))
+                : (Number(event.price) || 0);
+
+              if (minPrice === 0) {
+                return (
+                  <div className="flex items-center gap-2">
+                    <span className="px-2.5 py-0.5 rounded-full text-xs font-black tracking-wider uppercase bg-emerald-500/15 border border-emerald-500/30 text-emerald-400">
+                      FREE
+                    </span>
+                  </div>
+                );
+              }
+
+              return (
+                <>
+                  <p className="text-sm text-zinc-400 mb-1">From</p>
+                  <p className="text-xl font-bold text-white">
+                    {minPrice.toLocaleString()}{" "}
+                    <span className="text-sm text-zinc-400">{event.currency || "XAF"}</span>
+                  </p>
+                </>
+              );
+            })()}
           </div>
         </div>
       </div>
