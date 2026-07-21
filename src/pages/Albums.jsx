@@ -22,7 +22,15 @@ export default function Albums() {
 
       if (error) throw error;
       const value = data?.value;
-      return Array.isArray(value) ? value : [];
+      if (value) {
+        try {
+          const parsed = JSON.parse(value);
+          return Array.isArray(parsed) ? parsed : [];
+        } catch (e) {
+          console.error("Failed to parse public albums:", e);
+        }
+      }
+      return [];
     }
   });
 

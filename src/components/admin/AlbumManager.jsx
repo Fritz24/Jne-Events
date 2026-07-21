@@ -23,19 +23,27 @@ export default function AlbumManager() {
 
       if (error) throw error;
       const value = data?.value;
-      return Array.isArray(value) ? value : [];
+      if (value) {
+        try {
+          const parsed = JSON.parse(value);
+          return Array.isArray(parsed) ? parsed : [];
+        } catch (e) {
+          console.error("Failed to parse albums:", e);
+        }
+      }
+      return [];
     }
   });
 
   const saveAlbums = useMutation({
     mutationFn: async (newAlbums) => {
-      // Check if row exists
       const { data } = await supabase.from('jne_settings').select('id').eq('key', 'albums').maybeSingle();
+      const stringified = JSON.stringify(newAlbums);
 
       if (data) {
-        await supabase.from('jne_settings').update({ value: newAlbums }).eq('key', 'albums');
+        await supabase.from('jne_settings').update({ value: stringified }).eq('key', 'albums');
       } else {
-        await supabase.from('jne_settings').insert([{ key: 'albums', value: newAlbums }]);
+        await supabase.from('jne_settings').insert([{ key: 'albums', value: stringified }]);
       }
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["albums_settings"] })
