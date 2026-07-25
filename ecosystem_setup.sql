@@ -22,8 +22,17 @@ CREATE TABLE IF NOT EXISTS public.jne_events (
   genre text,
   image_url text,
   ticket_tiers jsonb DEFAULT '[]'::jsonb,
+  is_recurring boolean DEFAULT false,
+  recurrence_pattern text,
+  parent_recurring_id uuid REFERENCES public.jne_events(id) ON DELETE SET NULL,
   created_at timestamp with time zone DEFAULT now()
 );
+
+-- Migration helpers for existing databases:
+ALTER TABLE public.jne_events ADD COLUMN IF NOT EXISTS is_recurring boolean DEFAULT false;
+ALTER TABLE public.jne_events ADD COLUMN IF NOT EXISTS recurrence_pattern text;
+ALTER TABLE public.jne_events ADD COLUMN IF NOT EXISTS parent_recurring_id uuid REFERENCES public.jne_events(id) ON DELETE SET NULL;
+
 
 CREATE TABLE IF NOT EXISTS public.jne_bookings (
   id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -36,8 +45,14 @@ CREATE TABLE IF NOT EXISTS public.jne_bookings (
   tier_price numeric,
   currency text DEFAULT 'XAF',
   status text DEFAULT 'confirmed',
+  phone text,
+  payment_method text,
   created_date timestamp with time zone DEFAULT now()
 );
+
+-- Migration helpers for existing databases:
+ALTER TABLE public.jne_bookings ADD COLUMN IF NOT EXISTS phone text;
+ALTER TABLE public.jne_bookings ADD COLUMN IF NOT EXISTS payment_method text;
 
 CREATE TABLE IF NOT EXISTS public.jne_shop_items (
   id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,

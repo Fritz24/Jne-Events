@@ -22,7 +22,7 @@ export default function Home() {
 
   const now = new Date();
   const upcomingEvents = events
-    .filter((e) => (e.status === "upcoming" || !e.status) && new Date(e.date) >= now)
+    .filter((e) => (e.status === "upcoming" || !e.status) && new Date(e.date) >= now && !e.is_recurring)
     .sort((a, b) => new Date(a.date) - new Date(b.date));
 
   const featuredEvents = upcomingEvents.filter((e) => e.featured).slice(0, 3);

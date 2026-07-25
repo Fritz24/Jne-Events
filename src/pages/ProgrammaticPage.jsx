@@ -32,7 +32,7 @@ export default function ProgrammaticPage({ type = "city" }) {
 
             const { data, error } = await query.order('date', { ascending: true });
             if (error) throw error;
-            return data || [];
+            return (data || []).filter(e => !e.is_recurring);
         },
     });
 

@@ -188,22 +188,39 @@ export default function TicketTiers({ event, compact = false, showMobileMoney = 
 
       // Free Ticket Flow (price is 0)
       if (totalPrice === 0) {
-        const { data: booking, error: dbError } = await supabase
+        const insertPayload = {
+           event_id: event.id,
+           event_title: event.title,
+           user_id: user?.id || null,
+           tier_label: tierLabel || "Free Ticket",
+           tier_price: 0,
+           attendee_name: attendeeName.trim(),
+           status: "confirmed",
+           ticket_id: ticketIdStr,
+           phone: "N/A",
+           payment_method: "FREE"
+        };
+
+        let booking;
+        const { data: resData, error: dbError } = await supabase
           .from('jne_bookings')
-          .insert([{
-             event_id: event.id,
-             event_title: event.title,
-             user_id: user?.id || null,
-             tier_label: tierLabel || "Free Ticket",
-             tier_price: 0,
-             attendee_name: attendeeName.trim(),
-             status: "confirmed",
-             ticket_id: ticketIdStr
-          }])
+          .insert([insertPayload])
           .select()
           .single();
 
-        if (dbError) throw dbError;
+        if (dbError) {
+          // Fallback if phone/payment_method columns are not present in supabase table schema yet
+          const { phone, payment_method, ...fallbackPayload } = insertPayload;
+          const { data: fbData, error: fbError } = await supabase
+            .from('jne_bookings')
+            .insert([fallbackPayload])
+            .select()
+            .single();
+          if (fbError) throw fbError;
+          booking = fbData;
+        } else {
+          booking = resData;
+        }
 
         saveLocalTicket({
           ticket_id: booking.ticket_id,
@@ -223,27 +240,47 @@ export default function TicketTiers({ event, compact = false, showMobileMoney = 
         return;
       }
 
-      const { data: booking, error: dbError } = await supabase
+      const generatedTicketId = (() => {
+        const clean = (phoneNumber || "").replace(/[^0-9]/g, "");
+        const isMockPhone = clean ? (clean.endsWith("0000") || clean.startsWith("600") || clean.startsWith("237600")) : false;
+        const baseId = `JNE${Math.floor(Date.now() / 1000)}${Math.floor(Math.random() * 9000 + 1000)}`;
+        return isMockPhone ? `${baseId}MOCK` : baseId;
+      })();
+
+      const insertPayload = {
+         event_id: event.id,
+         event_title: event.title,
+         user_id: user?.id || null,
+         tier_label: tierLabel,
+         tier_price: totalPrice,
+         attendee_name: attendeeName.trim(),
+         status: "pending",
+         ticket_id: generatedTicketId,
+         phone: phoneNumber.trim(),
+         payment_method: selectedGateway
+      };
+
+      let booking;
+      const { data: resData, error: dbError } = await supabase
         .from('jne_bookings')
-        .insert([{
-           event_id: event.id,
-           event_title: event.title,
-           user_id: user?.id || null,
-           tier_label: tierLabel,
-           tier_price: totalPrice,
-           attendee_name: attendeeName.trim(),
-           status: "pending",
-           ticket_id: (() => {
-              const clean = (phoneNumber || "").replace(/[^0-9]/g, "");
-              const isMockPhone = clean ? (clean.endsWith("0000") || clean.startsWith("600") || clean.startsWith("237600")) : false;
-              const baseId = `JNE${Math.floor(Date.now() / 1000)}${Math.floor(Math.random() * 9000 + 1000)}`;
-              return isMockPhone ? `${baseId}MOCK` : baseId;
-            })()
-        }])
+        .insert([insertPayload])
         .select()
         .single();
 
-      if (dbError) throw dbError;
+      if (dbError) {
+        // Fallback if phone/payment_method columns are not present in supabase table schema yet
+        const { phone, payment_method, ...fallbackPayload } = insertPayload;
+        const { data: fbData, error: fbError } = await supabase
+          .from('jne_bookings')
+          .insert([fallbackPayload])
+          .select()
+          .single();
+        if (fbError) throw fbError;
+        booking = fbData;
+      } else {
+        booking = resData;
+      }
+
       createdBookingId = booking.id;
       setFinalBooking(booking);
 

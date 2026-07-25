@@ -120,9 +120,11 @@ export default function BookingManager() {
 
   const downloadCSV = () => {
     const rows = [
-      ["Attendee Name", "Ticket ID", "Event", "Tier", "Price", "Currency", "Status", "Date"],
+      ["Attendee Name", "Phone Number", "Payment Method", "Ticket ID", "Event", "Tier", "Price", "Currency", "Status", "Date"],
       ...filtered.map(b => [
         b.attendee_name,
+        b.phone ?? "N/A",
+        b.payment_method ?? "Manual",
         b.ticket_id,
         b.event_title,
         b.tier_label,
@@ -267,9 +269,19 @@ export default function BookingManager() {
                 const cfg = STATUS_CONFIG[b.status] || STATUS_CONFIG.pending;
                 return (
                   <tr key={b.id} className="hover:bg-white/[0.02] transition-colors">
-                    <td className="py-3 pl-4 text-white font-medium">{b.attendee_name}</td>
+                    <td className="py-3 pl-4 text-white font-medium">
+                      <div>{b.attendee_name}</div>
+                      {b.phone && <div className="text-xs text-white/35 font-normal">{b.phone}</div>}
+                    </td>
                     <td className="py-3 text-white/50 hidden sm:table-cell">{b.event_title}</td>
-                    <td className="py-3 text-white/50 hidden md:table-cell">{b.tier_label}</td>
+                    <td className="py-3 text-white/50 hidden md:table-cell">
+                      <div>{b.tier_label}</div>
+                      {b.payment_method && (
+                        <div className="text-[10px] text-violet-400 font-bold uppercase tracking-wider mt-0.5">
+                          {b.payment_method}
+                        </div>
+                      )}
+                    </td>
                     <td className="py-3 text-white/30 font-mono text-xs hidden lg:table-cell">{b.ticket_id}</td>
                     <td className="py-3 text-white/40 hidden md:table-cell">
                       {b.created_date ? format(new Date(b.created_date), "MMM d, h:mm a") : "—"}

@@ -105,15 +105,17 @@ export default function Events() {
   const upcoming = filtered
     .filter(e =>
       (e.status === "upcoming" || e.status === "ongoing" || !e.status) &&
-      (e.date ? new Date(e.date) >= now : true)
+      (e.date ? new Date(e.date) >= now : true) &&
+      !e.is_recurring
     )
     .sort((a, b) => new Date(a.date) - new Date(b.date));
 
   const past = events
     .filter(e =>
-      e.status === "completed" ||
+      (e.status === "completed" ||
       e.status === "cancelled" ||
-      (e.date && new Date(e.date) < now)
+      (e.date && new Date(e.date) < now)) &&
+      !e.is_recurring
     )
     .sort((a, b) => new Date(b.date) - new Date(a.date));
 

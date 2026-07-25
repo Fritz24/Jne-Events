@@ -65,6 +65,11 @@ export default function EventTable({ events, onEdit, onDelete }) {
                         <div className="flex items-center gap-2">
                           <span className="font-medium text-white text-sm">{event.title}</span>
                           {event.featured && <Star className="w-3 h-3 text-amber-400 fill-amber-400" />}
+                          {event.is_recurring && (
+                            <Badge className="bg-violet-600/20 text-violet-300 border border-violet-500/30 text-[9px] font-bold py-0 px-1.5 leading-none h-4 uppercase shrink-0">
+                              Recurring
+                            </Badge>
+                          )}
                         </div>
                         {event.artist_or_movie && (
                           <span className="text-xs text-white/30">{event.artist_or_movie}</span>

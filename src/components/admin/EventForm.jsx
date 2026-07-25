@@ -54,6 +54,8 @@ function buildInitialForm(event) {
     artist_or_movie: event?.artist_or_movie || "",
     genre: event?.genre || "",
     image_url: event?.image_url || "",
+    is_recurring: event?.is_recurring || false,
+    recurrence_pattern: event?.recurrence_pattern || "weekly_sunday",
   };
 }
 
@@ -790,6 +792,35 @@ export default function EventForm({ event, onSave, onCancel }) {
       <div className="flex items-center gap-3">
         <Switch checked={form.featured} onCheckedChange={v => handleChange("featured", v)} />
         <Label className="text-white/70">Featured Event</Label>
+      </div>
+
+      <div className="flex flex-col gap-4 p-4 rounded-2xl bg-white/[0.02] border border-white/5">
+        <div className="flex items-center gap-3">
+          <Switch checked={form.is_recurring} onCheckedChange={v => handleChange("is_recurring", v)} />
+          <div>
+            <Label className="text-white/70">Recurring Event Template</Label>
+            <p className="text-[10px] text-white/35">Mark this event as a template that posts itself automatically on a set schedule.</p>
+          </div>
+        </div>
+
+        {form.is_recurring && (
+          <div className="space-y-2 animate-in fade-in slide-in-from-top-1 duration-200">
+            <Label className="text-white/50 text-xs">Recurrence Schedule</Label>
+            <Select value={form.recurrence_pattern} onValueChange={v => handleChange("recurrence_pattern", v)}>
+              <SelectTrigger className={inputClass}><SelectValue /></SelectTrigger>
+              <SelectContent className="bg-[#1a1a1a] border-white/10 text-white">
+                <SelectItem value="weekly_sunday">Every Sunday</SelectItem>
+                <SelectItem value="weekly_monday">Every Monday</SelectItem>
+                <SelectItem value="weekly_tuesday">Every Tuesday</SelectItem>
+                <SelectItem value="weekly_wednesday">Every Wednesday</SelectItem>
+                <SelectItem value="weekly_thursday">Every Thursday</SelectItem>
+                <SelectItem value="weekly_friday">Every Friday</SelectItem>
+                <SelectItem value="weekly_saturday">Every Saturday</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-[10px] text-violet-400/80">The system cron job checks this schedule daily and posts a concrete copy of this event template automatically.</p>
+          </div>
+        )}
       </div>
 
       <div className="flex justify-end gap-3 pt-4 border-t border-white/5">

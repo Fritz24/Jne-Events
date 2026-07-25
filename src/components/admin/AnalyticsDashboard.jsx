@@ -69,14 +69,29 @@ export default function AnalyticsDashboard() {
         const views = filteredData.analytics.filter(d => d.type === 'event_view').length;
         const clicks = filteredData.analytics.filter(d => d.type === 'whatsapp_click').length;
         const successfulBookings = filteredData.bookings.filter(b => b.status === 'confirmed' || b.status === 'checked_in');
-        const revenue = successfulBookings.reduce((sum, b) => sum + (Number(b.tier_price) || 0), 0);
+        
+        const grossRevenue = successfulBookings.reduce((sum, b) => sum + (Number(b.tier_price) || 0), 0);
+        
+        // Calculate PayUnit fees (2.8% on online transactions)
+        const onlineBookings = successfulBookings.filter(b => {
+            const priceVal = Number(b.tier_price) || 0;
+            if (priceVal === 0) return false; // Free ticket
+            if (b.payment_method) {
+                return b.payment_method !== 'FREE' && b.payment_method !== 'Manual';
+            }
+            return !b.ticket_id?.includes('-'); // fallback if column not present yet
+        });
+        const payunitFees = onlineBookings.reduce((sum, b) => sum + (Number(b.tier_price) || 0) * 0.028, 0);
+        const netRevenue = grossRevenue - payunitFees;
 
         return {
             views,
             clicks,
             bookingsCount: filteredData.bookings.length,
             confirmedCount: successfulBookings.length,
-            revenue,
+            grossRevenue,
+            payunitFees,
+            netRevenue,
             conversion: views > 0 ? ((successfulBookings.length / views) * 100).toFixed(1) : 0,
             clickRate: views > 0 ? ((clicks / views) * 100).toFixed(1) : 0
         };
@@ -157,36 +172,36 @@ export default function AnalyticsDashboard() {
             {/* Top Stats */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <StatCard
-                    label="Total Revenue"
-                    value={`${stats.revenue.toLocaleString()} XAF`}
-                    sub={`${stats.confirmedCount} Confirmed`}
+                    label="Net Revenue"
+                    value={`${stats.netRevenue.toLocaleString()} XAF`}
+                    sub={`Gross: ${stats.grossRevenue.toLocaleString()} XAF`}
                     icon={DollarSign}
                     color="text-emerald-400"
                     bg="bg-emerald-500/10"
                 />
                 <StatCard
-                    label="Total Views"
-                    value={stats.views}
-                    sub="Interest Volume"
-                    icon={Eye}
-                    color="text-violet-400"
-                    bg="bg-violet-500/10"
+                    label="PayUnit Fees (2.8%)"
+                    value={`${stats.payunitFees.toLocaleString()} XAF`}
+                    sub="Online transaction cut"
+                    icon={DollarSign}
+                    color="text-red-400"
+                    bg="bg-red-500/10"
                 />
                 <StatCard
                     label="Bookings"
                     value={stats.bookingsCount}
-                    sub={`${stats.conversion}% Conv. Rate`}
+                    sub={`${stats.confirmedCount} Confirmed`}
                     icon={Ticket}
                     color="text-fuchsia-400"
                     bg="bg-fuchsia-500/10"
                 />
                 <StatCard
-                    label="Click Rate"
-                    value={`${stats.clickRate}%`}
-                    sub="WhatsApp Intent"
-                    icon={MessageCircle}
-                    color="text-amber-400"
-                    bg="bg-amber-500/10"
+                    label="Total Views"
+                    value={stats.views}
+                    sub={`${stats.conversion}% Conv. Rate`}
+                    icon={Eye}
+                    color="text-violet-400"
+                    bg="bg-violet-500/10"
                 />
             </div>
 
@@ -282,6 +297,94 @@ export default function AnalyticsDashboard() {
                                     </td>
                                 </tr>
                             ))}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            {/* TRANSACTION LOG TABLE */}
+            <div className="bg-white/[0.03] border border-white/[0.08] rounded-3xl overflow-hidden mt-8">
+                <div className="p-6 border-b border-white/[0.08] flex justify-between items-center">
+                    <div>
+                        <h3 className="text-lg font-bold text-white">Platform Transaction Log</h3>
+                        <p className="text-xs text-white/30 mt-1">Detailed log of online payments and registration events (both successful and failed).</p>
+                    </div>
+                </div>
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left">
+                        <thead>
+                            <tr className="bg-white/[0.02] text-[10px] uppercase tracking-widest text-white/30 font-bold border-b border-white/[0.08]">
+                                <th className="px-6 py-4">Date</th>
+                                <th className="px-6 py-4">Attendee / Number</th>
+                                <th className="px-6 py-4">Event</th>
+                                <th className="px-6 py-4">Tier</th>
+                                <th className="px-6 py-4">Gateway</th>
+                                <th className="px-6 py-4 text-right">Gross (XAF)</th>
+                                <th className="px-6 py-4 text-right">Fee (2.8%)</th>
+                                <th className="px-6 py-4 text-right">Net (XAF)</th>
+                                <th className="px-6 py-4 text-center">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-white/[0.04] font-medium text-white/80">
+                            {filteredData.bookings.length === 0 ? (
+                                <tr>
+                                    <td colSpan={9} className="px-6 py-8 text-center text-sm text-white/30">No transactions recorded in this period.</td>
+                                </tr>
+                            ) : (
+                                filteredData.bookings.map(b => {
+                                    const isConfirmed = b.status === 'confirmed' || b.status === 'checked_in';
+                                    const isFailed = b.status === 'failed';
+                                    const isPending = b.status === 'pending';
+                                    const isCancelled = b.status === 'cancelled';
+                                    
+                                    // Fee is 2.8% on online paid tickets
+                                    const isOnlinePaid = Number(b.tier_price) > 0 && b.payment_method !== 'FREE' && b.payment_method !== 'Manual';
+                                    const fee = isOnlinePaid && isConfirmed ? Number(b.tier_price) * 0.028 : 0;
+                                    const net = isConfirmed ? Number(b.tier_price) - fee : 0;
+
+                                    let statusColor = "bg-yellow-500/10 text-yellow-400 border border-yellow-500/20";
+                                    if (isConfirmed) statusColor = "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
+                                    if (isFailed) statusColor = "bg-red-500/10 text-red-400 border border-red-500/20";
+                                    if (isCancelled) statusColor = "bg-zinc-500/10 text-zinc-400 border border-zinc-500/20";
+
+                                    return (
+                                        <tr key={b.id} className="hover:bg-white/[0.01] transition-colors text-sm">
+                                            <td className="px-6 py-4 text-xs text-white/40">
+                                                {b.created_date ? format(new Date(b.created_date), "yyyy-MM-dd HH:mm") : "—"}
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <div className="text-white font-bold">{b.attendee_name}</div>
+                                                {b.phone && <div className="text-xs text-white/35 font-normal">{b.phone}</div>}
+                                            </td>
+                                            <td className="px-6 py-4 text-xs text-white/60 uppercase truncate max-w-[150px]" title={b.event_title}>
+                                                {b.event_title}
+                                            </td>
+                                            <td className="px-6 py-4 text-xs text-white/60">
+                                                {b.tier_label}
+                                            </td>
+                                            <td className="px-6 py-4 text-xs">
+                                                <span className="font-bold text-violet-400 uppercase">
+                                                    {b.payment_method || (b.ticket_id?.includes('-') ? 'Manual' : 'Online')}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4 text-right font-mono font-bold text-white/80">
+                                                {Number(b.tier_price || 0).toLocaleString()}
+                                            </td>
+                                            <td className="px-6 py-4 text-right font-mono text-red-400/80 text-xs">
+                                                {fee > 0 ? `-${fee.toLocaleString(undefined, {maximumFractionDigits: 1})}` : "0"}
+                                            </td>
+                                            <td className="px-6 py-4 text-right font-mono font-bold text-emerald-400">
+                                                {net > 0 ? net.toLocaleString(undefined, {maximumFractionDigits: 1}) : "0"}
+                                            </td>
+                                            <td className="px-6 py-4 text-center">
+                                                <span className={`inline-block px-2.5 py-1 text-xs rounded-full font-bold uppercase tracking-wider ${statusColor}`}>
+                                                    {b.status}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    );
+                                })
+                            )}
                         </tbody>
                     </table>
                 </div>
