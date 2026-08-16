@@ -45,41 +45,131 @@ export default async function handler(req, res) {
     const spawnedEvents = [];
     const daysAhead = 14; // Pre-schedule events up to 2 weeks out
 
-    // Helper to calculate weekly occurrence dates
-    const getUpcomingOccurrences = (pattern, templateDateStr) => {
-      const daysOfWeek = {
-        sunday: 0, monday: 1, tuesday: 2, wednesday: 3, thursday: 4, friday: 5, saturday: 6
-      };
-      const match = pattern.toLowerCase().match(/^weekly_(\w+)$/);
-      if (!match) return [];
-      
-      const targetDay = daysOfWeek[match[1]];
-      if (targetDay === undefined) return [];
-      
+    // Helper to calculate occurrence dates based on smart interval or legacy recurrence fields
+    const getUpcomingOccurrences = (template) => {
       const occurrences = [];
       const now = new Date();
-      const templateDate = new Date(templateDateStr);
-      const targetHours = templateDate.getHours();
-      const targetMinutes = templateDate.getMinutes();
-      
-      for (let i = 0; i <= daysAhead; i++) {
-        const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i);
-        if (d.getDay() === targetDay) {
-          d.setHours(targetHours, targetMinutes, 0, 0);
-          occurrences.push(d);
+      const leadDays = Number(template.recurrence_lead_days || 14);
+      const lookaheadEnd = new Date(now.getTime() + leadDays * 24 * 60 * 60 * 1000);
+
+      // Base anchor date
+      if (!template.date) return [];
+      const baseDate = new Date(template.date);
+      if (isNaN(baseDate.getTime())) return [];
+
+      const targetHours = baseDate.getHours();
+      const targetMinutes = baseDate.getMinutes();
+
+      // Check if end criteria met
+      if (template.recurrence_end_type === "until_date" && template.recurrence_until) {
+        const untilDate = new Date(template.recurrence_until);
+        if (now > untilDate) return [];
+      }
+
+      const unit = template.recurrence_unit || (template.recurrence_freq === "monthly" ? "months" : "weeks");
+      const interval = Math.max(1, Number(template.recurrence_interval || (template.recurrence_freq === "biweekly" ? 2 : 1)));
+
+      // --- DAYS ---
+      if (unit === "days") {
+        let cur = new Date(baseDate);
+        while (cur <= lookaheadEnd) {
+          if (cur > baseDate && cur >= now && cur <= lookaheadEnd) {
+            occurrences.push(new Date(cur));
+          }
+          cur = new Date(cur.getTime() + interval * 24 * 60 * 60 * 1000);
         }
       }
+
+      // --- WEEKS ---
+      else if (unit === "weeks") {
+        let targetDays = [baseDate.getDay()];
+        if (template.recurrence_days) {
+          const raw = Array.isArray(template.recurrence_days)
+            ? template.recurrence_days
+            : String(template.recurrence_days).split(",");
+          const parsed = raw.map(s => Number(String(s).trim())).filter(n => !isNaN(n) && n >= 0 && n <= 6);
+          if (parsed.length > 0) targetDays = parsed;
+        } else if (template.recurrence_day !== undefined && template.recurrence_day !== null) {
+          targetDays = [Number(template.recurrence_day)];
+        } else if (template.recurrence_pattern?.startsWith("weekly_")) {
+          const dayNames = { sunday: 0, monday: 1, tuesday: 2, wednesday: 3, thursday: 4, friday: 5, saturday: 6 };
+          const match = template.recurrence_pattern.match(/^weekly_(\w+)$/);
+          if (match && dayNames[match[1]] !== undefined) targetDays = [dayNames[match[1]]];
+        }
+
+        let currentWeekSunday = new Date(baseDate);
+        currentWeekSunday.setDate(currentWeekSunday.getDate() - currentWeekSunday.getDay());
+
+        let weekOffset = 0;
+        const maxWeeks = Math.ceil(leadDays / 7) + 8;
+
+        while (weekOffset <= maxWeeks) {
+          for (const dayIdx of targetDays.slice().sort((a, b) => a - b)) {
+            const candidate = new Date(currentWeekSunday);
+            candidate.setDate(currentWeekSunday.getDate() + (weekOffset * 7) + dayIdx);
+            candidate.setHours(targetHours, targetMinutes, 0, 0);
+
+            if (candidate > baseDate && candidate >= now && candidate <= lookaheadEnd) {
+              if (!occurrences.some(o => o.getTime() === candidate.getTime())) {
+                occurrences.push(candidate);
+              }
+            }
+          }
+          weekOffset += interval;
+        }
+      }
+
+      // --- MONTHS ---
+      else if (unit === "months") {
+        const monthMode = template.recurrence_month_mode || (template.recurrence_month_type === "day" ? "same_weekday" : "same_date");
+        const maxMonths = Math.ceil(leadDays / 30) + 2;
+
+        for (let mOffset = interval; mOffset <= maxMonths; mOffset += interval) {
+          const targetYear = baseDate.getFullYear();
+          const targetMonth = baseDate.getMonth() + mOffset;
+
+          if (monthMode === "same_date") {
+            const targetDay = baseDate.getDate();
+            const d = new Date(targetYear, targetMonth, targetDay, targetHours, targetMinutes, 0, 0);
+            const expectedMonth = ((targetMonth % 12) + 12) % 12;
+            let finalDate = d;
+            if (d.getMonth() !== expectedMonth) {
+              finalDate = new Date(targetYear, targetMonth + 1, 0, targetHours, targetMinutes, 0, 0);
+            }
+            if (finalDate > baseDate && finalDate >= now && finalDate <= lookaheadEnd) {
+              occurrences.push(finalDate);
+            }
+          } else {
+            // same_weekday: e.g. 4th Thursday
+            const dayOfWeek = baseDate.getDay();
+            const nthWeek = Math.floor((baseDate.getDate() - 1) / 7) + 1;
+            let found = null;
+            let c = 0;
+            for (let day = 1; day <= 31; day++) {
+              const testD = new Date(targetYear, targetMonth, day, targetHours, targetMinutes, 0, 0);
+              if (testD.getMonth() !== (((targetMonth % 12) + 12) % 12)) break;
+              if (testD.getDay() === dayOfWeek) {
+                c++;
+                if (c === nthWeek) {
+                  found = testD;
+                  break;
+                }
+                found = testD;
+              }
+            }
+            if (found && found > baseDate && found >= now && found <= lookaheadEnd) {
+              occurrences.push(found);
+            }
+          }
+        }
+      }
+
       return occurrences;
     };
 
     // 4. Process each template
     for (const template of templates) {
-      if (!template.recurrence_pattern) continue;
-
-      const targetOccurrences = getUpcomingOccurrences(
-        template.recurrence_pattern,
-        template.date
-      );
+      const targetOccurrences = getUpcomingOccurrences(template);
 
       for (const occurrenceDate of targetOccurrences) {
         const dateStr = occurrenceDate.toISOString();

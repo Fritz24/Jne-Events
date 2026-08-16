@@ -328,10 +328,14 @@ export default function TicketTiers({ event, compact = false, showMobileMoney = 
     } catch (err) {
       console.error(err);
       if (createdBookingId) {
-        try {
+        const updatePayload = { 
+          status: 'failed',
+          failure_reason: err.message || "Payment initialization failed."
+        };
+        const { error: dbErr } = await supabase.from('jne_bookings').update(updatePayload).eq('id', createdBookingId);
+        if (dbErr) {
+          // Fallback if column does not exist
           await supabase.from('jne_bookings').update({ status: 'failed' }).eq('id', createdBookingId);
-        } catch (dbErr) {
-          console.error("Failed to update booking status to failed:", dbErr);
         }
       }
       let userFriendlyError = err.message || t.paymentError || "Payment initialization failed. Please try again.";
@@ -365,7 +369,14 @@ export default function TicketTiers({ event, compact = false, showMobileMoney = 
           logAnalyticsEvent("ticket_purchased", event.id, event.title);
         } else if (statusData.transaction_status === "FAILED" || statusData.transaction_status === "CANCELLED") {
           clearInterval(pollingIntervalRef.current);
-          await supabase.from('jne_bookings').update({ status: 'failed' }).eq('id', bookingId);
+          const updatePayload = {
+            status: 'failed',
+            failure_reason: statusData.message || "Transaction failed or was cancelled."
+          };
+          const { error: dbErr } = await supabase.from('jne_bookings').update(updatePayload).eq('id', bookingId);
+          if (dbErr) {
+            await supabase.from('jne_bookings').update({ status: 'failed' }).eq('id', bookingId);
+          }
           setPayError(t.transactionFailed || "Transaction failed or was cancelled.");
           setPayState("error");
           setCheckoutStep("billing");
@@ -376,6 +387,14 @@ export default function TicketTiers({ event, compact = false, showMobileMoney = 
 
       if (attempts >= 40) { // 2 mins max
          clearInterval(pollingIntervalRef.current);
+         const updatePayload = {
+           status: 'failed',
+           failure_reason: "Transaction timed out after 2 minutes."
+         };
+         const { error: dbErr } = await supabase.from('jne_bookings').update(updatePayload).eq('id', bookingId);
+         if (dbErr) {
+           await supabase.from('jne_bookings').update({ status: 'failed' }).eq('id', bookingId);
+         }
          setPayError(t.transactionTimeout || "Transaction timed out. Please try again.");
          setPayState("error");
          setCheckoutStep("billing");

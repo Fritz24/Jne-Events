@@ -7,7 +7,7 @@ import {
   Plus, CalendarDays, Ticket, ShieldOff, ShoppingBag, Users,
   LayoutDashboard, BarChart3, Globe, Megaphone, Settings,
   ChevronDown, Menu, Sparkles,
-  MessageCircle, ArrowUpRight, Settings2, ScanLine
+  MessageCircle, ArrowUpRight, Settings2, ScanLine, Wrench
 } from "lucide-react";
 import EventForm from "../components/admin/EventForm";
 import EventTable from "../components/admin/EventTable";
@@ -21,6 +21,7 @@ import SettingsPanel from "../components/admin/SettingsPanel";
 import SubscriberManager from "../components/admin/SubscriberManager";
 import ScannerManager from "../components/admin/ScannerManager";
 import AlbumManager from "../components/admin/AlbumManager";
+import RentalManager from "../components/admin/RentalManager";
 import { useAuth } from "@/lib/AuthContext";
 
 const SIDEBAR_SECTIONS = [
@@ -46,6 +47,9 @@ const SIDEBAR_SECTIONS = [
   },
   {
     id: "extras", label: "Extras", icon: ShoppingBag,
+  },
+  {
+    id: "rentals", label: "Rentals & Staff", icon: Wrench,
   },
   {
     id: "albums", label: "Albums", icon: Sparkles,
@@ -121,6 +125,24 @@ export default function Admin() {
         whatsappClicks: whatsappClicks || 0,
         totalUsers: totalUsersCount || uniqueUsers.size // Fallback to unique bookers if ecosystem count fails
       };
+    },
+  });
+
+  const { data: rentalRequests = [] } = useQuery({
+    queryKey: ["rental_requests"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("jne_settings")
+        .select("value")
+        .eq("key", "rental_requests")
+        .maybeSingle();
+      if (!data?.value) return [];
+      try {
+        const parsed = JSON.parse(data.value);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch (e) {
+        return [];
+      }
     },
   });
 
@@ -323,54 +345,155 @@ export default function Admin() {
               </div>
 
               {/* Stats Grid */}
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
                 <StatCard label="Total Events" value={events.length} icon={CalendarDays} color="violet" />
                 <StatCard label="WhatsApp Clicks" value={bookingStats.whatsappClicks} icon={MessageCircle} color="emerald" />
                 <StatCard label="Total Bookings" value={bookingStats.totalBookings} icon={Ticket} color="amber" />
+                <StatCard label="Rental Inquiries" value={rentalRequests.length} icon={Wrench} color="fuchsia" />
                 <StatCard label="Total Users" value={bookingStats.totalUsers} icon={Users} color="blue" />
               </div>
 
               {/* Quick Actions */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
                 <button
                   onClick={() => { setActiveSection("events_create"); setEditingEvent(null); setShowForm(true); }}
-                  className="group flex items-center gap-4 p-5 rounded-2xl bg-white/[0.03] border border-white/[0.06] hover:border-violet-500/20 hover:bg-violet-500/[0.03] transition-all"
+                  className="group flex items-center gap-3 p-4 rounded-2xl bg-white/[0.03] border border-white/[0.06] hover:border-violet-500/20 hover:bg-violet-500/[0.03] transition-all"
                 >
-                  <div className="w-11 h-11 rounded-xl bg-violet-500/10 flex items-center justify-center group-hover:bg-violet-500/20 transition-colors">
-                    <Plus className="w-5 h-5 text-violet-400" />
+                  <div className="w-10 h-10 rounded-xl bg-violet-500/10 flex items-center justify-center group-hover:bg-violet-500/20 transition-colors shrink-0">
+                    <Plus className="w-4 h-4 text-violet-400" />
                   </div>
                   <div className="text-left">
-                    <p className="text-sm font-semibold text-white">Create Event</p>
-                    <p className="text-[11px] text-white/30">New event listing</p>
+                    <p className="text-xs font-semibold text-white">Create Event</p>
+                    <p className="text-[10px] text-white/30">New listing</p>
                   </div>
-                  <ArrowUpRight className="w-4 h-4 text-white/10 ml-auto group-hover:text-violet-400 transition-colors" />
+                  <ArrowUpRight className="w-3.5 h-3.5 text-white/10 ml-auto group-hover:text-violet-400 transition-colors" />
+                </button>
+                <button
+                  onClick={() => setActiveSection("rentals")}
+                  className="group flex items-center gap-3 p-4 rounded-2xl bg-white/[0.03] border border-white/[0.06] hover:border-fuchsia-500/20 hover:bg-fuchsia-500/[0.03] transition-all"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-fuchsia-500/10 flex items-center justify-center group-hover:bg-fuchsia-500/20 transition-colors shrink-0">
+                    <Wrench className="w-4 h-4 text-fuchsia-400" />
+                  </div>
+                  <div className="text-left">
+                    <p className="text-xs font-semibold text-white">Rentals & Crew</p>
+                    <p className="text-[10px] text-white/30">{rentalRequests.length} inquiries</p>
+                  </div>
+                  <ArrowUpRight className="w-3.5 h-3.5 text-white/10 ml-auto group-hover:text-fuchsia-400 transition-colors" />
                 </button>
                 <button
                   onClick={() => setActiveSection("events_categories")}
-                  className="group flex items-center gap-4 p-5 rounded-2xl bg-white/[0.03] border border-white/[0.06] hover:border-fuchsia-500/20 hover:bg-fuchsia-500/[0.03] transition-all"
+                  className="group flex items-center gap-3 p-4 rounded-2xl bg-white/[0.03] border border-white/[0.06] hover:border-amber-500/20 hover:bg-amber-500/[0.03] transition-all"
                 >
-                  <div className="w-11 h-11 rounded-xl bg-fuchsia-500/10 flex items-center justify-center group-hover:bg-fuchsia-500/20 transition-colors">
-                    <Settings2 className="w-5 h-5 text-fuchsia-400" />
+                  <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center group-hover:bg-amber-500/20 transition-colors shrink-0">
+                    <Settings2 className="w-4 h-4 text-amber-400" />
                   </div>
                   <div className="text-left">
-                    <p className="text-sm font-semibold text-white">Categories</p>
-                    <p className="text-[11px] text-white/30">Design event types</p>
+                    <p className="text-xs font-semibold text-white">Categories</p>
+                    <p className="text-[10px] text-white/30">Design types</p>
                   </div>
-                  <ArrowUpRight className="w-4 h-4 text-white/10 ml-auto group-hover:text-fuchsia-400 transition-colors" />
+                  <ArrowUpRight className="w-3.5 h-3.5 text-white/10 ml-auto group-hover:text-amber-400 transition-colors" />
                 </button>
                 <button
                   onClick={() => setActiveSection("extras")}
-                  className="group flex items-center gap-4 p-5 rounded-2xl bg-white/[0.03] border border-white/[0.06] hover:border-emerald-500/20 hover:bg-emerald-500/[0.03] transition-all"
+                  className="group flex items-center gap-3 p-4 rounded-2xl bg-white/[0.03] border border-white/[0.06] hover:border-emerald-500/20 hover:bg-emerald-500/[0.03] transition-all"
                 >
-                  <div className="w-11 h-11 rounded-xl bg-emerald-500/10 flex items-center justify-center group-hover:bg-emerald-500/20 transition-colors">
-                    <ShoppingBag className="w-5 h-5 text-emerald-400" />
+                  <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center group-hover:bg-emerald-500/20 transition-colors shrink-0">
+                    <ShoppingBag className="w-4 h-4 text-emerald-400" />
                   </div>
                   <div className="text-left">
-                    <p className="text-sm font-semibold text-white">Extras</p>
-                    <p className="text-[11px] text-white/30">Inventory & menu</p>
+                    <p className="text-xs font-semibold text-white">Extras</p>
+                    <p className="text-[10px] text-white/30">Inventory menu</p>
                   </div>
-                  <ArrowUpRight className="w-4 h-4 text-white/10 ml-auto group-hover:text-emerald-400 transition-colors" />
+                  <ArrowUpRight className="w-3.5 h-3.5 text-white/10 ml-auto group-hover:text-emerald-400 transition-colors" />
                 </button>
+              </div>
+
+              {/* Rental Inquiries Section on Main Dashboard */}
+              <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] overflow-hidden">
+                <div className="px-6 py-4 border-b border-white/[0.06] flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Wrench className="w-4 h-4 text-fuchsia-400" />
+                    <h3 className="text-sm font-semibold text-white">Equipment Rental & Staff Inquiries</h3>
+                  </div>
+                  <button
+                    onClick={() => setActiveSection("rentals")}
+                    className="text-[11px] text-violet-400 hover:text-violet-300 font-medium flex items-center gap-1"
+                  >
+                    Manage All Rentals ({rentalRequests.length}) →
+                  </button>
+                </div>
+                <div className="p-4">
+                  {rentalRequests.length === 0 ? (
+                    <div className="p-8 text-center text-white/30 space-y-1.5">
+                      <p className="text-xs">No rental inquiries submitted yet.</p>
+                      <p className="text-[11px] text-white/20">Customer equipment rental and staff requests from the website will appear here.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2.5">
+                      {rentalRequests.slice(0, 4).map((req) => {
+                        const statusColors = {
+                          pending: "bg-amber-500/10 text-amber-300 border-amber-500/30",
+                          confirmed: "bg-blue-500/10 text-blue-300 border-blue-500/30",
+                          delivered: "bg-purple-500/10 text-purple-300 border-purple-500/30",
+                          completed: "bg-emerald-500/10 text-emerald-300 border-emerald-500/30",
+                          cancelled: "bg-red-500/10 text-red-300 border-red-500/30",
+                        };
+                        const cleanPhone = (req.phone || "").replace(/\D/g, "");
+                        const waLink = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(
+                          `Hi ${req.customer_name || ""}, regarding your equipment rental inquiry (#${req.id}) with JnE Events:`
+                        )}`;
+
+                        return (
+                          <div
+                            key={req.id}
+                            className="p-3.5 rounded-xl bg-white/[0.02] border border-white/5 hover:border-white/10 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
+                          >
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-2">
+                                <span className="font-semibold text-white text-sm">{req.customer_name}</span>
+                                <span className={`text-[9px] uppercase font-bold px-2 py-0.5 rounded-full border ${statusColors[req.status] || "bg-white/5 text-white/40"}`}>
+                                  {req.status}
+                                </span>
+                                <span className="text-[10px] text-white/30 font-mono">#{req.id}</span>
+                              </div>
+                              <div className="flex flex-wrap items-center gap-3 text-white/50 text-[11px]">
+                                <span>Phone: <strong className="text-white">{req.phone}</strong></span>
+                                <span>Event: <strong className="text-white">{req.event_date || "TBA"}</strong></span>
+                                <span>Venue: <strong className="text-white">{req.venue || "Douala/Yaoundé"}</strong></span>
+                                <span>Est. Total: <strong className="text-emerald-400 font-mono">{(req.total_price || 0).toLocaleString()} XAF</strong></span>
+                              </div>
+                              {req.staff_option && (
+                                <p className="text-[10px] text-fuchsia-300/70">
+                                  Staff: {req.staff_option.label}
+                                </p>
+                              )}
+                            </div>
+
+                            <div className="flex items-center gap-2 shrink-0">
+                              {req.phone && (
+                                <a
+                                  href={waLink}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="px-2.5 py-1.5 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/30 text-emerald-300 text-[11px] font-semibold transition-colors flex items-center gap-1.5"
+                                >
+                                  <MessageCircle className="w-3.5 h-3.5" /> WhatsApp
+                                </a>
+                              )}
+                              <button
+                                onClick={() => setActiveSection("rentals")}
+                                className="px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/70 hover:text-white text-[11px] font-medium transition-colors"
+                              >
+                                View Details
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Upcoming Events */}
@@ -526,6 +649,15 @@ export default function Admin() {
             </div>
           )}
 
+          {/* Rentals & Staff */}
+          {activeSection === "rentals" && (
+            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
+              <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-4 sm:p-6">
+                <RentalManager />
+              </div>
+            </div>
+          )}
+
           {/* Albums */}
           {activeSection === "albums" && (
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
@@ -575,16 +707,21 @@ export default function Admin() {
 
 function StatCard({ label, value, icon: Icon, color }) {
   const colorMap = {
-    violet: "bg-violet-500/10 text-violet-400 border-violet-500/10",
-    emerald: "bg-emerald-500/10 text-emerald-400 border-emerald-500/10",
-    amber: "bg-amber-500/10 text-amber-400 border-amber-500/10",
-    blue: "bg-blue-500/10 text-blue-400 border-blue-500/10",
+    violet: "bg-violet-500/15 text-violet-400 border-violet-500/20",
+    fuchsia: "bg-fuchsia-500/15 text-fuchsia-400 border-fuchsia-500/20",
+    purple: "bg-purple-500/15 text-purple-400 border-purple-500/20",
+    emerald: "bg-emerald-500/15 text-emerald-400 border-emerald-500/20",
+    amber: "bg-amber-500/15 text-amber-400 border-amber-500/20",
+    blue: "bg-blue-500/15 text-blue-400 border-blue-500/20",
+    pink: "bg-pink-500/15 text-pink-400 border-pink-500/20",
   };
+
+  const styleClass = colorMap[color] || colorMap.violet;
 
   return (
     <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-5 hover:border-white/10 transition-colors">
       <div className="flex items-center justify-between mb-3">
-        <div className={`w-9 h-9 rounded-xl flex items-center justify-center border ${colorMap[color]}`}>
+        <div className={`w-9 h-9 rounded-xl flex items-center justify-center border ${styleClass}`}>
           <Icon className="w-[18px] h-[18px]" />
         </div>
       </div>

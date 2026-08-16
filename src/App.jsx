@@ -24,6 +24,7 @@ import Terms from './pages/Terms';
 import EventCalendar from './pages/EventCalendar';
 import Albums from './pages/Albums';
 import Favorites from './pages/Favorites';
+import Rentals from './pages/Rentals';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -68,6 +69,8 @@ const AuthenticatedApp = () => {
         <Route path="/Calendar" element={<Navigate to="/calendar" replace />} />
         <Route path="/albums" element={<Albums />} />
         <Route path="/Albums" element={<Navigate to="/albums" replace />} />
+        <Route path="/rentals" element={<Rentals />} />
+        <Route path="/Rentals" element={<Navigate to="/rentals" replace />} />
 
         {/* Programmatic SEO Routes */}
         <Route path="/events/city/:value" element={<ProgrammaticPage type="city" />} />

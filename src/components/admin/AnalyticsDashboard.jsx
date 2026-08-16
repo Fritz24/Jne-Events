@@ -380,6 +380,11 @@ export default function AnalyticsDashboard() {
                                                 <span className={`inline-block px-2.5 py-1 text-xs rounded-full font-bold uppercase tracking-wider ${statusColor}`}>
                                                     {b.status}
                                                 </span>
+                                                {b.failure_reason && (
+                                                    <div className="text-[10px] text-red-400 mt-1 max-w-[120px] mx-auto leading-tight break-words font-normal" title={b.failure_reason}>
+                                                        {b.failure_reason}
+                                                    </div>
+                                                )}
                                             </td>
                                         </tr>
                                     );

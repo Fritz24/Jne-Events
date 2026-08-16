@@ -1,5 +1,5 @@
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
-import { Film, Music, Calendar, Menu, X, Heart, Ticket } from "lucide-react";
+import { Film, Music, Calendar, Menu, X, Heart, Ticket, Wrench } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
@@ -54,6 +54,7 @@ export default function Layout() {
     { to: "/events", label: t.events, icon: Film },
     { to: "/calendar", label: t.calendar, icon: Calendar },
     { to: "/albums", label: t.memoriesNav, icon: Film },
+    { to: "/rentals", label: t.rentals || "Rentals", icon: Wrench },
   ];
 
   return (

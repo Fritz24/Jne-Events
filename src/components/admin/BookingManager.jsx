@@ -30,7 +30,7 @@ export default function BookingManager() {
     try {
       const response = await fetch(`/api/payunit-status?transactionId=${booking.ticket_id}`);
       const data = await response.json();
-      if (response.ok && (data.status === "SUCCESS" || data.data?.transaction_status === "SUCCESS")) {
+      if (response.ok && data.data?.transaction_status === "SUCCESS") {
         const { error } = await supabase
           .from('jne_bookings')
           .update({ status: 'confirmed' })
@@ -39,7 +39,28 @@ export default function BookingManager() {
         qc.invalidateQueries({ queryKey: ["bookings"] });
         alert(`Payment verified successfully! Status updated to Confirmed for ${booking.attendee_name}.`);
       } else {
-        alert(`Payment verification failed: Status on PayUnit is ${data.data?.transaction_status || data.message || "FAILED"}.`);
+        const payunitStatus = data.data?.transaction_status || "FAILED";
+        // Update database to reflect terminal failure status if it is returned as FAILED or CANCELLED
+        if (payunitStatus === "FAILED" || payunitStatus === "CANCELLED") {
+          const reason = data.data?.message || data.message || "Payment status check returned failure.";
+          const { error: dbErr } = await supabase
+            .from('jne_bookings')
+            .update({ 
+              status: payunitStatus.toLowerCase(),
+              failure_reason: reason
+            })
+            .eq('id', booking.id);
+            
+          if (dbErr) {
+            // Fallback if column does not exist
+            await supabase
+              .from('jne_bookings')
+              .update({ status: payunitStatus.toLowerCase() })
+              .eq('id', booking.id);
+          }
+          qc.invalidateQueries({ queryKey: ["bookings"] });
+        }
+        alert(`Payment verification failed: Status on PayUnit is ${payunitStatus}. Reason: ${data.data?.message || data.message || "None specified"}`);
       }
     } catch (err) {
       console.error(err);
@@ -120,7 +141,7 @@ export default function BookingManager() {
 
   const downloadCSV = () => {
     const rows = [
-      ["Attendee Name", "Phone Number", "Payment Method", "Ticket ID", "Event", "Tier", "Price", "Currency", "Status", "Date"],
+      ["Attendee Name", "Phone Number", "Payment Method", "Ticket ID", "Event", "Tier", "Price", "Currency", "Status", "Failure Reason", "Date"],
       ...filtered.map(b => [
         b.attendee_name,
         b.phone ?? "N/A",
@@ -131,6 +152,7 @@ export default function BookingManager() {
         b.tier_price ?? "",
         b.currency ?? "XAF",
         b.status,
+        b.failure_reason ?? "",
         b.created_date ? format(new Date(b.created_date), "yyyy-MM-dd HH:mm") : "",
       ]),
     ];
@@ -288,6 +310,11 @@ export default function BookingManager() {
                     </td>
                     <td className="py-3">
                       <Badge className={`${cfg.color} text-xs`}>{cfg.label}</Badge>
+                      {b.failure_reason && (
+                        <div className="text-[10px] text-red-400 mt-1 max-w-[140px] leading-tight break-words font-normal" title={b.failure_reason}>
+                          {b.failure_reason}
+                        </div>
+                      )}
                     </td>
                     <td className="py-3 pr-4">
                       <div className="flex items-center justify-end gap-1">

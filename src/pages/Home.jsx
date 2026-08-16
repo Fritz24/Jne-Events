@@ -4,6 +4,7 @@ import HeroSection from "../components/home/HeroSection";
 import FeaturedEvents from "../components/home/FeaturedEvents";
 import UpcomingPreview from "../components/home/UpcomingPreview";
 import GallerySection from "../components/home/GallerySection";
+import RentalsPromoSection from "../components/home/RentalsPromoSection";
 import NewsletterSection from "../components/home/NewsletterSection";
 import SEO from "../components/common/SEO";
 
@@ -34,12 +35,13 @@ export default function Home() {
   return (
     <div>
       <SEO
-        description="Experience the best night outs with JNE Events. From premium movie nights to live music and exclusive gatherings, find your next unforgettable experience here."
-        keywords={["social events", "nightlife", "movie tickets", "live entertainment", "weekend plans", "cinema experience", "outdoor cinema", "community gatherings"]}
+        description="Experience the best night outs with JNE Events. From premium movie nights to live music, exclusive gatherings, and equipment rentals, find your next experience here."
+        keywords={["social events", "nightlife", "movie tickets", "equipment rental", "sound system rental", "projector rental", "event staff"]}
       />
       <HeroSection />
       <FeaturedEvents events={displayFeatured} isLoading={isLoading} />
       <UpcomingPreview events={nextUpEvents} />
+      <RentalsPromoSection />
       <GallerySection />
       <NewsletterSection />
     </div>

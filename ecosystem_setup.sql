@@ -47,12 +47,14 @@ CREATE TABLE IF NOT EXISTS public.jne_bookings (
   status text DEFAULT 'confirmed',
   phone text,
   payment_method text,
+  failure_reason text,
   created_date timestamp with time zone DEFAULT now()
 );
 
 -- Migration helpers for existing databases:
 ALTER TABLE public.jne_bookings ADD COLUMN IF NOT EXISTS phone text;
 ALTER TABLE public.jne_bookings ADD COLUMN IF NOT EXISTS payment_method text;
+ALTER TABLE public.jne_bookings ADD COLUMN IF NOT EXISTS failure_reason text;
 
 CREATE TABLE IF NOT EXISTS public.jne_shop_items (
   id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
