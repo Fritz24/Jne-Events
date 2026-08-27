@@ -1,8 +1,8 @@
 import { Film, Music, LayoutGrid, Search, MapPin, Tag } from "lucide-react";
-import { useLang } from "@/lib/LanguageContext";
+import { useLocalized } from "@/lib/LanguageContext";
 
 export default function EventFilters({ filters, onFilterChange, genres, cities }) {
-  const { t } = useLang();
+  const { t, translate } = useLocalized();
 
   const handleTypeChange = (val) => onFilterChange(prev => ({ ...prev, type: val }));
   const handleGenreChange = (val) => onFilterChange(prev => ({ ...prev, genre: val }));
@@ -55,7 +55,7 @@ export default function EventFilters({ filters, onFilterChange, genres, cities }
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-2 text-xs font-semibold text-white/30">
               <Tag className="w-3 h-3" />
-              {t.genreLabel}
+              {t.genreLabel || "Genre"}
             </div>
             <div className="relative">
               <select
@@ -65,7 +65,7 @@ export default function EventFilters({ filters, onFilterChange, genres, cities }
               >
                 {genres.map(g => (
                   <option key={g} value={g} className="bg-[#0a0a0f] text-white">
-                    {g === "all" ? t.allGenres || "All Genres" : g}
+                    {g === "all" ? (t.allGenres || "All Genres") : translate(g)}
                   </option>
                 ))}
               </select>
@@ -77,7 +77,7 @@ export default function EventFilters({ filters, onFilterChange, genres, cities }
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-2 text-xs font-semibold text-white/30">
               <MapPin className="w-3 h-3" />
-              {t.cityLabel}
+              {t.cityLabel || "City"}
             </div>
             <div className="relative">
               <select
@@ -87,7 +87,7 @@ export default function EventFilters({ filters, onFilterChange, genres, cities }
               >
                 {cities.map(city => (
                   <option key={city} value={city} className="bg-[#0a0a0f] text-white">
-                    {city === "all" ? t.allLocations : city}
+                    {city === "all" ? t.allLocations : translate(city)}
                   </option>
                 ))}
               </select>

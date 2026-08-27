@@ -10,7 +10,7 @@ export default function VerticalTicket({ booking, event, attendeeName, tierLabel
   const wrapperRef = useRef(null);
   const actionsRef = useRef(null);
   const [downloading, setDownloading] = useState(false);
-  const { t, lang } = useLocalized();
+  const { t, lang, getField, translate } = useLocalized();
 
   useEffect(() => {
     if (showActions) {
@@ -180,7 +180,7 @@ export default function VerticalTicket({ booking, event, attendeeName, tierLabel
 
             {/* Event Title */}
             <h2 className="text-white font-black text-[18px] leading-tight tracking-tight mb-3" style={{ textShadow: "0 2px 8px rgba(0,0,0,0.8)" }}>
-              {event ? event.title : "Special Event"}
+              {event ? getField(event, "title") : (booking?.event_title ? translate(booking.event_title) : "Special Event")}
             </h2>
 
             {/* Tier Badge */}
@@ -188,23 +188,23 @@ export default function VerticalTicket({ booking, event, attendeeName, tierLabel
               className="inline-flex items-center gap-1.5 px-3 py-1 mb-4 text-[10px] font-bold tracking-wider uppercase rounded-full"
               style={{ background: "rgba(212,175,55,0.12)", border: "1px solid rgba(212,175,55,0.3)", color: "#d4af37" }}
             >
-              {displayTier}
+              {translate(displayTier)}
             </div>
 
             {/* Info grid */}
             <div className="grid grid-cols-2 gap-x-3 gap-y-3 mb-3">
               <div>
-                <p className="text-[8px] font-bold tracking-widest uppercase mb-0.5" style={{ color: "rgba(212,175,55,0.5)" }}>Date</p>
+                <p className="text-[8px] font-bold tracking-widest uppercase mb-0.5" style={{ color: "rgba(212,175,55,0.5)" }}>{t.date || "Date"}</p>
                 <p className="text-white text-[11px] font-bold leading-tight">{dateStr}</p>
               </div>
               <div>
-                <p className="text-[8px] font-bold tracking-widest uppercase mb-0.5" style={{ color: "rgba(212,175,55,0.5)" }}>Time</p>
+                <p className="text-[8px] font-bold tracking-widest uppercase mb-0.5" style={{ color: "rgba(212,175,55,0.5)" }}>{t.time || "Time"}</p>
                 <p className="text-white text-[11px] font-bold">{timeStr}</p>
               </div>
               <div className="col-span-2">
-                <p className="text-[8px] font-bold tracking-widest uppercase mb-0.5" style={{ color: "rgba(212,175,55,0.5)" }}>Venue</p>
+                <p className="text-[8px] font-bold tracking-widest uppercase mb-0.5" style={{ color: "rgba(212,175,55,0.5)" }}>{t.location || "Venue"}</p>
                 <p className="text-white text-[11px] font-bold leading-tight">
-                  {event?.venue || "TBA"}{event?.city ? `, ${event.city}` : ""}
+                  {event ? getField(event, "venue") : translate(booking?.venue || "TBA")}{event?.city ? `, ${translate(event.city)}` : ""}
                 </p>
               </div>
             </div>
@@ -221,7 +221,7 @@ export default function VerticalTicket({ booking, event, attendeeName, tierLabel
                 {displayAttendee.charAt(0).toUpperCase()}
               </div>
               <div>
-                <p className="text-[8px] font-bold tracking-widest uppercase" style={{ color: "rgba(212,175,55,0.5)" }}>Attendee</p>
+                <p className="text-[8px] font-bold tracking-widest uppercase" style={{ color: "rgba(212,175,55,0.5)" }}>{t.attendee || "Attendee"}</p>
                 <p className="text-white text-[11px] font-bold mt-0.5">{displayAttendee}</p>
               </div>
             </div>

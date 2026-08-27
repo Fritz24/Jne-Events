@@ -14,7 +14,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 export default function EventDetails() {
   const { eventId } = useParams();
   const navigate = useNavigate();
-  const { t, lang, getField } = useLocalized();
+  const { t, lang, getField, translate } = useLocalized();
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
 
@@ -193,7 +193,7 @@ export default function EventDetails() {
                 
                 {event.artist_or_movie && (
                   <p className="text-lg font-medium text-white/60">
-                    {event.artist_or_movie}
+                    {translate(event.artist_or_movie)}
                   </p>
                 )}
               </div>
@@ -215,7 +215,7 @@ export default function EventDetails() {
                   <div>
                     <p className="text-xs font-semibold text-white/30 mb-0.5">{t.locationVenue || "Location & Venue"}</p>
                     <p className="text-[15px] font-semibold text-white">
-                      {event.venue ? `${event.venue}${event.city ? ` · ${event.city}` : ""}` : "TBA"}
+                      {event.venue ? `${getField(event, "venue")}${event.city ? ` · ${translate(event.city)}` : ""}` : "TBA"}
                     </p>
                   </div>
                 </div>

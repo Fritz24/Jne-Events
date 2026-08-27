@@ -7,8 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { supabase } from "@/lib/supabase";
-import { Save, X, Loader2, Plus, Trash2, Check, Star, Users, Calendar, Clock, Repeat, ArrowRight, Info, Sparkles, CheckCircle2 } from "lucide-react";
+import { Save, X, Loader2, Plus, Trash2, Check, Star, Users, Calendar, Clock, Repeat, ArrowRight, Info, Sparkles, CheckCircle2, Languages } from "lucide-react";
+import { translateAsync } from "@/lib/translator";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -163,6 +163,7 @@ function buildInitialForm(event) {
     title_fr: event?.title_fr || "",
     type: event?.type || "movie_night",
     description: event?.description || "",
+    description_fr: event?.description_fr || "",
     date: initialDate,
     venue: event?.venue || "",
     venue_fr: event?.venue_fr || "",
@@ -177,6 +178,7 @@ function buildInitialForm(event) {
     status: event?.status || "upcoming",
     artist_or_movie: event?.artist_or_movie || "",
     genre: event?.genre || "",
+    genre_fr: event?.genre_fr || "",
     image_url: event?.image_url || "",
     is_recurring: !!event?.is_recurring,
     recurrence_interval: defaultInterval,
@@ -246,6 +248,7 @@ export default function EventForm({ event, onSave, onCancel }) {
 
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [isTranslating, setIsTranslating] = useState(false);
   const [whatsappContacts, setWhatsappContacts] = useState([]); // Array of { number, label, isDefault }
   const [savedInclusions, setSavedInclusions] = useState([]); // Array of strings
   const [templates, setTemplates] = useState([]);
@@ -754,18 +757,65 @@ export default function EventForm({ event, onSave, onCancel }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 rounded-xl border border-violet-500/20 bg-violet-500/5 p-4">
-        <div className="space-y-2 sm:col-span-2">
-          <p className="text-xs font-semibold text-violet-300 uppercase tracking-wider">French translations (optional)</p>
-          <p className="text-xs text-white/40">Shown when visitors switch the site to FR. Leave blank to use the English title/venue.</p>
+      {/* French Translation Box with Auto-Translate Button */}
+      <div className="space-y-3 rounded-2xl border border-violet-500/20 bg-violet-500/5 p-4 sm:p-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-violet-500/10">
+          <div>
+            <p className="text-xs font-bold text-violet-300 uppercase tracking-wider flex items-center gap-1.5">
+              <Languages className="w-4 h-4 text-violet-400" />
+              French Translations (Automated)
+            </p>
+            <p className="text-xs text-white/40 mt-0.5">
+              Displayed when visitors switch language to FR. You can auto-generate or customize below.
+            </p>
+          </div>
+          <Button
+            type="button"
+            onClick={async () => {
+              setIsTranslating(true);
+              try {
+                const [tTitle, tVenue, tDesc] = await Promise.all([
+                  form.title ? translateAsync(form.title, "fr", "en") : "",
+                  form.venue ? translateAsync(form.venue, "fr", "en") : "",
+                  form.description ? translateAsync(form.description, "fr", "en") : "",
+                ]);
+                setForm(prev => ({
+                  ...prev,
+                  title_fr: tTitle || prev.title_fr,
+                  venue_fr: tVenue || prev.venue_fr,
+                  description_fr: tDesc || prev.description_fr,
+                }));
+              } catch (err) {
+                console.error("Auto translation error:", err);
+              } finally {
+                setIsTranslating(false);
+              }
+            }}
+            disabled={isTranslating || (!form.title && !form.description && !form.venue)}
+            className="bg-violet-600 hover:bg-violet-500 text-white font-semibold text-xs px-3.5 py-1.5 h-8 rounded-xl shrink-0 flex items-center gap-1.5 shadow-lg shadow-violet-950/40"
+          >
+            {isTranslating ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+            )}
+            {isTranslating ? "Translating..." : "Auto-Translate to French"}
+          </Button>
         </div>
-        <div className="space-y-2">
-          <Label className="text-white/70">Title (Français)</Label>
-          <Input className={inputClass} value={form.title_fr} onChange={e => handleChange("title_fr", e.target.value)} placeholder="e.g. Soirée cinéma sous les étoiles" />
-        </div>
-        <div className="space-y-2">
-          <Label className="text-white/70">Venue (Français)</Label>
-          <Input className={inputClass} value={form.venue_fr} onChange={e => handleChange("venue_fr", e.target.value)} placeholder="e.g. L'Hippodrome The Nest" />
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <Label className="text-white/70 text-xs">Titre (Français)</Label>
+            <Input className={inputClass} value={form.title_fr} onChange={e => handleChange("title_fr", e.target.value)} placeholder="e.g. Soirée cinéma sous les étoiles" />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-white/70 text-xs">Lieu / Salle (Français)</Label>
+            <Input className={inputClass} value={form.venue_fr} onChange={e => handleChange("venue_fr", e.target.value)} placeholder="e.g. L'Hippodrome The Nest" />
+          </div>
+          <div className="space-y-1.5 sm:col-span-2">
+            <Label className="text-white/70 text-xs">Description (Français)</Label>
+            <Textarea className={inputClass} rows={2} value={form.description_fr} onChange={e => handleChange("description_fr", e.target.value)} placeholder="Description en français..." />
+          </div>
         </div>
       </div>
 

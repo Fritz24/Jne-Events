@@ -13,7 +13,7 @@ import { getLocalTickets } from "@/lib/tickets";
 export default function Tickets() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { t, lang, getField } = useLocalized();
+  const { t, lang, getField, translate } = useLocalized();
   const [localTickets, setLocalTickets] = useState(() => getLocalTickets());
 
   useEffect(() => {
@@ -189,6 +189,7 @@ export default function Tickets() {
                       getField={getField}
                       lang={lang}
                       t={t}
+                      translate={translate}
                     />
                   ))}
                 </div>
@@ -227,6 +228,7 @@ export default function Tickets() {
                             getField={getField}
                             lang={lang}
                             t={t}
+                            translate={translate}
                           />
                         ))}
                       </div>
@@ -242,7 +244,7 @@ export default function Tickets() {
   );
 }
 
-function TicketRow({ ticket, navigate, getField, lang, t }) {
+function TicketRow({ ticket, navigate, getField, lang, t, translate }) {
   const event = ticket.event;
   const dateValue = event?.date || ticket.created_date || ticket.saved_at;
   const isCheckedIn = ticket.status === 'checked_in';
@@ -316,13 +318,13 @@ function TicketRow({ ticket, navigate, getField, lang, t }) {
                 </span>
               </div>
               <h2 className="text-xl sm:text-2xl font-black text-white leading-tight">
-                {event ? getField(event, 'title') : ticket.event_title}
+                {event ? getField(event, 'title') : (ticket.event_title ? translate(ticket.event_title) : "Event")}
               </h2>
               <div
                 className="inline-flex items-center gap-1.5 mt-2 px-2.5 py-1 text-[10px] font-bold tracking-wider uppercase rounded-full"
                 style={{ background: 'rgba(212,175,55,0.1)', border: '1px solid rgba(212,175,55,0.25)', color: '#d4af37' }}
               >
-                {ticket.tier_label || 'Standard'}
+                {translate(ticket.tier_label || 'Standard')}
               </div>
             </div>
 
@@ -338,7 +340,13 @@ function TicketRow({ ticket, navigate, getField, lang, t }) {
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
             <TicketMeta icon={Calendar} label="Date" value={dateValue ? formatLocalizedDate(dateValue, 'EEE, MMM d', lang) : 'TBA'} />
             <TicketMeta icon={Clock} label="Time" value={dateValue ? formatLocalizedDate(dateValue, 'HH:mm', lang) : 'TBA'} />
-            <TicketMeta icon={MapPin} label="Venue" value={event?.venue || 'TBA'} />
+            <div className="rounded-xl px-3 py-2.5" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(212,175,55,0.1)' }}>
+              <div className="flex items-center gap-1.5 mb-1" style={{ color: 'rgba(212,175,55,0.5)' }}>
+                <MapPin className="w-3 h-3" />
+                <span className="text-[8px] font-bold tracking-widest uppercase">{t.location || "Venue"}</span>
+              </div>
+              <p className="text-white text-xs font-bold leading-tight line-clamp-1">{event ? getField(event, 'venue') : (ticket.venue ? translate(ticket.venue) : 'TBA')}</p>
+            </div>
           </div>
 
           {/* Attendee + price + action row */}

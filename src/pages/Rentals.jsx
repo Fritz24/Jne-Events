@@ -12,10 +12,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { DEFAULT_RENTAL_ITEMS, RENTAL_CATEGORIES } from "@/components/admin/RentalManager";
-import { useLang } from "@/lib/LanguageContext";
+import { useLocalized } from "@/lib/LanguageContext";
 
 export default function Rentals() {
-  const { lang, t } = useLang();
+  const { lang, t, translate } = useLocalized();
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [cart, setCart] = useState({}); // { [itemId]: quantity }
   const [eventDate, setEventDate] = useState("");
@@ -290,7 +290,7 @@ export default function Rentals() {
                   : "bg-white/5 border-white/10 text-white/60 hover:bg-white/10 hover:text-white"
               }`}
             >
-              {cat.label}
+              {translate(cat.label)}
             </button>
           ))}
         </div>
@@ -341,17 +341,17 @@ export default function Rentals() {
                             </div>
                           )}
                           <span className="absolute top-2.5 left-2.5 text-[10px] uppercase font-bold px-2.5 py-1 rounded-md bg-black/70 backdrop-blur-md text-violet-300 border border-white/10">
-                            {item.category}
+                            {translate(item.category)}
                           </span>
                         </div>
 
                         {/* Info */}
                         <div className="p-4 space-y-2">
                           <div className="flex items-start justify-between gap-2">
-                            <h3 className="font-semibold text-white text-sm leading-snug">{item.name}</h3>
+                            <h3 className="font-semibold text-white text-sm leading-snug">{translate(item.name)}</h3>
                           </div>
                           <p className="text-xs text-white/50 line-clamp-2 leading-relaxed">
-                            {item.description}
+                            {translate(item.description)}
                           </p>
                         </div>
                       </div>
@@ -427,7 +427,7 @@ export default function Rentals() {
                         className="p-2.5 rounded-xl bg-white/[0.02] border border-white/5 flex items-center justify-between text-xs gap-2"
                       >
                         <div className="truncate flex-1">
-                          <span className="font-semibold text-white truncate block">{item.name}</span>
+                          <span className="font-semibold text-white truncate block">{translate(item.name)}</span>
                           <span className="text-[10px] text-white/40 font-mono">
                             {qty} x {item.price_per_day.toLocaleString()} XAF
                           </span>
@@ -494,12 +494,12 @@ export default function Rentals() {
                         }`}
                       >
                         <div className="flex items-center justify-between text-xs font-semibold">
-                          <span>{pkg.label}</span>
+                          <span>{translate(pkg.label)}</span>
                           <span className="font-mono text-emerald-400">
                             {pkg.price === 0 ? "Free" : `+${pkg.price.toLocaleString()} XAF`}
                           </span>
                         </div>
-                        <p className="text-[10px] text-white/40 mt-0.5">{pkg.description}</p>
+                        <p className="text-[10px] text-white/40 mt-0.5">{translate(pkg.description)}</p>
                       </button>
                     ))}
                   </div>

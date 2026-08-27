@@ -13,7 +13,7 @@ import { useAuth } from "@/lib/AuthContext";
 import { saveLocalTicket } from "@/lib/tickets";
 
 export default function TicketTiers({ event, compact = false, showMobileMoney = false }) {
-  const { t, lang } = useLocalized();
+  const { t, lang, translate } = useLocalized();
   const { user } = useAuth();
   const isAdmin = user?.role === "admin" || showMobileMoney;
   const eventTitle = getLocalizedEventField(event, "title", lang);
@@ -433,11 +433,12 @@ export default function TicketTiers({ event, compact = false, showMobileMoney = 
             if (tier.seat_included && inc === "Seat / Blanket") return;
             if (tier.snack_included && inc === "Popcorn / Snack") return;
             if (tier.drink_included && inc === "Drink") return;
-            included.push(`${inc} ✅`);
+            included.push(`${translate(inc)} ✅`);
           });
         }
 
-        let line = `• ${quantities[i]}x ${tier.label} @ ${(tier.price || 0).toLocaleString()} ${currency} = ${(quantities[i] * tier.price).toLocaleString()} ${currency}`;
+        const tierName = translate(tier.label);
+        let line = `• ${quantities[i]}x ${tierName} @ ${(tier.price || 0).toLocaleString()} ${currency} = ${(quantities[i] * tier.price).toLocaleString()} ${currency}`;
         if (included.length > 0) {
           line += `\n  (${t.whatsappIncludes} ${included.join(", ")})`;
         }
@@ -447,9 +448,10 @@ export default function TicketTiers({ event, compact = false, showMobileMoney = 
 
     const addonLines = tiers.flatMap((tier, i) => {
       if (!quantities[i]) return [];
+      const tierName = translate(tier.label);
       return dynamicAddons
         .filter(a => addonQty[`${i}_${a.id}`] > 0)
-        .map(a => `  ↳ ${addonQty[`${i}_${a.id}`]}x ${a.name} (${tier.label}) = ${(addonQty[`${i}_${a.id}`] * a.price).toLocaleString()} ${currency}`);
+        .map(a => `  ↳ ${addonQty[`${i}_${a.id}`]}x ${translate(a.name)} (${tierName}) = ${(addonQty[`${i}_${a.id}`] * a.price).toLocaleString()} ${currency}`);
     });
 
     const sections = [...ticketLines];
@@ -586,7 +588,7 @@ export default function TicketTiers({ event, compact = false, showMobileMoney = 
                         >
                           <div className="flex items-start justify-between gap-6">
                             <div className="space-y-1 flex-1">
-                              <h4 className="font-bold text-white text-base tracking-tight">{tier.label}</h4>
+                              <h4 className="font-bold text-white text-base tracking-tight">{translate(tier.label)}</h4>
                               <p className="text-sm font-semibold text-white/70">
                                 {Number(tier.price) === 0 ? (
                                   <span className="inline-block px-2.5 py-0.5 rounded text-[11px] font-black uppercase tracking-wider bg-emerald-500/15 border border-emerald-500/30 text-emerald-400">
@@ -597,7 +599,7 @@ export default function TicketTiers({ event, compact = false, showMobileMoney = 
                                 )}
                               </p>
                               {tier.description && (
-                                <p className="text-xs text-white/40 leading-relaxed pt-1">{tier.description}</p>
+                                <p className="text-xs text-white/40 leading-relaxed pt-1">{translate(tier.description)}</p>
                               )}
 
                               {/* Included Perks display */}
@@ -624,9 +626,18 @@ export default function TicketTiers({ event, compact = false, showMobileMoney = 
                                   {tier.drink_included && (
                                     <span className="inline-flex items-center gap-1 text-[10px] text-white/60 bg-white/5 px-2 py-0.5 rounded">
                                       <Coffee className="w-3 h-3 text-emerald-400" />
-                                      Drink
+                                      {t.drink || "Drink"}
                                     </span>
                                   )}
+                                  {Array.isArray(tier.inclusions) && tier.inclusions.map((inc, incIdx) => {
+                                    if (["Headphones", "Seat / Blanket", "Popcorn / Snack", "Drink"].includes(inc)) return null;
+                                    return (
+                                      <span key={incIdx} className="inline-flex items-center gap-1 text-[10px] text-white/60 bg-white/5 px-2 py-0.5 rounded border border-white/5">
+                                        <Check className="w-3 h-3 text-violet-400" />
+                                        {translate(inc)}
+                                      </span>
+                                    );
+                                  })}
                                 </div>
                               )}
                             </div>
@@ -665,7 +676,7 @@ export default function TicketTiers({ event, compact = false, showMobileMoney = 
                                          <Icon className="w-3.5 h-3.5" />
                                        </div>
                                        <div>
-                                         <p className="text-xs font-semibold text-white/80">{addon.name}</p>
+                                         <p className="text-xs font-semibold text-white/80">{translate(addon.name)}</p>
                                          <p className="text-[10px] text-white/40">{addon.price.toLocaleString()} {currency}</p>
                                        </div>
                                      </div>

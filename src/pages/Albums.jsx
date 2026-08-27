@@ -3,11 +3,11 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { formatLocalizedDate } from "@/lib/localize";
 import { X, Image as ImageIcon, ChevronLeft, Download } from "lucide-react";
-import { useLang } from "@/lib/LanguageContext";
+import { useLocalized } from "@/lib/LanguageContext";
 import SEO from "../components/common/SEO";
 
 export default function Albums() {
-  const { t, lang } = useLang();
+  const { t, lang, translate } = useLocalized();
   const [selectedAlbum, setSelectedAlbum] = useState(null);
   const [fullscreenImage, setFullscreenImage] = useState(null);
 
@@ -74,8 +74,12 @@ export default function Albums() {
   }
 
   return (
-    <div className="min-h-screen pt-32 pb-20 px-6 sm:px-12 max-w-7xl mx-auto selection:bg-white/20">
-      <SEO title={t.memories} description={t.albumsSubtitle} url="/albums" />
+    <div className="min-h-screen pt-24 pb-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+      <SEO 
+        title="Event Memories & Albums | JNE Events"
+        description="Relive the unforgettable moments from our past movie nights, concerts, and exclusive gatherings."
+        keywords={["memories", "event photos", "past events", "gallery", "nightouts"]}
+      />
       
       {/* Header */}
       {!selectedAlbum && (
@@ -102,7 +106,7 @@ export default function Albums() {
                 {album.coverImage ? (
                   <img 
                     src={album.coverImage} 
-                    alt={album.title} 
+                    alt={translate(album.title)} 
                     className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                   />
                 ) : (
@@ -114,7 +118,7 @@ export default function Albums() {
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-60 group-hover:opacity-80 transition-opacity"></div>
               </div>
               <div className="px-2">
-                <h3 className="text-xl font-bold text-white tracking-tight">{album.title}</h3>
+                <h3 className="text-xl font-bold text-white tracking-tight">{translate(album.title)}</h3>
                 <p className="text-sm text-white/40 mt-1 font-medium">
                   {album.date ? formatLocalizedDate(album.date, "d MMMM yyyy", lang) : t.unknownDate} • {album.images?.length || 0} {t.photos}
                 </p>
@@ -142,11 +146,18 @@ export default function Albums() {
             </button>
           </div>
 
-          <div className="mb-12 max-w-3xl">
-            <h2 className="text-4xl sm:text-5xl font-bold tracking-tight text-white mb-4">{selectedAlbum.title}</h2>
-            <p className="text-lg text-white/40 font-medium">
-              {selectedAlbum.date ? formatLocalizedDate(selectedAlbum.date, "d MMMM yyyy", lang) : ""}
+          <div className="mb-12">
+            <h2 className="text-3xl sm:text-5xl font-bold text-white tracking-tight mb-2">
+              {translate(selectedAlbum.title)}
+            </h2>
+            <p className="text-white/40 text-sm font-medium">
+              {selectedAlbum.date ? formatLocalizedDate(selectedAlbum.date, "EEEE d MMMM yyyy", lang) : t.unknownDate} • {selectedAlbum.images?.length || 0} {t.photos}
             </p>
+            {selectedAlbum.description && (
+              <p className="text-white/60 text-sm mt-3 max-w-2xl leading-relaxed">
+                {translate(selectedAlbum.description)}
+              </p>
+            )}
           </div>
 
           {/* Masonry-like Grid for Images */}

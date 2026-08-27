@@ -1,4 +1,6 @@
 import { createContext, useContext, useState, useEffect } from "react";
+import { getLocalizedEventField, translateUserText } from "./localize";
+import { useAutoTranslate, translateAsync } from "./translator";
 
 const LanguageContext = createContext();
 
@@ -512,21 +514,15 @@ export function useLang() {
   return useContext(LanguageContext);
 }
 
-/** Shorthand: current lang + helpers for dates and event DB fields. */
 export function useLocalized() {
   const { lang, t, toggleLang } = useLang();
   return {
     lang,
     t,
     toggleLang,
-    getField: (event, field) => {
-      if (!event) return "";
-      if (lang === "fr") {
-        const frField = event[`${field}_fr`];
-        if (frField) return frField;
-        if (event.translations?.fr?.[field]) return event.translations.fr[field];
-      }
-      return event[field] ?? "";
-    },
+    getField: (event, field) => getLocalizedEventField(event, field, lang),
+    translate: (text) => translateUserText(text, lang),
+    translateAsync: (text) => translateAsync(text, lang),
+    useAutoTranslate: (text) => useAutoTranslate(text, lang),
   };
 }
