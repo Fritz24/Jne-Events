@@ -249,6 +249,7 @@ export default function EventForm({ event, onSave, onCancel }) {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
+  const [formError, setFormError] = useState("");
   const [whatsappContacts, setWhatsappContacts] = useState([]); // Array of { number, label, isDefault }
   const [savedInclusions, setSavedInclusions] = useState([]); // Array of strings
   const [templates, setTemplates] = useState([]);
@@ -588,66 +589,74 @@ export default function EventForm({ event, onSave, onCancel }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
+    setFormError("");
 
-    const intervalNum = Math.max(1, Number(form.recurrence_interval || 1));
-    const rawDays = Array.isArray(form.recurrence_days)
-      ? form.recurrence_days
-      : typeof form.recurrence_days === "string"
-      ? form.recurrence_days.split(",")
-      : [];
-    const daysStr = rawDays.join(",");
-    const primaryDay = rawDays.length > 0 ? Number(rawDays[0]) : 0;
+    try {
+      const intervalNum = Math.max(1, Number(form.recurrence_interval || 1));
+      const rawDays = Array.isArray(form.recurrence_days)
+        ? form.recurrence_days
+        : typeof form.recurrence_days === "string"
+        ? form.recurrence_days.split(",")
+        : [];
+      const primaryDay = rawDays.length > 0 ? Number(rawDays[0]) : 0;
 
-    const daysOfWeekNames = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
-    let legacyPattern = `weekly_${daysOfWeekNames[primaryDay] || "sunday"}`;
-    if (form.recurrence_unit === "weeks" && intervalNum === 2) {
-      legacyPattern = `biweekly_${daysOfWeekNames[primaryDay] || "sunday"}`;
-    } else if (form.recurrence_unit === "months") {
-      legacyPattern = `monthly_${form.recurrence_month_mode || "same_date"}`;
+      const daysOfWeekNames = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+      let legacyPattern = `weekly_${daysOfWeekNames[primaryDay] || "sunday"}`;
+      if (form.recurrence_unit === "weeks" && intervalNum === 2) {
+        legacyPattern = `biweekly_${daysOfWeekNames[primaryDay] || "sunday"}`;
+      } else if (form.recurrence_unit === "months") {
+        legacyPattern = `monthly_${form.recurrence_month_mode || "same_date"}`;
+      }
+
+      // Explicitly construct the exact payload recognized by Supabase jne_events table
+      const data = {
+        title: form.title || "",
+        title_fr: form.title_fr || null,
+        type: form.type || "movie_night",
+        description: form.description || "",
+        date: form.date ? new Date(form.date).toISOString() : null,
+        venue: form.venue || "",
+        venue_fr: form.venue_fr || null,
+        city: form.city || null,
+        venue_description: form.venue_description || null,
+        price: form.price !== "" && form.price !== null ? Number(form.price) : 0,
+        currency: form.currency || "XAF",
+        whatsapp_number: form.whatsapp_number || null,
+        whatsapp_message: form.whatsapp_message || null,
+        featured: !!form.featured,
+        capacity: form.capacity ? Number(form.capacity) : null,
+        status: form.status || "upcoming",
+        artist_or_movie: form.artist_or_movie || null,
+        genre: form.genre || null,
+        image_url: form.image_url || null,
+        is_recurring: !!form.is_recurring,
+        recurrence_pattern: form.is_recurring ? legacyPattern : null,
+        ticket_tiers: tiers
+          .filter(t => t.label && t.price !== "" && t.price !== null && t.price !== undefined)
+          .map(t => ({ ...t, price: Number(t.price) })),
+      };
+
+      if (isEdit) {
+        const { error } = await supabase
+          .from('jne_events')
+          .update(data)
+          .eq('id', event.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('jne_events')
+          .insert([data]);
+        if (error) throw error;
+      }
+
+      clearDraft();
+      onSave();
+    } catch (err) {
+      console.error("Failed to save event:", err);
+      setFormError(err.message || "Failed to save event. Please check required fields.");
+    } finally {
+      setSaving(false);
     }
-
-    const eventDateObj = form.date ? new Date(form.date) : null;
-    const timeFormatted = eventDateObj && !isNaN(eventDateObj) ? format(eventDateObj, "HH:mm") : "18:30";
-
-    const data = {
-      ...form,
-      price: form.price !== "" && form.price !== null ? Number(form.price) : 0,
-      capacity: form.capacity ? Number(form.capacity) : undefined,
-      date: form.date ? new Date(form.date).toISOString() : undefined,
-      is_recurring: !!form.is_recurring,
-      recurrence_interval: form.is_recurring ? intervalNum : null,
-      recurrence_unit: form.is_recurring ? (form.recurrence_unit || "weeks") : null,
-      recurrence_days: form.is_recurring ? daysStr : null,
-      recurrence_month_mode: form.is_recurring ? (form.recurrence_month_mode || "same_date") : null,
-      recurrence_lead_days: form.is_recurring ? Number(form.recurrence_lead_days || 14) : null,
-      recurrence_end_type: form.is_recurring ? (form.recurrence_end_type || "never") : null,
-      recurrence_count: form.is_recurring && form.recurrence_end_type === "count" ? Number(form.recurrence_count || 10) : null,
-      recurrence_until: form.is_recurring && form.recurrence_end_type === "until_date" && form.recurrence_until ? new Date(form.recurrence_until).toISOString() : null,
-      // Legacy compatibility fields
-      recurrence_freq: form.is_recurring ? (form.recurrence_unit === "months" ? "monthly" : intervalNum === 2 ? "biweekly" : "weekly") : null,
-      recurrence_day: form.is_recurring ? primaryDay : null,
-      recurrence_time: form.is_recurring ? timeFormatted : null,
-      recurrence_pattern: form.is_recurring ? legacyPattern : null,
-      ticket_tiers: tiers
-        .filter(t => t.label && t.price !== "" && t.price !== null && t.price !== undefined)
-        .map(t => ({ ...t, price: Number(t.price) })),
-    };
-
-    if (isEdit) {
-      const { error } = await supabase
-        .from('jne_events')
-        .update(data)
-        .eq('id', event.id);
-      if (error) throw error;
-    } else {
-      const { error } = await supabase
-        .from('jne_events')
-        .insert([data]);
-      if (error) throw error;
-    }
-    clearDraft();
-    setSaving(false);
-    onSave();
   };
 
   const handleCancel = () => {
@@ -1525,6 +1534,15 @@ export default function EventForm({ event, onSave, onCancel }) {
           );
         })()}
       </div>
+
+      {formError && (
+        <div className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-300 text-xs flex items-center justify-between">
+          <span>{formError}</span>
+          <button type="button" onClick={() => setFormError("")} className="p-1 hover:bg-red-500/20 rounded">
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
 
       <div className="flex justify-end gap-3 pt-4 border-t border-white/5">
         <Button type="button" variant="ghost" onClick={handleCancel} className="text-white/60 hover:text-white hover:bg-white/5">
