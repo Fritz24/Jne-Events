@@ -156,7 +156,10 @@ export default function TicketTiers({ event, compact = false, showMobileMoney = 
   const addonPrice = tiers.reduce((s, _, i) =>
     s + dynamicAddons.reduce((as, a) => as + (addonQty[`${i}_${a.id}`] || 0) * a.price, 0), 0);
 
-  const totalPrice = ticketPrice + addonPrice;
+  const subtotal = ticketPrice + addonPrice;
+  // 2.8% transaction fee on ticket purchases (industry-standard processing fee, displaying amount only)
+  const serviceFee = subtotal > 0 ? Math.round(subtotal * 0.028) : 0;
+  const totalPrice = subtotal + serviceFee;
 
   // Process Payment via Payunit
   const handlePayment = async () => {
@@ -458,6 +461,9 @@ export default function TicketTiers({ event, compact = false, showMobileMoney = 
     if (addonLines.length) {
       sections.push("", t.whatsappExtras, ...addonLines);
     }
+    if (serviceFee > 0) {
+      sections.push(`• ${t.serviceFee || "Processing Fee"}: ${serviceFee.toLocaleString()} ${currency}`);
+    }
 
     const timeStr = event?.date ? formatLocalizedDate(event.date, "HH:mm", lang) : "";
     let introMessage = t.whatsappBookingIntro.replace("{title}", eventTitle || "JNE Nightout") + (dateStr ? ` on ${formatLocalizedDate(event.date, "EEE, MMM d", lang)} at ${timeStr}` : "") + ":";
@@ -740,6 +746,24 @@ export default function TicketTiers({ event, compact = false, showMobileMoney = 
                        {/* Payment Provider Options (Paid Tickets only) */}
                        {totalPrice > 0 && (
                          <>
+                           {/* Order Fee Summary */}
+                           <div className="rounded-2xl bg-white/[0.02] border border-white/[0.06] p-4 space-y-2">
+                             <div className="flex justify-between items-center text-xs text-white/50">
+                               <span>{t.subtotal || "Subtotal"}</span>
+                               <span className="font-mono text-white/80">{subtotal.toLocaleString()} {currency}</span>
+                             </div>
+                             {serviceFee > 0 && (
+                               <div className="flex justify-between items-center text-xs text-white/50">
+                                 <span>{t.serviceFee || "Processing Fee"}</span>
+                                 <span className="font-mono text-white/80">{serviceFee.toLocaleString()} {currency}</span>
+                               </div>
+                             )}
+                             <div className="flex justify-between items-center pt-2 border-t border-white/[0.04] text-sm font-bold text-white">
+                               <span>Total</span>
+                               <span className="text-amber-400 font-extrabold">{totalPrice.toLocaleString()} {currency}</span>
+                             </div>
+                           </div>
+
                            <div className="flex flex-col">
                              <label className="text-xs font-semibold text-white/50 mb-2">Payment Method</label>
                              <div className="grid grid-cols-3 gap-2">
@@ -998,10 +1022,24 @@ export default function TicketTiers({ event, compact = false, showMobileMoney = 
                             })}
                           </div>
 
-                          {/* Total row */}
-                          <div className="border-t border-white/[0.06] pt-4 flex justify-between items-center">
-                            <span className="text-sm font-bold text-white/70">Total</span>
-                            <span className="text-xl font-extrabold text-white">{totalPrice.toLocaleString()} {currency}</span>
+                          {/* Total row with Fee Breakdown */}
+                          <div className="border-t border-white/[0.06] pt-4 space-y-2">
+                            {serviceFee > 0 && (
+                              <>
+                                <div className="flex justify-between items-center text-xs text-white/50">
+                                  <span>{t.subtotal || "Subtotal"}</span>
+                                  <span className="font-mono">{subtotal.toLocaleString()} {currency}</span>
+                                </div>
+                                <div className="flex justify-between items-center text-xs text-white/50">
+                                  <span>{t.serviceFee || "Processing Fee"}</span>
+                                  <span className="font-mono">{serviceFee.toLocaleString()} {currency}</span>
+                                </div>
+                              </>
+                            )}
+                            <div className="flex justify-between items-center pt-2 border-t border-white/[0.04]">
+                              <span className="text-sm font-bold text-white/70">Total</span>
+                              <span className="text-xl font-extrabold text-white">{totalPrice.toLocaleString()} {currency}</span>
+                            </div>
                           </div>
                         </div>
                       )}

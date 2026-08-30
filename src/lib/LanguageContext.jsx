@@ -243,6 +243,8 @@ export const translations = {
     failedSignUp: "Failed to create account. Please try again.",
     noFavoritesYet: "No Favorites Yet",
     favoritesSubtitle: "Tap the heart icon to save your faves so you don't forget later",
+    serviceFee: "Processing Fee",
+    subtotal: "Subtotal",
   },
   fr: {
     // Nav
@@ -482,6 +484,8 @@ export const translations = {
     failedSignUp: "Échec de la création du compte. Veuillez réessayer.",
     noFavoritesYet: "Aucun favori pour l'instant",
     favoritesSubtitle: "Appuyez sur l'icône de cœur pour enregistrer vos favoris afin de ne pas les oublier plus tard",
+    serviceFee: "Frais de traitement",
+    subtotal: "Sous-total",
   },
 };
 
