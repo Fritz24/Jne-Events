@@ -258,15 +258,43 @@ export default function EventForm({ event, onSave, onCancel }) {
   const { data: categories = [] } = useQuery({
     queryKey: ["event_categories"],
     queryFn: async () => {
-      const { data } = await supabase
-        .from('jne_settings')
-        .select('value')
-        .eq('key', 'event_categories')
-        .maybeSingle();
-      return data?.value ? JSON.parse(data.value) : [
+      const defaults = [
         { id: "movie_night", label: "Movie Night" },
         { id: "music", label: "Music Event" }
       ];
+
+      try {
+        const { data } = await supabase
+          .from('jne_settings')
+          .select('value')
+          .eq('key', 'event_categories')
+          .maybeSingle();
+
+        if (data?.value) {
+          const parsed = JSON.parse(data.value);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            const list = parsed.map(c => {
+              if (typeof c === 'string') return { id: c.trim(), label: c.trim() };
+              const id = (c.id || c.label || "").trim();
+              const label = (c.label || c.id || "").trim();
+              return { id, label };
+            }).filter(c => c.id && c.label);
+
+            // Merge defaults and custom categories
+            const merged = [...defaults];
+            list.forEach(item => {
+              const exists = merged.some(m => m.id.toLowerCase().replace(/[^a-z0-9]/g, '') === item.id.toLowerCase().replace(/[^a-z0-9]/g, ''));
+              if (!exists) {
+                merged.push(item);
+              }
+            });
+            return merged;
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load categories:", err);
+      }
+      return defaults;
     }
   });
 
@@ -755,11 +783,22 @@ export default function EventForm({ event, onSave, onCancel }) {
         </div>
         <div className="space-y-2">
           <Label className="text-white/70">Type *</Label>
-          <Select value={form.type} onValueChange={v => handleChange("type", v)}>
-            <SelectTrigger className={inputClass}><SelectValue /></SelectTrigger>
-            <SelectContent>
+          <Select 
+            value={form.type || "movie_night"} 
+            onValueChange={v => handleChange("type", v)}
+          >
+            <SelectTrigger className={`${inputClass} flex items-center justify-between cursor-pointer`}>
+              <SelectValue placeholder="Select event type..." />
+            </SelectTrigger>
+            <SelectContent className="bg-[#14141c] border border-white/10 text-white shadow-2xl z-[150] rounded-xl">
               {categories.map(cat => (
-                <SelectItem key={cat.id} value={cat.id}>{cat.label}</SelectItem>
+                <SelectItem 
+                  key={cat.id} 
+                  value={cat.id}
+                  className="cursor-pointer hover:bg-violet-600 focus:bg-violet-600 focus:text-white rounded-lg text-sm text-white/90 py-2 px-3 transition-colors"
+                >
+                  {cat.label}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -874,13 +913,15 @@ export default function EventForm({ event, onSave, onCancel }) {
           <div className="space-y-2">
             <Label className="text-white/70">Status</Label>
             <Select value={form.status} onValueChange={v => handleChange("status", v)}>
-              <SelectTrigger className={inputClass}><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="upcoming">Upcoming</SelectItem>
-                <SelectItem value="ongoing">Ongoing</SelectItem>
-                <SelectItem value="sold_out">Sold Out</SelectItem>
-                <SelectItem value="cancelled">Cancelled</SelectItem>
-                <SelectItem value="completed">Completed</SelectItem>
+              <SelectTrigger className={`${inputClass} flex items-center justify-between cursor-pointer`}>
+                <SelectValue placeholder="Select status..." />
+              </SelectTrigger>
+              <SelectContent className="bg-[#14141c] border border-white/10 text-white shadow-2xl z-[150] rounded-xl">
+                <SelectItem value="upcoming" className="cursor-pointer hover:bg-violet-600 focus:bg-violet-600 focus:text-white rounded-lg py-2 px-3">Upcoming</SelectItem>
+                <SelectItem value="ongoing" className="cursor-pointer hover:bg-violet-600 focus:bg-violet-600 focus:text-white rounded-lg py-2 px-3">Ongoing</SelectItem>
+                <SelectItem value="sold_out" className="cursor-pointer hover:bg-violet-600 focus:bg-violet-600 focus:text-white rounded-lg py-2 px-3">Sold Out</SelectItem>
+                <SelectItem value="cancelled" className="cursor-pointer hover:bg-violet-600 focus:bg-violet-600 focus:text-white rounded-lg py-2 px-3">Cancelled</SelectItem>
+                <SelectItem value="completed" className="cursor-pointer hover:bg-violet-600 focus:bg-violet-600 focus:text-white rounded-lg py-2 px-3">Completed</SelectItem>
               </SelectContent>
             </Select>
           </div>
