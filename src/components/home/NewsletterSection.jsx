@@ -5,6 +5,20 @@ import { useLang } from "@/lib/LanguageContext";
 import { useAuth } from "@/lib/AuthContext";
 import { supabase } from "@/lib/supabase";
 
+function WhatsAppIcon({ className = "w-6 h-6" }) {
+    return (
+        <svg viewBox="0 0 48 48" className={className} fill="none">
+            <circle cx="24" cy="24" r="24" fill="#25D366" />
+            <path
+                fill="white"
+                fillRule="evenodd"
+                clipRule="evenodd"
+                d="M24 10C16.268 10 10 16.268 10 24C10 26.78 10.814 29.37 12.223 31.547L10.8 37.2L16.634 35.808C18.736 37.108 21.28 37.867 24 37.867C31.732 37.867 38 31.599 38 23.867C38 16.135 31.732 10 24 10ZM24 12.4C30.407 12.4 35.6 17.593 35.6 24C35.6 30.407 30.407 35.6 24 35.6C21.69 35.6 19.537 34.927 17.727 33.766L17.295 33.489L13.433 34.409L14.372 30.648L14.07 30.203C12.83 28.375 12.133 26.236 12.133 24C12.133 17.593 17.326 12.4 24 12.4ZM19.255 16.8C18.995 16.8 18.575 16.898 18.225 17.278C17.875 17.658 16.885 18.588 16.885 20.478C16.885 22.368 18.26 24.208 18.45 24.468C18.64 24.728 21.11 28.728 25.01 30.258C28.25 31.528 28.91 31.278 29.62 31.218C30.33 31.158 31.91 30.278 32.24 29.348C32.57 28.418 32.57 27.618 32.47 27.448C32.37 27.278 32.11 27.178 31.72 26.988C31.33 26.798 29.41 25.848 29.05 25.718C28.69 25.588 28.43 25.528 28.17 25.918C27.91 26.308 27.17 27.178 26.94 27.448C26.71 27.718 26.48 27.748 26.09 27.558C25.7 27.368 24.445 26.955 22.955 25.628C21.795 24.593 21.01 23.318 20.78 22.928C20.55 22.538 20.755 22.327 20.95 22.134C21.125 21.96 21.34 21.678 21.535 21.453C21.73 21.228 21.795 21.068 21.925 20.808C22.055 20.548 21.99 20.318 21.89 20.128C21.79 19.938 21.01 18.028 20.685 17.248C20.37 16.488 20.05 16.593 19.81 16.583C19.58 16.573 19.32 16.573 19.06 16.573L19.255 16.8Z"
+            />
+        </svg>
+    );
+}
+
 export default function NewsletterSection() {
     const { t } = useLang();
     const { user } = useAuth();
@@ -34,7 +48,7 @@ export default function NewsletterSection() {
         }
     };
 
-    const whatsappLink = "https://whatsapp.com/channel/0029VbCtd8yBVJl0zHMb0s0j";
+    const whatsappLink = "https://chat.whatsapp.com/HPJ5NpYkswNKAgtr9cPt8y?mode=gi_t";
 
     return (
         <section className="py-20 relative overflow-hidden">
@@ -45,8 +59,8 @@ export default function NewsletterSection() {
                     <div className="absolute bottom-0 left-0 w-32 h-32 bg-amber-500/20 rounded-full blur-[80px]" />
 
                     <div className="relative z-10 text-center space-y-8">
-                        <div className="inline-flex p-3 rounded-2xl bg-violet-500/10 text-violet-400 mb-2">
-                            {user ? <MessageCircle className="w-6 h-6" /> : <Sparkles className="w-6 h-6" />}
+                        <div className="inline-flex p-2.5 rounded-2xl bg-[#25D366]/10 text-[#25D366] mb-2">
+                            {user ? <WhatsAppIcon className="w-7 h-7" /> : <Sparkles className="w-6 h-6 text-violet-400" />}
                         </div>
 
                         <div className="space-y-3">
@@ -70,24 +84,18 @@ export default function NewsletterSection() {
                                         href={whatsappLink}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="group relative flex items-center justify-between p-4 rounded-2xl bg-violet-600/10 border border-violet-500/20 hover:border-violet-500/40 transition-all overflow-hidden"
+                                        className="group relative flex items-center justify-between p-4 rounded-2xl bg-[#25D366]/10 border border-[#25D366]/25 hover:border-[#25D366]/50 transition-all overflow-hidden shadow-lg shadow-black/20"
                                     >
                                         <div className="flex items-center gap-4">
-                                            <div className="w-10 h-10 rounded-full bg-[#25D366] flex items-center justify-center text-white">
-                                                <svg 
-                                                    viewBox="0 0 24 24" 
-                                                    fill="currentColor" 
-                                                    className="w-6 h-6"
-                                                >
-                                                    <path d="M12.031 2C6.479 2 2 6.477 2 12.029c0 1.91.533 3.78 1.543 5.425L2 22l4.708-1.503a9.98 9.98 0 0 0 5.321 1.531c5.551 0 10.03-4.478 10.03-10.029C22.059 6.477 17.582 2 12.031 2zm0 18.05c-1.637 0-3.238-.43-4.64-1.25l-.333-.194-2.772.885.9-.2.721-.23-.217-.34a8.156 8.156 0 0 1-1.238-4.288c0-4.52 3.676-8.2 8.196-8.2 2.19 0 4.248.85 5.797 2.4a8.134 8.134 0 0 1 2.4 5.8c0 4.52-3.678 8.2-8.197 8.2zm4.515-6.177c-.247-.124-1.464-.723-1.691-.806-.226-.083-.393-.124-.557.124-.165.247-.64.806-.784.97-.145.165-.29.185-.537.062a7.514 7.514 0 0 1-1.99-1.229 8.287 8.287 0 0 1-1.378-1.714c-.145-.248-.015-.38.109-.504.112-.112.247-.29.37-.434.125-.145.166-.248.248-.413.083-.165.042-.31-.02-.434-.063-.124-.558-1.343-.765-1.84-.2-.48-.426-.413-.558-.42l-.475-.007c-.165 0-.434.062-.66.31-.227.247-.867.847-.867 2.066 0 1.219.887 2.397 1.01 2.562.124.165 1.745 2.664 4.227 3.732.59.255 1.05.408 1.41.521.593.189 1.133.162 1.56.098.476-.072 1.464-.598 1.67-.1.175.207.5.423.558.82.057.396.057.737.028.862-.029.124-.165.185-.412.062z"/>
-                                                </svg>
+                                            <div className="w-11 h-11 rounded-full flex items-center justify-center shrink-0 shadow-md shadow-[#25D366]/30">
+                                                <WhatsAppIcon className="w-11 h-11" />
                                             </div>
                                             <div className="text-left">
-                                                <p className="font-bold text-violet-400">{t.whatsappCommunity}</p>
-                                                <p className="text-xs text-white/40">{t.exclusiveAccess}</p>
+                                                <p className="font-bold text-[#25D366] group-hover:text-emerald-300 transition-colors">{t.whatsappCommunity}</p>
+                                                <p className="text-xs text-white/50">{t.exclusiveAccess}</p>
                                             </div>
                                         </div>
-                                        <ArrowRight className="w-5 h-5 text-violet-500 group-hover:translate-x-1 transition-transform" />
+                                        <ArrowRight className="w-5 h-5 text-[#25D366] group-hover:translate-x-1 transition-transform" />
                                     </a>
                                 </motion.div>
                             ) : !submitted ? (
