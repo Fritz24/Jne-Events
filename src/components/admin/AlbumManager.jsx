@@ -107,13 +107,13 @@ export default function AlbumManager() {
         const filePath = `albums/${editingAlbum.id}/${fileName}`;
 
         const { error: uploadError } = await supabase.storage
-          .from('event-images')
+          .from('events')
           .upload(filePath, file);
 
         if (uploadError) throw uploadError;
 
         const { data } = supabase.storage
-          .from('event-images')
+          .from('events')
           .getPublicUrl(filePath);
         
         newUrls.push(data.publicUrl);
@@ -127,7 +127,7 @@ export default function AlbumManager() {
 
     } catch (err) {
       console.error("Upload error:", err);
-      alert("Failed to upload some images.");
+      alert(`Failed to upload images: ${err.message || err.error_description || "Storage error"}`);
     } finally {
       setUploading(false);
     }
