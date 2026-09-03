@@ -4,7 +4,7 @@ import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, Plus, Image as ImageIcon, Trash2, Upload } from "lucide-react";
+import { Loader2, Plus, Image as ImageIcon, Trash2, Upload, Check, CheckCircle2, X } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function AlbumManager() {
@@ -183,6 +183,34 @@ export default function AlbumManager() {
         <div className="col-span-1 md:col-span-2">
           {editingAlbum ? (
             <div className="bg-white/5 border border-white/10 rounded-2xl p-6 space-y-6">
+              {/* Header with Done Button & Status */}
+              <div className="flex items-center justify-between pb-4 border-b border-white/10">
+                <div>
+                  <h3 className="text-white font-semibold text-base flex items-center gap-2">
+                    <span>Editing Album:</span>
+                    <span className="text-violet-400 font-bold truncate max-w-[200px]">{editingAlbum.title || "Untitled"}</span>
+                  </h3>
+                  <p className="text-white/40 text-xs mt-0.5">Edit metadata, upload photos, or choose a cover image</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  {saveAlbums.isPending ? (
+                    <span className="text-amber-400 text-xs flex items-center gap-1.5 font-medium">
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" /> Saving...
+                    </span>
+                  ) : (
+                    <span className="text-emerald-400 text-xs flex items-center gap-1 font-medium">
+                      <CheckCircle2 className="w-3.5 h-3.5" /> Saved
+                    </span>
+                  )}
+                  <Button 
+                    onClick={() => setEditingAlbum(null)} 
+                    className="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs h-8 px-4 rounded-xl flex items-center gap-1.5 shadow-lg shadow-emerald-950/40"
+                  >
+                    <Check className="w-3.5 h-3.5" /> Done
+                  </Button>
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label className="text-white/70">Album Title</Label>
@@ -248,10 +276,21 @@ export default function AlbumManager() {
                   ))}
                   {(!editingAlbum.images || editingAlbum.images.length === 0) && (
                     <div className="col-span-full py-8 text-center border-2 border-dashed border-white/10 rounded-xl text-white/30 text-sm">
-                      No photos uploaded yet.
+                      No photos uploaded yet. Click "Add Photos" above to start uploading.
                     </div>
                   )}
                 </div>
+              </div>
+
+              {/* Bottom Done Bar */}
+              <div className="pt-4 border-t border-white/10 flex items-center justify-between">
+                <span className="text-xs text-white/40">Photos and changes are saved automatically.</span>
+                <Button 
+                  onClick={() => setEditingAlbum(null)} 
+                  className="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-sm px-5 py-2 h-auto rounded-xl flex items-center gap-2 shadow-lg shadow-emerald-950/40 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                >
+                  <Check className="w-4 h-4" /> Done & Close
+                </Button>
               </div>
             </div>
           ) : (
