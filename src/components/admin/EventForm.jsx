@@ -1228,6 +1228,10 @@ export default function EventForm({ event, onSave, onCancel }) {
 
           const preset = form._repeatPreset || "weekly";
           const isCustom = preset === "custom";
+          const [showCustomPanel, setShowCustomPanel] = useState(false);
+          // Custom panel internal state — mirrors form values while open
+          const customUnit = unit;
+          const customInterval = interval;
 
           // Toggle day in recurrence_days
           const toggleDay = (dayIdxStr) => {
@@ -1281,22 +1285,158 @@ export default function EventForm({ event, onSave, onCancel }) {
             { id: "every3months", label: "Every 3 Months" },
             { id: "every6months", label: "Every 6 Months" },
             { id: "yearly",       label: "Yearly" },
-            { id: "custom",       label: "Custom…" },
+            { id: "custom",       label: "Custom" },
           ];
 
           const upcomingPreviews = getUpcomingRecurrencePreview(form.date, form, 4);
 
+          // Build a human-readable custom summary
+          const buildCustomSummary = () => {
+            const n = customInterval;
+            if (customUnit === "days") return n === 1 ? "Event will occur every day." : `Event will occur every ${n} days.`;
+            if (customUnit === "weeks") {
+              const selectedDayNames = rawDays.map(d => daysShort[Number(d)]).join(", ");
+              return n === 1
+                ? `Event will occur every week on ${selectedDayNames}.`
+                : `Event will occur every ${n} weeks on ${selectedDayNames}.`;
+            }
+            if (customUnit === "months") return n === 1 ? "Event will occur every month." : `Event will occur every ${n} months.`;
+            return "";
+          };
+
           return (
-            <div className="border-t border-white/10 animate-in fade-in duration-200">
+            <div className="border-t border-white/10 animate-in fade-in duration-200 relative">
+
+              {/* Apple-style Custom Panel — slides over the list */}
+              {showCustomPanel && (
+                <div className="absolute inset-0 z-10 bg-[#111118] rounded-b-2xl animate-in slide-in-from-right duration-200 flex flex-col">
+                  {/* Header */}
+                  <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
+                    <button
+                      type="button"
+                      onClick={() => setShowCustomPanel(false)}
+                      className="flex items-center gap-1.5 text-violet-400 hover:text-violet-300 transition-colors text-sm font-medium"
+                    >
+                      <ArrowRight className="w-4 h-4 rotate-180" />
+                      Back
+                    </button>
+                    <span className="text-sm font-bold text-white">Custom</span>
+                    <button
+                      type="button"
+                      onClick={() => setShowCustomPanel(false)}
+                      className="w-8 h-8 rounded-full bg-violet-600 flex items-center justify-center hover:bg-violet-500 transition-colors"
+                    >
+                      <Check className="w-4 h-4 text-white" />
+                    </button>
+                  </div>
+
+                  {/* Custom settings rows */}
+                  <div className="flex-1 overflow-y-auto">
+                    {/* Frequency row */}
+                    <div className="mx-4 mt-4 rounded-2xl bg-white/[0.04] border border-white/10 divide-y divide-white/[0.06] overflow-hidden">
+                      <div className="flex items-center justify-between px-4 py-3.5">
+                        <span className="text-sm font-medium text-white">Frequency</span>
+                        <Select value={customUnit} onValueChange={v => handleChange("recurrence_unit", v)}>
+                          <SelectTrigger className="w-32 bg-transparent border-0 text-white/60 text-sm h-8 p-0 focus:ring-0 shadow-none justify-end gap-1.5 hover:text-white">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="bg-[#1a1a28] border border-white/10 text-white z-[300] rounded-xl shadow-2xl">
+                            <SelectItem value="days" className="focus:bg-violet-600/20 focus:text-white cursor-pointer py-2.5">Daily</SelectItem>
+                            <SelectItem value="weeks" className="focus:bg-violet-600/20 focus:text-white cursor-pointer py-2.5">Weekly</SelectItem>
+                            <SelectItem value="months" className="focus:bg-violet-600/20 focus:text-white cursor-pointer py-2.5">Monthly</SelectItem>
+                            <SelectItem value="years" className="focus:bg-violet-600/20 focus:text-white cursor-pointer py-2.5">Yearly</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {/* Every N row */}
+                      <div className="flex items-center justify-between px-4 py-3.5">
+                        <span className="text-sm font-medium text-white">Every</span>
+                        <input
+                          type="number"
+                          min="1"
+                          max="99"
+                          value={customInterval}
+                          onChange={e => handleChange("recurrence_interval", Math.max(1, parseInt(e.target.value) || 1))}
+                          className="w-16 bg-transparent border-0 text-white/60 text-sm text-right focus:outline-none focus:text-white font-mono"
+                        />
+                      </div>
+
+                      {/* Day of week picker for Weekly */}
+                      {customUnit === "weeks" && (
+                        <div className="px-4 py-4 space-y-3">
+                          <p className="text-xs text-white/40">Repeat on:</p>
+                          <div className="flex gap-2 flex-wrap">
+                            {daysShort.map((d, i) => {
+                              const dayStr = String(i);
+                              const isSel = rawDays.includes(dayStr);
+                              return (
+                                <button
+                                  key={d}
+                                  type="button"
+                                  onClick={() => toggleDay(dayStr)}
+                                  className={`w-10 h-10 rounded-full text-xs font-bold transition-all border ${
+                                    isSel
+                                      ? "bg-violet-600 border-violet-400 text-white shadow-lg shadow-violet-900/50"
+                                      : "bg-white/5 border-white/10 text-white/40 hover:bg-white/10 hover:text-white"
+                                  }`}
+                                >
+                                  {d}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Month sub-options */}
+                      {customUnit === "months" && (
+                        <div className="px-4 py-3 space-y-2">
+                          {[
+                            { mode: "same_date",    label: `Day ${eventDayNum} of the month` },
+                            { mode: "same_weekday", label: `The ${nthOrdinal} ${eventDayOfWeekName}` },
+                          ].map(opt => (
+                            <button
+                              key={opt.mode}
+                              type="button"
+                              onClick={() => handleChange("recurrence_month_mode", opt.mode)}
+                              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl border text-sm transition-all ${
+                                (form.recurrence_month_mode || "same_date") === opt.mode
+                                  ? "bg-violet-600/20 border-violet-500 text-white font-medium"
+                                  : "bg-white/[0.03] border-white/10 text-white/50 hover:text-white"
+                              }`}
+                            >
+                              {opt.label}
+                              {(form.recurrence_month_mode || "same_date") === opt.mode && (
+                                <Check className="w-3.5 h-3.5 text-violet-400 shrink-0" />
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Summary sentence */}
+                    <p className="text-xs text-white/30 px-6 pt-3 pb-4 italic">
+                      {buildCustomSummary()}
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {/* Preset List — Apple-style rows */}
               <div className="divide-y divide-white/[0.06]">
                 {PRESETS.map(p => {
                   const isSelected = preset === p.id;
+                  const isCustomRow = p.id === "custom";
                   return (
                     <button
                       key={p.id}
                       type="button"
-                      onClick={() => applyPreset(p.id)}
+                      onClick={() => {
+                        applyPreset(p.id);
+                        if (isCustomRow) setShowCustomPanel(true);
+                      }}
                       className={`w-full flex items-center justify-between px-5 py-3.5 transition-colors text-left group ${
                         isSelected ? "bg-violet-600/10" : "hover:bg-white/[0.03]"
                       }`}
@@ -1308,16 +1448,22 @@ export default function EventForm({ event, onSave, onCancel }) {
                         {p.sub && (
                           <span className="ml-2 text-xs text-white/30">{p.sub}</span>
                         )}
+                        {isCustomRow && isSelected && (
+                          <span className="ml-2 text-xs text-white/30">
+                            · Every {customInterval} {customUnit === "days" ? (customInterval === 1 ? "day" : "days") : customUnit === "weeks" ? (customInterval === 1 ? "week" : "weeks") : (customInterval === 1 ? "month" : "months")}
+                          </span>
+                        )}
                       </div>
-                      {isSelected && (
-                        <Check className="w-4 h-4 text-violet-400 shrink-0" />
-                      )}
+                      <div className="flex items-center gap-2">
+                        {isSelected && !isCustomRow && <Check className="w-4 h-4 text-violet-400 shrink-0" />}
+                        {isCustomRow && <ArrowRight className="w-4 h-4 text-white/30 group-hover:text-white/60 transition-colors shrink-0" />}
+                      </div>
                     </button>
                   );
                 })}
               </div>
 
-              {/* Monthly sub-option */}
+              {/* Monthly sub-option — shown inline below preset list */}
               {preset === "monthly" && (
                 <div className="px-5 pb-4 pt-2 space-y-2 bg-white/[0.02]">
                   <p className="text-[10px] font-bold uppercase tracking-widest text-white/30">Monthly on…</p>
@@ -1340,82 +1486,6 @@ export default function EventForm({ event, onSave, onCancel }) {
                       </button>
                     ))}
                   </div>
-                </div>
-              )}
-
-              {/* Custom options */}
-              {isCustom && (
-                <div className="px-5 py-4 space-y-4 bg-white/[0.02] border-t border-white/5">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-white/30">Custom Schedule</p>
-                  <div className="flex flex-wrap items-center gap-3">
-                    <span className="text-sm text-white/60">Repeat every</span>
-                    <Input
-                      type="number"
-                      min="1"
-                      max="99"
-                      value={interval}
-                      onChange={e => handleChange("recurrence_interval", Math.max(1, parseInt(e.target.value) || 1))}
-                      className="w-16 bg-white/5 border-white/10 text-white font-mono text-center text-sm h-9"
-                    />
-                    <Select value={unit} onValueChange={v => handleChange("recurrence_unit", v)}>
-                      <SelectTrigger className="w-28 bg-white/5 border-white/10 text-white text-sm h-9">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="bg-[#181822] border-white/10 text-white z-[200]">
-                        <SelectItem value="days">{interval === 1 ? "Day" : "Days"}</SelectItem>
-                        <SelectItem value="weeks">{interval === 1 ? "Week" : "Weeks"}</SelectItem>
-                        <SelectItem value="months">{interval === 1 ? "Month" : "Months"}</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {unit === "weeks" && (
-                    <div className="space-y-2">
-                      <p className="text-xs text-white/40">Repeat on:</p>
-                      <div className="flex gap-1.5 flex-wrap">
-                        {daysShort.map((d, i) => {
-                          const dayStr = String(i);
-                          const isSelected = rawDays.includes(dayStr);
-                          return (
-                            <button
-                              key={d}
-                              type="button"
-                              onClick={() => toggleDay(dayStr)}
-                              className={`w-10 h-10 rounded-full text-xs font-bold transition-all border ${
-                                isSelected
-                                  ? "bg-violet-600 border-violet-400 text-white shadow-md shadow-violet-900/50"
-                                  : "bg-white/5 border-white/10 text-white/40 hover:bg-white/10 hover:text-white"
-                              }`}
-                            >
-                              {d}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-
-                  {unit === "months" && (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      {[
-                        { mode: "same_date",    label: `Day ${eventDayNum} of the month` },
-                        { mode: "same_weekday", label: `${nthOrdinal} ${eventDayOfWeekName} of the month` },
-                      ].map(opt => (
-                        <button
-                          key={opt.mode}
-                          type="button"
-                          onClick={() => handleChange("recurrence_month_mode", opt.mode)}
-                          className={`p-2.5 rounded-xl text-left border text-xs transition-all ${
-                            (form.recurrence_month_mode || "same_date") === opt.mode
-                              ? "bg-violet-600/20 border-violet-500 text-white font-medium"
-                              : "bg-white/5 border-white/10 text-white/50 hover:text-white"
-                          }`}
-                        >
-                          {opt.label}
-                        </button>
-                      ))}
-                    </div>
-                  )}
                 </div>
               )}
 
