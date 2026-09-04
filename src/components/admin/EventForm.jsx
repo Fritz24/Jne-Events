@@ -1155,35 +1155,59 @@ export default function EventForm({ event, onSave, onCancel }) {
         <Label className="text-white/70">Featured Event</Label>
       </div>
 
-      {/* Plain, Fully Customizable Recurrence Scheduling Section */}
-      <div className="flex flex-col gap-4 p-5 rounded-2xl bg-white/[0.02] border border-white/10">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2">
+      {/* Apple-style Repeat / Recurring Event Section */}
+      <div className="rounded-2xl bg-white/[0.02] border border-white/10 overflow-hidden">
+        {/* Repeat Row — always visible */}
+        <button
+          type="button"
+          onClick={() => {
+            const baseD = form.date ? new Date(form.date) : new Date();
+            const defaultDayStr = String(!isNaN(baseD.getTime()) ? baseD.getDay() : 0);
+            setForm(prev => ({
+              ...prev,
+              is_recurring: !prev.is_recurring,
+              recurrence_interval: prev.recurrence_interval || 1,
+              recurrence_unit: prev.recurrence_unit || "weeks",
+              recurrence_days: prev.recurrence_days?.length ? prev.recurrence_days : [defaultDayStr],
+              recurrence_month_mode: prev.recurrence_month_mode || "same_date",
+              recurrence_lead_days: prev.recurrence_lead_days || 14,
+              recurrence_end_type: prev.recurrence_end_type || "never",
+              _repeatPreset: prev._repeatPreset || "never",
+            }));
+          }}
+          className="w-full flex items-center justify-between px-5 py-4 hover:bg-white/[0.03] transition-colors group"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full bg-violet-500/15 flex items-center justify-center">
               <Repeat className="w-4 h-4 text-violet-400" />
-              <Label className="text-white font-semibold text-sm">Recurring Event (Auto-Repeat)</Label>
             </div>
-            <p className="text-xs text-white/40 mt-0.5">Automatically create and post upcoming editions of this event on a schedule.</p>
+            <div className="text-left">
+              <p className="text-sm font-semibold text-white">Repeat</p>
+              <p className="text-xs text-white/40 mt-0.5">Set how often this event recurs</p>
+            </div>
           </div>
-          <Switch
-            checked={!!form.is_recurring}
-            onCheckedChange={v => {
-              const baseD = form.date ? new Date(form.date) : new Date();
-              const defaultDayStr = String(!isNaN(baseD.getTime()) ? baseD.getDay() : 0);
-              setForm(prev => ({
-                ...prev,
-                is_recurring: v,
-                recurrence_interval: prev.recurrence_interval || 1,
-                recurrence_unit: prev.recurrence_unit || "weeks",
-                recurrence_days: [defaultDayStr],
-                recurrence_month_mode: prev.recurrence_month_mode || "same_date",
-                recurrence_lead_days: prev.recurrence_lead_days || 14,
-                recurrence_end_type: prev.recurrence_end_type || "never",
-              }));
-            }}
-          />
-        </div>
+          <div className="flex items-center gap-2">
+            <span className={`text-sm font-medium transition-colors ${form.is_recurring ? "text-violet-300" : "text-white/40"}`}>
+              {!form.is_recurring ? "Never" : (() => {
+                const p = form._repeatPreset;
+                if (p === "daily") return "Daily";
+                if (p === "weekdays") return "Weekdays";
+                if (p === "weekends") return "Weekends";
+                if (p === "weekly") return "Weekly";
+                if (p === "biweekly") return "Every 2 Weeks";
+                if (p === "monthly") return "Monthly";
+                if (p === "every3months") return "Every 3 Months";
+                if (p === "every6months") return "Every 6 Months";
+                if (p === "yearly") return "Yearly";
+                if (p === "custom") return "Custom";
+                return "Weekly";
+              })()}
+            </span>
+            <ArrowRight className={`w-4 h-4 transition-all ${form.is_recurring ? "rotate-90 text-violet-400" : "text-white/20 group-hover:text-white/40"}`} />
+          </div>
+        </button>
 
+        {/* Expanded repeat options */}
         {form.is_recurring && (() => {
           const eventDateObj = form.date ? new Date(form.date) : new Date();
           const isValidDate = !isNaN(eventDateObj.getTime());
@@ -1191,24 +1215,19 @@ export default function EventForm({ event, onSave, onCancel }) {
           const daysShort = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
           const daysFull = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
           const eventDayOfWeekName = isValidDate ? daysFull[eventDateObj.getDay()] : "Tuesday";
+          const eventDayIdx = isValidDate ? eventDateObj.getDay() : 2;
 
           const interval = Math.max(1, Number(form.recurrence_interval || 1));
           const unit = form.recurrence_unit || "weeks";
           const rawDays = Array.isArray(form.recurrence_days)
             ? form.recurrence_days.map(String)
-            : [String(isValidDate ? eventDateObj.getDay() : 0)];
+            : [String(eventDayIdx)];
 
           const nthWeekNum = isValidDate ? Math.floor((eventDayNum - 1) / 7) + 1 : 2;
           const nthOrdinal = ["1st", "2nd", "3rd", "4th", "5th"][nthWeekNum - 1] || `${nthWeekNum}th`;
-          const dateSuffix = (n) => {
-            if (n >= 11 && n <= 13) return "th";
-            switch (n % 10) { case 1: return "st"; case 2: return "nd"; case 3: return "rd"; default: return "th"; }
-          };
 
-          const isWeeklyPreset = unit === "weeks" && interval === 1 && rawDays.length === 1 && rawDays[0] === String(eventDateObj.getDay());
-          const isBiWeeklyPreset = unit === "weeks" && interval === 2 && rawDays.length === 1 && rawDays[0] === String(eventDateObj.getDay());
-          const isMonthlyPreset = unit === "months" && interval === 1;
-          const isCustomMode = !isWeeklyPreset && !isBiWeeklyPreset && !isMonthlyPreset;
+          const preset = form._repeatPreset || "weekly";
+          const isCustom = preset === "custom";
 
           // Toggle day in recurrence_days
           const toggleDay = (dayIdxStr) => {
@@ -1217,7 +1236,7 @@ export default function EventForm({ event, onSave, onCancel }) {
               if (rawDays.length > 1) {
                 nextDays = rawDays.filter(d => d !== dayIdxStr);
               } else {
-                nextDays = rawDays; // keep at least 1 day selected
+                nextDays = rawDays;
               }
             } else {
               nextDays = [...rawDays, dayIdxStr];
@@ -1225,158 +1244,124 @@ export default function EventForm({ event, onSave, onCancel }) {
             handleChange("recurrence_days", nextDays);
           };
 
+          const applyPreset = (p) => {
+            const dayStr = String(eventDayIdx);
+            const updates = { _repeatPreset: p };
+            if (p === "daily") {
+              Object.assign(updates, { recurrence_unit: "days", recurrence_interval: 1, recurrence_days: [dayStr] });
+            } else if (p === "weekdays") {
+              Object.assign(updates, { recurrence_unit: "weeks", recurrence_interval: 1, recurrence_days: ["1","2","3","4","5"] });
+            } else if (p === "weekends") {
+              Object.assign(updates, { recurrence_unit: "weeks", recurrence_interval: 1, recurrence_days: ["0","6"] });
+            } else if (p === "weekly") {
+              Object.assign(updates, { recurrence_unit: "weeks", recurrence_interval: 1, recurrence_days: [dayStr] });
+            } else if (p === "biweekly") {
+              Object.assign(updates, { recurrence_unit: "weeks", recurrence_interval: 2, recurrence_days: [dayStr] });
+            } else if (p === "monthly") {
+              Object.assign(updates, { recurrence_unit: "months", recurrence_interval: 1, recurrence_month_mode: "same_date" });
+            } else if (p === "every3months") {
+              Object.assign(updates, { recurrence_unit: "months", recurrence_interval: 3 });
+            } else if (p === "every6months") {
+              Object.assign(updates, { recurrence_unit: "months", recurrence_interval: 6 });
+            } else if (p === "yearly") {
+              Object.assign(updates, { recurrence_unit: "months", recurrence_interval: 12 });
+            } else if (p === "custom") {
+              Object.assign(updates, { recurrence_unit: "weeks", recurrence_interval: 3, recurrence_days: [dayStr] });
+            }
+            setForm(prev => ({ ...prev, ...updates }));
+          };
+
+          const PRESETS = [
+            { id: "daily",        label: "Daily" },
+            { id: "weekdays",     label: "Weekdays", sub: "Mon – Fri" },
+            { id: "weekends",     label: "Weekends", sub: "Sat & Sun" },
+            { id: "weekly",       label: "Weekly",   sub: `Every ${eventDayOfWeekName}` },
+            { id: "biweekly",     label: "Biweekly", sub: `Every other ${eventDayOfWeekName}` },
+            { id: "monthly",      label: "Monthly" },
+            { id: "every3months", label: "Every 3 Months" },
+            { id: "every6months", label: "Every 6 Months" },
+            { id: "yearly",       label: "Yearly" },
+            { id: "custom",       label: "Custom…" },
+          ];
+
           const upcomingPreviews = getUpcomingRecurrencePreview(form.date, form, 4);
 
           return (
-            <div className="space-y-4 pt-3 border-t border-white/10 animate-in fade-in duration-200">
-              {/* Frequency Selection Tabs */}
-              <div className="space-y-1.5">
-                <Label className="text-white/60 text-xs font-medium">Recurrence Frequency</Label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      handleChange("recurrence_unit", "weeks");
-                      handleChange("recurrence_interval", 1);
-                      handleChange("recurrence_days", [String(eventDateObj.getDay())]);
-                    }}
-                    className={`p-3 rounded-xl text-left border transition-all ${
-                      isWeeklyPreset
-                        ? "bg-violet-600/30 border-violet-500 text-white font-semibold shadow-sm"
-                        : "bg-white/5 border-white/10 text-white/60 hover:bg-white/10 hover:text-white"
-                    }`}
-                  >
-                    <div className="text-xs">Weekly</div>
-                    <div className="text-[11px] text-white/40 mt-0.5">Every {eventDayOfWeekName}</div>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      handleChange("recurrence_unit", "weeks");
-                      handleChange("recurrence_interval", 2);
-                      handleChange("recurrence_days", [String(eventDateObj.getDay())]);
-                    }}
-                    className={`p-3 rounded-xl text-left border transition-all ${
-                      isBiWeeklyPreset
-                        ? "bg-violet-600/30 border-violet-500 text-white font-semibold shadow-sm"
-                        : "bg-white/5 border-white/10 text-white/60 hover:bg-white/10 hover:text-white"
-                    }`}
-                  >
-                    <div className="text-xs">Every 2 Weeks</div>
-                    <div className="text-[11px] text-white/40 mt-0.5">Alternating {eventDayOfWeekName}s</div>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      handleChange("recurrence_unit", "months");
-                      handleChange("recurrence_interval", 1);
-                    }}
-                    className={`p-3 rounded-xl text-left border transition-all ${
-                      isMonthlyPreset && !isCustomMode
-                        ? "bg-violet-600/30 border-violet-500 text-white font-semibold shadow-sm"
-                        : "bg-white/5 border-white/10 text-white/60 hover:bg-white/10 hover:text-white"
-                    }`}
-                  >
-                    <div className="text-xs">Monthly</div>
-                    <div className="text-[11px] text-white/40 mt-0.5">Every month</div>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      handleChange("recurrence_interval", 3);
-                      handleChange("recurrence_unit", "weeks");
-                    }}
-                    className={`p-3 rounded-xl text-left border transition-all ${
-                      isCustomMode
-                        ? "bg-violet-600/30 border-violet-500 text-white font-semibold shadow-sm"
-                        : "bg-white/5 border-white/10 text-white/60 hover:bg-white/10 hover:text-white"
-                    }`}
-                  >
-                    <div className="text-xs">Custom Schedule</div>
-                    <div className="text-[11px] text-white/40 mt-0.5">Custom interval & days</div>
-                  </button>
-                </div>
+            <div className="border-t border-white/10 animate-in fade-in duration-200">
+              {/* Preset List — Apple-style rows */}
+              <div className="divide-y divide-white/[0.06]">
+                {PRESETS.map(p => {
+                  const isSelected = preset === p.id;
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => applyPreset(p.id)}
+                      className={`w-full flex items-center justify-between px-5 py-3.5 transition-colors text-left group ${
+                        isSelected ? "bg-violet-600/10" : "hover:bg-white/[0.03]"
+                      }`}
+                    >
+                      <div>
+                        <span className={`text-sm font-medium ${isSelected ? "text-violet-300" : "text-white/80"}`}>
+                          {p.label}
+                        </span>
+                        {p.sub && (
+                          <span className="ml-2 text-xs text-white/30">{p.sub}</span>
+                        )}
+                      </div>
+                      {isSelected && (
+                        <Check className="w-4 h-4 text-violet-400 shrink-0" />
+                      )}
+                    </button>
+                  );
+                })}
               </div>
 
-              {/* Weekly Day of Week Picker (shown in Weekly / Bi-Weekly) */}
-              {(isWeeklyPreset || isBiWeeklyPreset) && (
-                <div className="space-y-1.5 p-3 rounded-xl bg-white/[0.02] border border-white/5">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-white/60 text-xs font-medium">Days of the week:</Label>
-                    <span className="text-[10px] text-white/30">Select one or more days</span>
-                  </div>
-                  <div className="grid grid-cols-7 gap-1.5">
-                    {daysShort.map((d, i) => {
-                      const dayStr = String(i);
-                      const isSelected = rawDays.includes(dayStr);
-                      return (
-                        <button
-                          key={d}
-                          type="button"
-                          onClick={() => toggleDay(dayStr)}
-                          className={`py-2 rounded-lg text-xs font-bold transition-all border ${
-                            isSelected
-                              ? "bg-violet-600 border-violet-400 text-white shadow-sm"
-                              : "bg-white/5 border-white/10 text-white/40 hover:bg-white/10 hover:text-white"
-                          }`}
-                        >
-                          {d}
-                        </button>
-                      );
-                    })}
+              {/* Monthly sub-option */}
+              {preset === "monthly" && (
+                <div className="px-5 pb-4 pt-2 space-y-2 bg-white/[0.02]">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-white/30">Monthly on…</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {[
+                      { mode: "same_date",    label: `Day ${eventDayNum}${eventDayNum >= 11 && eventDayNum <= 13 ? "th" : ["st","nd","rd"][(eventDayNum % 10) - 1] || "th"} of every month` },
+                      { mode: "same_weekday", label: `The ${nthOrdinal} ${eventDayOfWeekName} of every month` },
+                    ].map(opt => (
+                      <button
+                        key={opt.mode}
+                        type="button"
+                        onClick={() => handleChange("recurrence_month_mode", opt.mode)}
+                        className={`p-3 rounded-xl text-left border text-xs transition-all ${
+                          (form.recurrence_month_mode || "same_date") === opt.mode
+                            ? "bg-violet-600/20 border-violet-500 text-white font-medium"
+                            : "bg-white/5 border-white/10 text-white/50 hover:text-white"
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
                   </div>
                 </div>
               )}
 
-              {/* Monthly Sub-Options */}
-              {isMonthlyPreset && !isCustomMode && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-3 rounded-xl bg-white/[0.02] border border-white/5">
-                  <button
-                    type="button"
-                    onClick={() => handleChange("recurrence_month_mode", "same_date")}
-                    className={`p-2.5 rounded-lg text-left border transition-all text-xs ${
-                      (form.recurrence_month_mode || "same_date") === "same_date"
-                        ? "bg-violet-600/30 border-violet-500 text-white font-medium"
-                        : "bg-white/5 border-white/10 text-white/50 hover:text-white"
-                    }`}
-                  >
-                    On day {eventDayNum} of every month
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleChange("recurrence_month_mode", "same_weekday")}
-                    className={`p-2.5 rounded-lg text-left border transition-all text-xs ${
-                      form.recurrence_month_mode === "same_weekday"
-                        ? "bg-violet-600/30 border-violet-500 text-white font-medium"
-                        : "bg-white/5 border-white/10 text-white/50 hover:text-white"
-                    }`}
-                  >
-                    On the {nthOrdinal} {eventDayOfWeekName} of every month
-                  </button>
-                </div>
-              )}
-
-              {/* Custom Configuration Panel */}
-              {isCustomMode && (
-                <div className="space-y-3 p-4 rounded-xl bg-white/[0.02] border border-violet-500/20">
+              {/* Custom options */}
+              {isCustom && (
+                <div className="px-5 py-4 space-y-4 bg-white/[0.02] border-t border-white/5">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-white/30">Custom Schedule</p>
                   <div className="flex flex-wrap items-center gap-3">
-                    <Label className="text-white/70 text-xs font-medium">Repeat every</Label>
+                    <span className="text-sm text-white/60">Repeat every</span>
                     <Input
                       type="number"
                       min="1"
                       max="99"
                       value={interval}
                       onChange={e => handleChange("recurrence_interval", Math.max(1, parseInt(e.target.value) || 1))}
-                      className="w-20 bg-white/5 border-white/10 text-white font-mono text-center text-sm h-8"
+                      className="w-16 bg-white/5 border-white/10 text-white font-mono text-center text-sm h-9"
                     />
                     <Select value={unit} onValueChange={v => handleChange("recurrence_unit", v)}>
-                      <SelectTrigger className="w-32 bg-white/5 border-white/10 text-white text-xs h-8">
+                      <SelectTrigger className="w-28 bg-white/5 border-white/10 text-white text-sm h-9">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent className="bg-[#181822] border-white/10 text-white">
+                      <SelectContent className="bg-[#181822] border-white/10 text-white z-[200]">
                         <SelectItem value="days">{interval === 1 ? "Day" : "Days"}</SelectItem>
                         <SelectItem value="weeks">{interval === 1 ? "Week" : "Weeks"}</SelectItem>
                         <SelectItem value="months">{interval === 1 ? "Month" : "Months"}</SelectItem>
@@ -1385,9 +1370,9 @@ export default function EventForm({ event, onSave, onCancel }) {
                   </div>
 
                   {unit === "weeks" && (
-                    <div className="space-y-1.5 pt-2">
-                      <Label className="text-white/50 text-[11px]">Repeat on days:</Label>
-                      <div className="grid grid-cols-7 gap-1">
+                    <div className="space-y-2">
+                      <p className="text-xs text-white/40">Repeat on:</p>
+                      <div className="flex gap-1.5 flex-wrap">
                         {daysShort.map((d, i) => {
                           const dayStr = String(i);
                           const isSelected = rawDays.includes(dayStr);
@@ -1396,10 +1381,10 @@ export default function EventForm({ event, onSave, onCancel }) {
                               key={d}
                               type="button"
                               onClick={() => toggleDay(dayStr)}
-                              className={`py-1.5 rounded-lg text-xs font-bold border ${
+                              className={`w-10 h-10 rounded-full text-xs font-bold transition-all border ${
                                 isSelected
-                                  ? "bg-violet-600 border-violet-400 text-white"
-                                  : "bg-white/5 border-white/10 text-white/40 hover:text-white"
+                                  ? "bg-violet-600 border-violet-400 text-white shadow-md shadow-violet-900/50"
+                                  : "bg-white/5 border-white/10 text-white/40 hover:bg-white/10 hover:text-white"
                               }`}
                             >
                               {d}
@@ -1411,167 +1396,149 @@ export default function EventForm({ event, onSave, onCancel }) {
                   )}
 
                   {unit === "months" && (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2">
-                      <button
-                        type="button"
-                        onClick={() => handleChange("recurrence_month_mode", "same_date")}
-                        className={`p-2 rounded-lg text-left border text-xs ${
-                          (form.recurrence_month_mode || "same_date") === "same_date"
-                            ? "bg-violet-600/30 border-violet-500 text-white font-medium"
-                            : "bg-white/5 border-white/10 text-white/50"
-                        }`}
-                      >
-                        On day {eventDayNum} of the month
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleChange("recurrence_month_mode", "same_weekday")}
-                        className={`p-2 rounded-lg text-left border text-xs ${
-                          form.recurrence_month_mode === "same_weekday"
-                            ? "bg-violet-600/30 border-violet-500 text-white font-medium"
-                            : "bg-white/5 border-white/10 text-white/50"
-                        }`}
-                      >
-                        On the {nthOrdinal} {eventDayOfWeekName} of the month
-                      </button>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {[
+                        { mode: "same_date",    label: `Day ${eventDayNum} of the month` },
+                        { mode: "same_weekday", label: `${nthOrdinal} ${eventDayOfWeekName} of the month` },
+                      ].map(opt => (
+                        <button
+                          key={opt.mode}
+                          type="button"
+                          onClick={() => handleChange("recurrence_month_mode", opt.mode)}
+                          className={`p-2.5 rounded-xl text-left border text-xs transition-all ${
+                            (form.recurrence_month_mode || "same_date") === opt.mode
+                              ? "bg-violet-600/20 border-violet-500 text-white font-medium"
+                              : "bg-white/5 border-white/10 text-white/50 hover:text-white"
+                          }`}
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
                     </div>
                   )}
                 </div>
               )}
 
-              {/* Advance Posting Settings */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 rounded-xl bg-white/[0.02] border border-white/5">
-                <div className="space-y-1.5">
-                  <Label className="text-white/80 text-xs font-medium flex items-center gap-1.5">
-                    <Clock className="w-3.5 h-3.5 text-violet-400" />
-                    Website Publishing Lead Time
-                  </Label>
-                  <Select
-                    value={String(form.recurrence_lead_days || 14)}
-                    onValueChange={v => handleChange("recurrence_lead_days", Number(v))}
-                  >
-                    <SelectTrigger className="bg-white/5 border-white/10 text-white text-xs h-9">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-[#181822] border-white/10 text-white">
-                      <SelectItem value="7">Publish 7 days in advance (1 week ticket window)</SelectItem>
-                      <SelectItem value="14">Publish 14 days in advance (Recommended - 2 weeks ticket window)</SelectItem>
-                      <SelectItem value="21">Publish 21 days in advance (3 weeks ticket window)</SelectItem>
-                      <SelectItem value="30">Publish 30 days in advance (1 month ticket window)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+              {/* End / Publishing settings */}
+              <div className="border-t border-white/[0.06] px-5 py-4 space-y-4 bg-white/[0.015]">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-white/60 text-xs font-medium flex items-center gap-1.5">
+                      <Clock className="w-3.5 h-3.5 text-violet-400" />
+                      Publish Tickets In Advance
+                    </Label>
+                    <Select
+                      value={String(form.recurrence_lead_days || 14)}
+                      onValueChange={v => handleChange("recurrence_lead_days", Number(v))}
+                    >
+                      <SelectTrigger className="bg-white/5 border-white/10 text-white text-xs h-9">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-[#181822] border-white/10 text-white z-[200]">
+                        <SelectItem value="7">7 days before</SelectItem>
+                        <SelectItem value="14">14 days before (Recommended)</SelectItem>
+                        <SelectItem value="21">21 days before</SelectItem>
+                        <SelectItem value="30">30 days before</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-                <div className="space-y-1.5">
-                  <Label className="text-white/80 text-xs font-medium flex items-center gap-1.5">
-                    <Calendar className="w-3.5 h-3.5 text-violet-400" />
-                    Recurrence End
-                  </Label>
-                  <Select
-                    value={form.recurrence_end_type || "never"}
-                    onValueChange={v => handleChange("recurrence_end_type", v)}
-                  >
-                    <SelectTrigger className="bg-white/5 border-white/10 text-white text-xs h-9">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-[#181822] border-white/10 text-white">
-                      <SelectItem value="never">Never (Repeats indefinitely)</SelectItem>
-                      <SelectItem value="after_count">After a set number of events</SelectItem>
-                      <SelectItem value="until_date">Until a specific end date</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <div className="space-y-1.5">
+                    <Label className="text-white/60 text-xs font-medium flex items-center gap-1.5">
+                      <Calendar className="w-3.5 h-3.5 text-violet-400" />
+                      Ends
+                    </Label>
+                    <Select
+                      value={form.recurrence_end_type || "never"}
+                      onValueChange={v => handleChange("recurrence_end_type", v)}
+                    >
+                      <SelectTrigger className="bg-white/5 border-white/10 text-white text-xs h-9">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-[#181822] border-white/10 text-white z-[200]">
+                        <SelectItem value="never">Never</SelectItem>
+                        <SelectItem value="after_count">After N events</SelectItem>
+                        <SelectItem value="until_date">On date</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
 
                 {form.recurrence_end_type === "after_count" && (
-                  <div className="space-y-1 sm:col-span-2 pt-1">
-                    <Label className="text-white/60 text-xs">Total editions to generate:</Label>
+                  <div className="flex items-center gap-3">
+                    <Label className="text-white/60 text-xs shrink-0">Stop after</Label>
                     <Input
                       type="number"
                       min="1"
                       max="100"
                       value={form.recurrence_count || 10}
                       onChange={e => handleChange("recurrence_count", parseInt(e.target.value) || 1)}
-                      className="w-32 bg-white/5 border-white/10 text-white text-xs h-8"
+                      className="w-20 bg-white/5 border-white/10 text-white text-xs h-8"
                     />
+                    <Label className="text-white/40 text-xs">events</Label>
                   </div>
                 )}
 
                 {form.recurrence_end_type === "until_date" && (
-                  <div className="space-y-1 sm:col-span-2 pt-1">
-                    <Label className="text-white/60 text-xs">Final date:</Label>
+                  <div className="flex items-center gap-3">
+                    <Label className="text-white/60 text-xs shrink-0">End date</Label>
                     <Input
                       type="date"
                       value={form.recurrence_until ? form.recurrence_until.split("T")[0] : ""}
                       onChange={e => handleChange("recurrence_until", e.target.value)}
-                      className="w-48 bg-white/5 border-white/10 text-white text-xs h-8"
+                      className="w-44 bg-white/5 border-white/10 text-white text-xs h-8"
                     />
                   </div>
                 )}
               </div>
 
-              {/* Clean Plain Release Schedule Preview */}
-              <div className="rounded-xl bg-[#0e0e16] border border-white/10 p-4 space-y-3">
-                <div className="flex items-center justify-between text-xs font-medium text-white/70">
-                  <span className="flex items-center gap-1.5 text-white font-semibold">
-                    <Calendar className="w-3.5 h-3.5 text-violet-400" /> Release Schedule and Publishing Timeline
-                  </span>
-                  <span className="text-[11px] text-white/40 font-mono">
-                    Time: {isValidDate ? format(eventDateObj, "hh:mm a") : "06:30 PM"}
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-1 gap-2">
-                  {upcomingPreviews.map((occDate, idx) => {
-                    const isFirst = idx === 0;
-                    const leadDaysVal = Number(form.recurrence_lead_days || 14);
-                    const autoPublishDate = new Date(occDate.getTime() - leadDaysVal * 24 * 60 * 60 * 1000);
-
-                    return (
-                      <div
-                        key={idx}
-                        className={`p-3 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs transition-all ${
-                          isFirst
-                            ? "bg-violet-600/10 border-violet-500/30 text-white"
-                            : "bg-white/[0.02] border-white/5 text-white/80"
-                        }`}
-                      >
-                        <div className="flex items-center gap-3">
-                          <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 ${
-                            isFirst ? "bg-violet-600 text-white" : "bg-white/10 text-white/60"
-                          }`}>
-                            {idx + 1}
-                          </span>
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <span className="font-semibold text-white">
-                                Event Date: {format(occDate, "EEE, MMM d, yyyy")} at {format(occDate, "hh:mm a")}
-                              </span>
-                              {isFirst && (
-                                <span className="text-[9px] bg-emerald-500/20 text-emerald-300 font-bold px-1.5 py-0.5 rounded border border-emerald-500/30">
-                                  Current Event
-                                </span>
-                              )}
-                            </div>
-                            <p className="text-[11px] text-white/40 mt-0.5">
-                              {isFirst
-                                ? "Published on website: Active immediately upon saving (ticket sales open)"
-                                : `Published on website: ${format(autoPublishDate, "EEE, MMM d, yyyy")} (${leadDaysVal} days in advance)`}
-                            </p>
-                          </div>
-                        </div>
-
-                        {!isFirst && (
-                          <div className="text-right shrink-0">
-                            <span className="text-[10px] bg-white/5 border border-white/10 text-white/60 px-2.5 py-1 rounded-md">
-                              Auto-generates {leadDaysVal}d before
+              {/* Release schedule preview */}
+              {upcomingPreviews.length > 0 && (
+                <div className="border-t border-white/[0.06] px-5 pb-5 pt-4 space-y-3">
+                  <p className="text-xs font-semibold text-white/60 flex items-center gap-1.5">
+                    <Calendar className="w-3.5 h-3.5 text-violet-400" />
+                    Upcoming Dates Preview
+                  </p>
+                  <div className="space-y-2">
+                    {upcomingPreviews.map((occDate, idx) => {
+                      const isFirst = idx === 0;
+                      const leadDaysVal = Number(form.recurrence_lead_days || 14);
+                      const autoPublishDate = new Date(occDate.getTime() - leadDaysVal * 24 * 60 * 60 * 1000);
+                      return (
+                        <div
+                          key={idx}
+                          className={`flex items-center justify-between p-3 rounded-xl border text-xs ${
+                            isFirst
+                              ? "bg-violet-600/10 border-violet-500/30"
+                              : "bg-white/[0.02] border-white/5"
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <span className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 ${
+                              isFirst ? "bg-violet-600 text-white" : "bg-white/10 text-white/50"
+                            }`}>
+                              {idx + 1}
                             </span>
+                            <div>
+                              <p className="font-semibold text-white">{format(occDate, "EEE, MMM d, yyyy")} · {format(occDate, "hh:mm a")}</p>
+                              <p className="text-[11px] text-white/40 mt-0.5">
+                                {isFirst
+                                  ? "Tickets go live on save"
+                                  : `Tickets go live: ${format(autoPublishDate, "MMM d, yyyy")}`}
+                              </p>
+                            </div>
                           </div>
-                        )}
-                      </div>
-                    );
-                  })}
+                          {isFirst && (
+                            <span className="text-[9px] bg-emerald-500/20 text-emerald-300 font-bold px-2 py-1 rounded-full border border-emerald-500/30 shrink-0">
+                              Now
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           );
         })()}
