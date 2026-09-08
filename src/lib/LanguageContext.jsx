@@ -32,6 +32,13 @@ export const translations = {
     heroSubtitle: "Premium Events & Experiences",
     heroDescription: "Join us every weekend for unforgettable movie nights, live performances, and exclusive gatherings. Book your tickets instantly via WhatsApp.",
     browseEvents: "Browse Events",
+    // Featured
+    featured: "Featured",
+    thisWeekend: "This Weekend",
+    featuredEvents: "Featured Events",
+    noEventsThisWeekend: "No events scheduled for this weekend",
+    checkFeaturedBelow: "Check out our featured upcoming experiences below or browse the full calendar.",
+    viewCalendar: "View Calendar",
     // Upcoming
     comingUp: "Coming Up",
     upcomingEvents: "Upcoming Events",
@@ -274,6 +281,13 @@ export const translations = {
     heroSubtitle: "Événements & Expériences Premium",
     heroDescription: "Rejoignez-nous chaque week-end pour des soirées cinéma inoubliables, des performances live et des rassemblements exclusifs. Réservez vos billets instantanément via WhatsApp.",
     browseEvents: "Voir les Événements",
+    // Featured
+    featured: "À la une",
+    thisWeekend: "Ce Week-end",
+    featuredEvents: "Événements à la une",
+    noEventsThisWeekend: "Aucun événement prévu pour ce week-end",
+    checkFeaturedBelow: "Découvrez nos expériences à venir ci-dessous ou consultez le calendrier complet.",
+    viewCalendar: "Voir le Calendrier",
     // Upcoming
     comingUp: "À Venir",
     upcomingEvents: "Événements à Venir",

@@ -1,6 +1,9 @@
 import EventCard from "../events/EventCard";
+import { useLocalized } from "@/lib/LanguageContext";
 
 export default function FeaturedEvents({ events, isLoading }) {
+  const { t } = useLocalized();
+
   if (isLoading) {
     return (
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
@@ -26,8 +29,12 @@ export default function FeaturedEvents({ events, isLoading }) {
     <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
       <div className="flex items-end justify-between mb-10">
         <div>
-          <p className="text-sm font-medium text-violet-400 mb-2 tracking-wide uppercase">Featured</p>
-          <h2 className="text-2xl sm:text-3xl font-bold text-white">This Weekend</h2>
+          <p className="text-sm font-medium text-violet-400 mb-2 tracking-wide uppercase">
+            {t.featured || "Featured"}
+          </p>
+          <h2 className="text-2xl sm:text-3xl font-bold text-white">
+            {t.featuredEvents || "Featured Events"}
+          </h2>
         </div>
       </div>
 
