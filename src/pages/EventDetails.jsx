@@ -1,7 +1,7 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
-import { ArrowLeft, Calendar, MapPin, Film, Music, AlertCircle, Info } from "lucide-react";
+import { ArrowLeft, Calendar, MapPin, Film, Music, AlertCircle, Info, Repeat } from "lucide-react";
 import { formatLocalizedDate } from "@/lib/localize";
 import { useLocalized } from "@/lib/LanguageContext";
 import { useAuth } from "@/lib/AuthContext";
@@ -180,6 +180,12 @@ export default function EventDetails() {
                     <TypeIcon className="w-3.5 h-3.5 mr-1.5 shrink-0" />
                     {typeLabel}
                   </span>
+                  {event.is_recurring && (
+                    <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold tracking-wide border bg-violet-500/15 text-violet-300 border-violet-500/30">
+                      <Repeat className="w-3.5 h-3.5 mr-1.5 shrink-0" />
+                      {t.recurring || "Recurring"}
+                    </span>
+                  )}
                   {!isAvailable && (
                     <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold tracking-wide border ${status.color}`}>
                       {status.label}

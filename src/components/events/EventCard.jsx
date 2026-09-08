@@ -248,6 +248,14 @@ export default function EventCard({ event, index = 0 }) {
                     <span className="font-medium text-zinc-300">{getField(event, "venue")}</span>
                   </>
                 )}
+                {event.is_recurring && (
+                  <>
+                    {" \u2022 "}
+                    <span className="inline-flex items-center text-xs font-semibold text-violet-400 bg-violet-500/10 px-2 py-0.5 rounded-full border border-violet-500/20">
+                      {t.recurring || "Recurring"}
+                    </span>
+                  </>
+                )}
               </p>
 
               {/* Dynamic Slots Left indicator */}
