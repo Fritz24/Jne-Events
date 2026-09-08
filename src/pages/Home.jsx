@@ -3,7 +3,6 @@ import { supabase } from "@/lib/supabase";
 import HeroSection from "../components/home/HeroSection";
 import ThisWeekendSection from "../components/home/ThisWeekendSection";
 import FeaturedEvents from "../components/home/FeaturedEvents";
-import UpcomingPreview from "../components/home/UpcomingPreview";
 import GallerySection from "../components/home/GallerySection";
 import RentalsPromoSection from "../components/home/RentalsPromoSection";
 import NewsletterSection from "../components/home/NewsletterSection";
@@ -32,7 +31,7 @@ export default function Home() {
   // 1. Events happening this weekend (Friday - Sunday)
   const weekendEvents = upcomingEvents.filter((e) => isEventThisWeekend(e.date));
 
-  // 2. Events marked as featured (excluding any already shown in this weekend)
+  // 2. Events marked as featured (or top upcoming highlights if none marked featured)
   const weekendIds = new Set(weekendEvents.map((e) => e.id));
   const nonWeekendUpcoming = upcomingEvents.filter((e) => !weekendIds.has(e.id));
 
@@ -40,10 +39,6 @@ export default function Home() {
   const featuredEvents = explicitlyFeatured.length > 0
     ? explicitlyFeatured.slice(0, 3)
     : nonWeekendUpcoming.slice(0, 3);
-
-  // 3. Other upcoming events (not in this weekend, and not in featured)
-  const featuredIds = new Set(featuredEvents.map((e) => e.id));
-  const nextUpEvents = nonWeekendUpcoming.filter((e) => !featuredIds.has(e.id)).slice(0, 5);
 
   return (
     <div>
@@ -54,7 +49,6 @@ export default function Home() {
       <HeroSection />
       <ThisWeekendSection events={weekendEvents} />
       <FeaturedEvents events={featuredEvents} isLoading={isLoading} />
-      <UpcomingPreview events={nextUpEvents} />
       <RentalsPromoSection />
       <GallerySection />
       <NewsletterSection />

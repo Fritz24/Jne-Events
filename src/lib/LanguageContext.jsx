@@ -39,6 +39,7 @@ export const translations = {
     noEventsThisWeekend: "No events scheduled for this weekend",
     checkFeaturedBelow: "Check out our featured upcoming experiences below or browse the full calendar.",
     viewCalendar: "View Calendar",
+    browseAllEvents: "Browse all events",
     // Upcoming
     comingUp: "Coming Up",
     upcomingEvents: "Upcoming Events",
@@ -288,6 +289,7 @@ export const translations = {
     noEventsThisWeekend: "Aucun événement prévu pour ce week-end",
     checkFeaturedBelow: "Découvrez nos expériences à venir ci-dessous ou consultez le calendrier complet.",
     viewCalendar: "Voir le Calendrier",
+    browseAllEvents: "Voir tous les événements",
     // Upcoming
     comingUp: "À Venir",
     upcomingEvents: "Événements à Venir",
