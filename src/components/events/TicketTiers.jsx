@@ -89,8 +89,68 @@ export default function TicketTiers({ event, compact = false, showMobileMoney = 
     };
   }, []);
 
-  // Listen to returning transaction query parameters from Payunit hosted pages
+  // Check for recent in-progress transaction or returning query params
   useEffect(() => {
+    // 1. Recover recent in-progress transaction from localStorage (within 30 minutes)
+    try {
+      const pendingRaw = localStorage.getItem("jne_pending_transaction");
+      if (pendingRaw) {
+        const pending = JSON.parse(pendingRaw);
+        const isRecent = pending.timestamp && (Date.now() - pending.timestamp < 30 * 60 * 1000);
+        if (isRecent && pending.eventId === event.id && pending.bookingId) {
+          setIsModalOpen(true);
+          if (pending.attendeeName) setAttendeeName(pending.attendeeName);
+          if (pending.phone) setPhoneNumber(pending.phone);
+          if (pending.gateway) setSelectedGateway(pending.gateway);
+          setPayState("polling");
+          setCheckoutStep("polling");
+
+          supabase
+            .from('jne_bookings')
+            .select('*')
+            .eq('id', pending.bookingId)
+            .single()
+            .then(async ({ data: booking }) => {
+              if (!booking) return;
+              setFinalBooking(booking);
+              if (booking.status === "confirmed") {
+                saveLocalTicket(booking, event);
+                setFinalTicket(booking.ticket_id);
+                setPayState("success");
+                setCheckoutStep("success");
+                try { localStorage.removeItem("jne_pending_transaction"); } catch (e) {}
+              } else if (booking.status === "pending") {
+                pollTransaction(booking.ticket_id, booking.id, booking.ticket_id);
+              } else {
+                // If marked failed in DB, verify with PayUnit first in case payment actually succeeded
+                try {
+                  const statusData = await checkTransactionStatus(booking.ticket_id);
+                  if (statusData.transaction_status === "SUCCESS") {
+                    await supabase.from('jne_bookings').update({ status: 'confirmed', failure_reason: null }).eq('id', booking.id);
+                    saveLocalTicket(booking, event);
+                    setFinalTicket(booking.ticket_id);
+                    setPayState("success");
+                    setCheckoutStep("success");
+                    try { localStorage.removeItem("jne_pending_transaction"); } catch (e) {}
+                    return;
+                  }
+                } catch (stErr) {}
+
+                setPayState("error");
+                setCheckoutStep("billing");
+                setPayError(booking.failure_reason || t.transactionFailed || "Transaction failed.");
+                try { localStorage.removeItem("jne_pending_transaction"); } catch (e) {}
+              }
+            });
+        } else if (!isRecent) {
+          try { localStorage.removeItem("jne_pending_transaction"); } catch (e) {}
+        }
+      }
+    } catch (e) {
+      console.error("Error checking pending transaction:", e);
+    }
+
+    // 2. Listen to returning transaction query parameters from Payunit hosted pages
     const urlParams = new URLSearchParams(window.location.search);
     const txId = urlParams.get("transaction_id");
     const bkId = urlParams.get("booking_id");
@@ -116,9 +176,11 @@ export default function TicketTiers({ event, compact = false, showMobileMoney = 
           setFinalBooking(booking);
 
           if (booking.status === "confirmed") {
+            saveLocalTicket(booking, event);
             setPayState("success");
             setCheckoutStep("success");
             setFinalTicket(booking.ticket_id);
+            try { localStorage.removeItem("jne_pending_transaction"); } catch (e) {}
           } else if (booking.status === "pending") {
             setPayState("polling");
             setCheckoutStep("polling");
@@ -127,6 +189,7 @@ export default function TicketTiers({ event, compact = false, showMobileMoney = 
             setPayState("error");
             setCheckoutStep("billing");
             setPayError(t.transactionFailed || "Transaction failed.");
+            try { localStorage.removeItem("jne_pending_transaction"); } catch (e) {}
           }
         } catch (err) {
           console.error("Error checking transaction return parameters:", err);
@@ -287,6 +350,23 @@ export default function TicketTiers({ event, compact = false, showMobileMoney = 
       createdBookingId = booking.id;
       setFinalBooking(booking);
 
+      // Save pending transaction to localStorage so refreshes and network drops recover automatically
+      try {
+        localStorage.setItem("jne_pending_transaction", JSON.stringify({
+          bookingId: booking.id,
+          ticketId: booking.ticket_id,
+          eventId: event.id,
+          eventTitle: event.title,
+          attendeeName: attendeeName.trim(),
+          phone: phoneNumber.trim(),
+          gateway: selectedGateway,
+          totalPrice,
+          timestamp: Date.now()
+        }));
+      } catch (storageErr) {
+        console.warn("Could not save pending transaction:", storageErr);
+      }
+
       // Create return URL
       const returnUrl = new URL(window.location.href);
       returnUrl.searchParams.set("transaction_id", booking.ticket_id);
@@ -324,12 +404,31 @@ export default function TicketTiers({ event, compact = false, showMobileMoney = 
         setCheckoutStep("polling");
         pollTransaction(booking.ticket_id, booking.id, booking.ticket_id);
       } catch (directErr) {
-        console.warn("Direct MoMo push failed:", directErr);
+        console.warn("Direct MoMo push returned error or timed out:", directErr);
+        // CRITICAL FIX: If the mobile money push timed out or threw network error (e.g. "Load failed" on Safari),
+        // the push was almost certainly already dispatched to the phone by PayUnit / telco!
+        // DO NOT mark the booking as failed! Instead, transition to polling mode to verify status.
+        const errMsg = (directErr?.message || "").toLowerCase();
+        const isNetworkOrTimeout = !errMsg || 
+          errMsg.includes("load failed") || 
+          errMsg.includes("fetch") || 
+          errMsg.includes("timeout") || 
+          errMsg.includes("network") || 
+          errMsg.includes("504") || 
+          errMsg.includes("gateway") ||
+          errMsg.includes("pending");
+
+        if (isNetworkOrTimeout) {
+          setPayState("polling");
+          setCheckoutStep("polling");
+          pollTransaction(booking.ticket_id, booking.id, booking.ticket_id);
+          return;
+        }
         throw directErr;
       }
 
     } catch (err) {
-      console.error(err);
+      console.error("Payment error:", err);
       if (createdBookingId) {
         const updatePayload = { 
           status: 'failed',
@@ -341,6 +440,8 @@ export default function TicketTiers({ event, compact = false, showMobileMoney = 
           await supabase.from('jne_bookings').update({ status: 'failed' }).eq('id', createdBookingId);
         }
       }
+      try { localStorage.removeItem("jne_pending_transaction"); } catch (e) {}
+
       let userFriendlyError = err.message || t.paymentError || "Payment initialization failed. Please try again.";
       if (typeof userFriendlyError === "string" && userFriendlyError.toLowerCase().includes("payment request failed")) {
         userFriendlyError = "Payment request failed. This usually means you have insufficient funds in your MoMo wallet, the phone number doesn't match the selected provider, or your network requires you to dial a code (like #150*50# for Orange) to authorize payments first.";
@@ -359,19 +460,26 @@ export default function TicketTiers({ event, compact = false, showMobileMoney = 
         const statusData = await checkTransactionStatus(reference);
         if (statusData.transaction_status === "SUCCESS") {
           clearInterval(pollingIntervalRef.current);
-          await supabase.from('jne_bookings').update({ status: 'confirmed' }).eq('id', bookingId);
-          if (!user?.id) {
-            supabase.from('jne_bookings').select('*').eq('id', bookingId).single()
-              .then(({ data: updatedBooking }) => {
-                 if (updatedBooking) saveLocalTicket(updatedBooking, event);
-              });
-          }
+          try { localStorage.removeItem("jne_pending_transaction"); } catch (e) {}
+
+          await supabase.from('jne_bookings').update({ status: 'confirmed', failure_reason: null }).eq('id', bookingId);
+          
+          supabase.from('jne_bookings').select('*').eq('id', bookingId).single()
+            .then(({ data: updatedBooking }) => {
+               if (updatedBooking) {
+                 saveLocalTicket(updatedBooking, event);
+                 setFinalBooking(updatedBooking);
+               }
+            });
+
           setFinalTicket(ticketId);
           setPayState("success");
           setCheckoutStep("success");
           logAnalyticsEvent("ticket_purchased", event.id, event.title);
         } else if (statusData.transaction_status === "FAILED" || statusData.transaction_status === "CANCELLED") {
           clearInterval(pollingIntervalRef.current);
+          try { localStorage.removeItem("jne_pending_transaction"); } catch (e) {}
+
           const updatePayload = {
             status: 'failed',
             failure_reason: statusData.message || "Transaction failed or was cancelled."
@@ -390,6 +498,8 @@ export default function TicketTiers({ event, compact = false, showMobileMoney = 
 
       if (attempts >= 40) { // 2 mins max
          clearInterval(pollingIntervalRef.current);
+         try { localStorage.removeItem("jne_pending_transaction"); } catch (e) {}
+
          const updatePayload = {
            status: 'failed',
            failure_reason: "Transaction timed out after 2 minutes."
@@ -407,6 +517,7 @@ export default function TicketTiers({ event, compact = false, showMobileMoney = 
 
   const handleCancelPayment = async () => {
     if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
+    try { localStorage.removeItem("jne_pending_transaction"); } catch (e) {}
     if (finalBooking?.id) {
       try {
         await supabase.from('jne_bookings').update({ status: 'cancelled' }).eq('id', finalBooking.id);

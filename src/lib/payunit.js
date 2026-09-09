@@ -92,12 +92,12 @@ export async function makeDirectPayment(amount, transactionId, phoneNumber, retu
 
   const data = await response.json();
 
-  if (!response.ok || data.status !== "SUCCESS") {
+  if (!response.ok || (data.status !== "SUCCESS" && data.status !== "PENDING_TIMEOUT")) {
     console.error("Payunit MakePayment Error:", data);
     throw new Error(data.message || "Failed to push mobile money prompt");
   }
 
-  return data.data;
+  return data.data || { transaction_id: transactionId, transaction_status: "PENDING" };
 }
 
 /**

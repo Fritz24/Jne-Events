@@ -1,14 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { Calendar, ChevronRight, Clock, ExternalLink, Loader2, MapPin, Ticket, User } from "lucide-react";
+import { Calendar, ChevronRight, Clock, ExternalLink, Loader2, MapPin, Ticket, User, Search, Phone, Check, AlertCircle } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/AuthContext";
 import { useLocalized } from "@/lib/LanguageContext";
 import SEO from "@/components/common/SEO";
 import { formatLocalizedDate } from "@/lib/localize";
-import { getLocalTickets } from "@/lib/tickets";
+import { getLocalTickets, saveLocalTicket } from "@/lib/tickets";
 
 export default function Tickets() {
   const navigate = useNavigate();
@@ -16,8 +16,76 @@ export default function Tickets() {
   const { t, lang, getField, translate } = useLocalized();
   const [localTickets, setLocalTickets] = useState(() => getLocalTickets());
 
+  const [lookupQuery, setLookupQuery] = useState("");
+  const [lookupLoading, setLookupLoading] = useState(false);
+  const [lookupResult, setLookupResult] = useState(null);
+
   useEffect(() => {
     setLocalTickets(getLocalTickets());
+  }, []);
+
+  const handleLookup = async (queryToUse) => {
+    const raw = (queryToUse || lookupQuery || "").trim();
+    if (!raw) return;
+
+    setLookupLoading(true);
+    setLookupResult(null);
+
+    try {
+      const cleanDigits = raw.replace(/\D/g, "");
+
+      let query = supabase
+        .from('jne_bookings')
+        .select('*')
+        .in('status', ['confirmed', 'checked_in']);
+
+      if (cleanDigits.length >= 8) {
+        const last9 = cleanDigits.slice(-9);
+        query = query.or(`phone.ilike.%${last9}%,ticket_id.ilike.%${raw}%`);
+      } else {
+        query = query.ilike('ticket_id', `%${raw}%`);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+
+      if (!data || data.length === 0) {
+        setLookupResult({
+          type: "not_found",
+          message: "No confirmed tickets found for that phone number or ticket ID. If you just paid, please check with the organizer or try again shortly."
+        });
+      } else {
+        data.forEach((booking) => {
+          saveLocalTicket(booking);
+        });
+        setLocalTickets(getLocalTickets());
+        setLookupResult({
+          type: "success",
+          message: `Found ${data.length} confirmed ticket${data.length > 1 ? "s" : ""}! Successfully loaded and saved to your device.`
+        });
+        setLookupQuery("");
+      }
+    } catch (err) {
+      console.error("Lookup error:", err);
+      setLookupResult({
+        type: "error",
+        message: "Search error: " + (err.message || "Failed to search")
+      });
+    } finally {
+      setLookupLoading(false);
+    }
+  };
+
+  // Check URL params on mount
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const qPhone = urlParams.get("phone");
+    const qId = urlParams.get("id") || urlParams.get("ticket_id");
+    const target = qPhone || qId;
+    if (target) {
+      setLookupQuery(target);
+      handleLookup(target);
+    }
   }, []);
 
   const { data: bookings = [], isLoading: bookingsLoading } = useQuery({
@@ -133,6 +201,56 @@ export default function Tickets() {
               {t.browseEvents || 'Browse Events'}
               <ChevronRight className="w-4 h-4" />
             </button>
+          </div>
+
+          {/* Find My Ticket Search Bar */}
+          <div className="mb-8 p-5 rounded-2xl border border-white/10 bg-gradient-to-r from-violet-950/20 via-white/[0.02] to-transparent">
+            <div className="max-w-2xl">
+              <h3 className="text-sm font-semibold text-white flex items-center gap-2 mb-1">
+                <Search className="w-4 h-4 text-violet-400" />
+                Find My Ticket
+              </h3>
+              <p className="text-xs text-white/50 mb-3">
+                Bought as a guest, refreshed during checkout, or using a new device? Enter your phone number or Ticket ID to retrieve your tickets.
+              </p>
+              <form 
+                onSubmit={(e) => { e.preventDefault(); handleLookup(); }} 
+                className="flex flex-col sm:flex-row gap-2"
+              >
+                <div className="relative flex-1">
+                  <input
+                    type="text"
+                    value={lookupQuery}
+                    onChange={(e) => setLookupQuery(e.target.value)}
+                    placeholder="Enter phone number (e.g. 692989353) or Ticket ID"
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-violet-500 transition-all font-mono sm:font-sans"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={lookupLoading || !lookupQuery.trim()}
+                  className="px-5 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white font-semibold text-xs tracking-wide transition-all shrink-0 flex items-center justify-center gap-2"
+                >
+                  {lookupLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+                  <span>{lookupLoading ? "Searching..." : "Retrieve Ticket"}</span>
+                </button>
+              </form>
+
+              {lookupResult && (
+                <div className={`mt-3 p-3 rounded-xl text-xs flex items-start gap-2 animate-in fade-in duration-200 ${
+                  lookupResult.type === "success" 
+                    ? "bg-emerald-500/10 border border-emerald-500/20 text-emerald-300"
+                    : "bg-amber-500/10 border border-amber-500/20 text-amber-300"
+                }`}>
+                  {lookupResult.type === "success" ? (
+                    <Check className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                  ) : (
+                    <AlertCircle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                  )}
+                  <span>{lookupResult.message}</span>
+                </div>
+              )}
+            </div>
           </div>
 
           {bookingsLoading && user?.id && tickets.length === 0 ? (

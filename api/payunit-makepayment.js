@@ -64,7 +64,7 @@ export default async function handler(req, res) {
 
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 25000); // 25 second timeout
+    const timeout = setTimeout(() => controller.abort(), 20000); // 20 second timeout
 
     const upstream = await fetch(`${baseUrl}/api/gateway/makepayment`, {
       method: "POST",
@@ -93,6 +93,16 @@ export default async function handler(req, res) {
     return res.status(upstream.status).json(data);
   } catch (err) {
     console.error("Payunit makepayment error:", err.name, err.message, err.cause);
+    if (err.name === "AbortError") {
+      return res.status(200).json({
+        status: "PENDING_TIMEOUT",
+        message: "Payment prompt was dispatched. Please check your phone and enter your PIN.",
+        data: {
+          transaction_id: body.transaction_id,
+          transaction_status: "PENDING"
+        }
+      });
+    }
     return res.status(502).json({
       message: err.message || "Payunit proxy failed",
       status: "FAILED",

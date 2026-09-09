@@ -6,8 +6,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { XCircle, UserCheck, Search, Trash2, Download, RefreshCw } from "lucide-react";
+import { XCircle, UserCheck, Search, Trash2, Download, RefreshCw, Ticket, Plus } from "lucide-react";
 import { countUsedSlots, remainingSlots } from "@/utils/ticketCount";
+import TicketGenerator from "./TicketGenerator";
 
 const STATUS_CONFIG = {
   pending: { label: "Pending", color: "bg-yellow-500/15 text-yellow-300" },
@@ -24,6 +25,7 @@ export default function BookingManager() {
   const [filterEvent, setFilterEvent] = useState("all");
   const [includePast, setIncludePast] = useState(false);
   const [verifyingId, setVerifyingId] = useState(null);
+  const [showTicketModal, setShowTicketModal] = useState(false);
 
   const verifyPaymentStatus = async (booking) => {
     setVerifyingId(booking.id);
@@ -33,7 +35,7 @@ export default function BookingManager() {
       if (response.ok && data.data?.transaction_status === "SUCCESS") {
         const { error } = await supabase
           .from('jne_bookings')
-          .update({ status: 'confirmed' })
+          .update({ status: 'confirmed', failure_reason: null })
           .eq('id', booking.id);
         if (error) throw error;
         qc.invalidateQueries({ queryKey: ["bookings"] });
@@ -247,6 +249,15 @@ export default function BookingManager() {
           </SelectContent>
         </Select>
         <Button
+          type="button"
+          onClick={() => setShowTicketModal(true)}
+          className="bg-emerald-600 hover:bg-emerald-500 text-white gap-2 shrink-0 border border-emerald-500/20 shadow-md"
+        >
+          <Ticket className="w-4 h-4" />
+          + Manual Ticket
+        </Button>
+        <Button
+          type="button"
           onClick={downloadCSV}
           className="bg-violet-600 hover:bg-violet-500 text-white gap-2 shrink-0 border border-violet-500/20 shadow-md"
         >
@@ -310,7 +321,7 @@ export default function BookingManager() {
                     </td>
                     <td className="py-3">
                       <Badge className={`${cfg.color} text-xs`}>{cfg.label}</Badge>
-                      {b.failure_reason && (
+                      {b.failure_reason && b.status !== "confirmed" && b.status !== "checked_in" && (
                         <div className="text-[10px] text-red-400 mt-1 max-w-[140px] leading-tight break-words font-normal" title={b.failure_reason}>
                           {b.failure_reason}
                         </div>
@@ -369,6 +380,14 @@ export default function BookingManager() {
             </tbody>
           </table>
         </div>
+      )}
+
+      {showTicketModal && (
+        <TicketGenerator
+          events={eventsData}
+          onClose={() => setShowTicketModal(false)}
+          onSaved={() => qc.invalidateQueries({ queryKey: ["bookings"] })}
+        />
       )}
     </div>
   );
