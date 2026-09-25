@@ -18,6 +18,7 @@ import {
 } from "@/lib/favorites";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
+import { getOptimizedImageUrl } from "@/utils/imageOptimizer";
 
 // Simple Apple-style share icon (square with arrow up)
 const AppleShareIcon = ({ className = "w-5 h-5", ...props }) => (
@@ -188,11 +189,13 @@ export default function EventCard({ event, index = 0 }) {
       {/* Outer wrapper: transparent so text sits on app background (no card bg) */}
       <div className="cursor-pointer h-full" onClick={handleCardClick}>
         {/* Image block - rounded with shadow to match the poster look */}
-        <div className="relative w-full aspect-video overflow-hidden rounded-2xl shadow-lg group-hover:shadow-xl transition-shadow">
+        <div className="relative w-full aspect-video overflow-hidden rounded-2xl shadow-lg group-hover:shadow-xl transition-shadow bg-zinc-900/60">
           {event.image_url ? (
             <img
-              src={event.image_url}
+              src={getOptimizedImageUrl(event.image_url, 640)}
               alt={getField(event, "title")}
+              loading="lazy"
+              decoding="async"
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
             />
           ) : (

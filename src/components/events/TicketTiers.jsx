@@ -91,17 +91,20 @@ export default function TicketTiers({ event, compact = false, showMobileMoney = 
 
   // Check for recent in-progress transaction or returning query params
   useEffect(() => {
-    // 1. Recover recent in-progress transaction from localStorage (within 30 minutes)
+    if (!event?.id) return;
+
+    // 1. Recover recent in-progress transaction from localStorage (within 45 minutes)
     try {
       const pendingRaw = localStorage.getItem("jne_pending_transaction");
       if (pendingRaw) {
         const pending = JSON.parse(pendingRaw);
-        const isRecent = pending.timestamp && (Date.now() - pending.timestamp < 30 * 60 * 1000);
+        const isRecent = pending.timestamp && (Date.now() - pending.timestamp < 45 * 60 * 1000);
         if (isRecent && pending.eventId === event.id && pending.bookingId) {
           setIsModalOpen(true);
           if (pending.attendeeName) setAttendeeName(pending.attendeeName);
           if (pending.phone) setPhoneNumber(pending.phone);
           if (pending.gateway) setSelectedGateway(pending.gateway);
+          if (pending.quantities) setQuantities(pending.quantities);
           setPayState("polling");
           setCheckoutStep("polling");
 
@@ -113,7 +116,7 @@ export default function TicketTiers({ event, compact = false, showMobileMoney = 
             .then(async ({ data: booking }) => {
               if (!booking) return;
               setFinalBooking(booking);
-              if (booking.status === "confirmed") {
+              if (booking.status === "confirmed" || booking.status === "checked_in") {
                 saveLocalTicket(booking, event);
                 setFinalTicket(booking.ticket_id);
                 setPayState("success");
@@ -139,7 +142,6 @@ export default function TicketTiers({ event, compact = false, showMobileMoney = 
                 setPayState("error");
                 setCheckoutStep("billing");
                 setPayError(booking.failure_reason || t.transactionFailed || "Transaction failed.");
-                try { localStorage.removeItem("jne_pending_transaction"); } catch (e) {}
               }
             });
         } else if (!isRecent) {
@@ -198,7 +200,7 @@ export default function TicketTiers({ event, compact = false, showMobileMoney = 
 
       checkBookingOnMount();
     }
-  }, []);
+  }, [event?.id]);
 
   if (!tiers.length) return null;
 
@@ -220,8 +222,8 @@ export default function TicketTiers({ event, compact = false, showMobileMoney = 
     s + dynamicAddons.reduce((as, a) => as + (addonQty[`${i}_${a.id}`] || 0) * a.price, 0), 0);
 
   const subtotal = ticketPrice + addonPrice;
-  // 2.8% transaction fee on ticket purchases (industry-standard processing fee, displaying amount only)
-  const serviceFee = subtotal > 0 ? Math.round(subtotal * 0.028) : 0;
+  // 3% transaction fee on ticket purchases (industry-standard processing fee, displaying amount only)
+  const serviceFee = subtotal > 0 ? Math.round(subtotal * 0.03) : 0;
   const totalPrice = subtotal + serviceFee;
 
   // Process Payment via Payunit
@@ -382,7 +384,7 @@ export default function TicketTiers({ event, compact = false, showMobileMoney = 
         returnUrlStr = returnUrl.toString();
       }
       
-      // Step 1: Initialize transaction — registers transaction under our custom ID
+      // Step 1: Initialize transaction - registers transaction under our custom ID
       const initResult = await initializePayment(totalPrice, booking.ticket_id, returnUrlStr);
 
       if (selectedGateway === "CARD") {

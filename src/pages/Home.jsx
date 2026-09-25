@@ -9,6 +9,7 @@ import NewsletterSection from "../components/home/NewsletterSection";
 import SEO from "../components/common/SEO";
 
 import { isEventThisWeekend } from "@/utils/dateUtils";
+import { getCachedEvents, saveCachedEvents } from "@/utils/eventsCache";
 
 export default function Home() {
   const { data: events = [], isLoading } = useQuery({
@@ -19,8 +20,10 @@ export default function Home() {
         .select('*')
         .order('date', { ascending: true });
       if (error) throw error;
+      saveCachedEvents(data);
       return data || [];
     },
+    initialData: getCachedEvents,
   });
 
   const now = new Date();

@@ -204,6 +204,18 @@ export function lookupDictionary(text, targetLang = "fr") {
   return null;
 }
 
+// In-flight request deduplication map to prevent parallel duplicate fetches
+const inFlightTranslations = new Map();
+
+// Throttled notification helper to avoid rapid re-rendering cascades
+let pendingUpdateTimeout = null;
+function notifyTranslationUpdated(cacheKey, translated) {
+  if (pendingUpdateTimeout) clearTimeout(pendingUpdateTimeout);
+  pendingUpdateTimeout = setTimeout(() => {
+    window.dispatchEvent(new CustomEvent("jne_translation_updated", { detail: { cacheKey, translated } }));
+  }, 250);
+}
+
 /**
  * Online translation fetcher with multiple fallback endpoints
  */
@@ -221,39 +233,55 @@ async function fetchOnlineTranslation(text, targetLang = "fr", sourceLang = "aut
 
   if (source === target) return cleanText;
 
-  // 1. Try Google Translate Public API endpoint
-  try {
-    const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${source}&tl=${target}&dt=t&q=${encodeURIComponent(cleanText)}`;
-    const res = await fetch(url, { signal: AbortSignal.timeout(3500) });
-    if (res.ok) {
-      const data = await res.json();
-      if (data && Array.isArray(data[0])) {
-        const translated = data[0].map(item => item[0]).filter(Boolean).join("");
-        if (translated && translated.trim().length > 0) {
-          return translated.trim();
+  const cacheKey = `${target}:${cleanText}`;
+  if (inFlightTranslations.has(cacheKey)) {
+    return inFlightTranslations.get(cacheKey);
+  }
+
+  const fetchPromise = (async () => {
+    // 1. Try Google Translate Public API endpoint
+    try {
+      const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${source}&tl=${target}&dt=t&q=${encodeURIComponent(cleanText)}`;
+      const res = await fetch(url, { signal: AbortSignal.timeout(3000) });
+      if (res.ok) {
+        const data = await res.json();
+        if (data && Array.isArray(data[0])) {
+          const translated = data[0].map(item => item[0]).filter(Boolean).join("");
+          if (translated && translated.trim().length > 0) {
+            return translated.trim();
+          }
         }
       }
+    } catch (err) {
+      // Quietly fall through
     }
-  } catch (err) {
-    // Proceed to fallback
-  }
 
-  // 2. Fallback to MyMemory Free Translation API
-  try {
-    const langPair = `${source}|${target}`;
-    const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(cleanText)}&langpair=${encodeURIComponent(langPair)}`;
-    const res = await fetch(url, { signal: AbortSignal.timeout(3500) });
-    if (res.ok) {
-      const data = await res.json();
-      if (data?.responseData?.translatedText && !data.responseData.translatedText.startsWith("MYMEMORY WARNING")) {
-        return data.responseData.translatedText.trim();
+    // 2. Fallback to MyMemory Free Translation API
+    try {
+      const langPair = `${source}|${target}`;
+      const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(cleanText)}&langpair=${encodeURIComponent(langPair)}`;
+      const res = await fetch(url, { signal: AbortSignal.timeout(3000) });
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.responseData?.translatedText && !data.responseData.translatedText.startsWith("MYMEMORY WARNING")) {
+          return data.responseData.translatedText.trim();
+        }
       }
+    } catch (err) {
+      // Quietly fall through
     }
-  } catch (err) {
-    // Proceed to fallback
-  }
 
-  return cleanText;
+    return cleanText;
+  })();
+
+  inFlightTranslations.set(cacheKey, fetchPromise);
+
+  try {
+    const result = await fetchPromise;
+    return result;
+  } finally {
+    inFlightTranslations.delete(cacheKey);
+  }
 }
 
 /**
@@ -262,17 +290,15 @@ async function fetchOnlineTranslation(text, targetLang = "fr", sourceLang = "aut
  * and triggers background async translation and cache update.
  */
 export function translateText(text, targetLang = "fr") {
-  if (!text || typeof text !== "string" || targetLang === "en" && /^[a-zA-Z0-9\s.,!?'"()-]+$/.test(text)) {
-    // If target is EN and already English-like, or empty
-    if (targetLang === "en") {
-      const frMatch = lookupDictionary(text, "en");
-      if (frMatch) return frMatch;
-    }
-  }
-  
-  if (!text || typeof text !== "string") return text;
+  if (!text || typeof text !== "string") return text || "";
   const clean = text.trim();
   if (!clean) return text;
+
+  // If the target language is English, original event content is already in English
+  if (targetLang === "en") {
+    const dictMatch = lookupDictionary(clean, "en");
+    return dictMatch || clean;
+  }
 
   // 1. Check Dictionary
   const dictMatch = lookupDictionary(clean, targetLang);
@@ -284,15 +310,16 @@ export function translateText(text, targetLang = "fr") {
     return translationCache[cacheKey];
   }
 
-  // 3. Trigger async fetch for next render
-  fetchOnlineTranslation(clean, targetLang).then(translated => {
-    if (translated && translated !== clean) {
-      translationCache[cacheKey] = translated;
-      saveCache();
-      // Notify listeners
-      window.dispatchEvent(new CustomEvent("jne_translation_updated", { detail: { cacheKey, translated } }));
-    }
-  }).catch(() => {});
+  // 3. Trigger async fetch for next render if not already in flight
+  if (!inFlightTranslations.has(cacheKey)) {
+    fetchOnlineTranslation(clean, targetLang).then(translated => {
+      if (translated && translated !== clean) {
+        translationCache[cacheKey] = translated;
+        saveCache();
+        notifyTranslationUpdated(cacheKey, translated);
+      }
+    }).catch(() => {});
+  }
 
   return clean;
 }

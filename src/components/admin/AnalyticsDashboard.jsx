@@ -72,7 +72,7 @@ export default function AnalyticsDashboard() {
         
         const grossRevenue = successfulBookings.reduce((sum, b) => sum + (Number(b.tier_price) || 0), 0);
         
-        // Calculate PayUnit fees (2.8% on online transactions)
+        // Calculate PayUnit fees (3% on online transactions)
         const onlineBookings = successfulBookings.filter(b => {
             const priceVal = Number(b.tier_price) || 0;
             if (priceVal === 0) return false; // Free ticket
@@ -81,7 +81,7 @@ export default function AnalyticsDashboard() {
             }
             return !b.ticket_id?.includes('-'); // fallback if column not present yet
         });
-        const payunitFees = onlineBookings.reduce((sum, b) => sum + (Number(b.tier_price) || 0) * 0.028, 0);
+        const payunitFees = onlineBookings.reduce((sum, b) => sum + (Number(b.tier_price) || 0) * 0.03, 0);
         const netRevenue = grossRevenue - payunitFees;
 
         return {
@@ -180,7 +180,7 @@ export default function AnalyticsDashboard() {
                     bg="bg-emerald-500/10"
                 />
                 <StatCard
-                    label="PayUnit Fees (2.8%)"
+                    label="PayUnit Fees (3%)"
                     value={`${stats.payunitFees.toLocaleString()} XAF`}
                     sub="Online transaction cut"
                     icon={DollarSign}
@@ -320,7 +320,7 @@ export default function AnalyticsDashboard() {
                                 <th className="px-6 py-4">Tier</th>
                                 <th className="px-6 py-4">Gateway</th>
                                 <th className="px-6 py-4 text-right">Gross (XAF)</th>
-                                <th className="px-6 py-4 text-right">Fee (2.8%)</th>
+                                <th className="px-6 py-4 text-right">Fee (3%)</th>
                                 <th className="px-6 py-4 text-right">Net (XAF)</th>
                                 <th className="px-6 py-4 text-center">Status</th>
                             </tr>
@@ -337,9 +337,9 @@ export default function AnalyticsDashboard() {
                                     const isPending = b.status === 'pending';
                                     const isCancelled = b.status === 'cancelled';
                                     
-                                    // Fee is 2.8% on online paid tickets
+                                    // Fee is 3% on online paid tickets
                                     const isOnlinePaid = Number(b.tier_price) > 0 && b.payment_method !== 'FREE' && b.payment_method !== 'Manual';
-                                    const fee = isOnlinePaid && isConfirmed ? Number(b.tier_price) * 0.028 : 0;
+                                    const fee = isOnlinePaid && isConfirmed ? Number(b.tier_price) * 0.03 : 0;
                                     const net = isConfirmed ? Number(b.tier_price) - fee : 0;
 
                                     let statusColor = "bg-yellow-500/10 text-yellow-400 border border-yellow-500/20";

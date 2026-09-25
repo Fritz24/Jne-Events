@@ -9,6 +9,8 @@ import { useAuth } from "@/lib/AuthContext";
 import { migrateLocalFavoritesToSupabase } from "@/lib/favorites";
 import { LogOut, LayoutDashboard, LogIn } from "lucide-react";
 import SearchBar from "./common/SearchBar";
+import NetworkStatus from "./common/NetworkStatus";
+import { getCachedEvents, saveCachedEvents } from "@/utils/eventsCache";
 
 export default function Layout() {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -252,6 +254,8 @@ export default function Layout() {
         <Outlet />
       </main>
 
+      <NetworkStatus />
+
       <footer className="border-t border-white/5 mt-20 bg-white/[0.01]">
         <DynamicFooter t={t} lang={lang} toggleLang={toggleLang} />
       </footer>
@@ -261,15 +265,21 @@ export default function Layout() {
 
 function DynamicFooter({ t, lang, toggleLang }) {
   const { data: events = [] } = useQuery({
-    queryKey: ["events_footer"],
+    queryKey: ["events"],
     queryFn: async () => {
-      const { data } = await supabase.from("jne_events").select("city, type, status");
+      const { data, error } = await supabase
+        .from("jne_events")
+        .select("*")
+        .order("date", { ascending: true });
+      if (error) throw error;
+      saveCachedEvents(data);
       return data || [];
     },
+    initialData: getCachedEvents,
   });
 
   const { data: categories = [] } = useQuery({
-    queryKey: ["event_categories_footer"],
+    queryKey: ["event_categories"],
     queryFn: async () => {
       const { data } = await supabase
         .from("jne_settings")
@@ -277,6 +287,14 @@ function DynamicFooter({ t, lang, toggleLang }) {
         .eq("key", "event_categories")
         .maybeSingle();
       return data?.value ? JSON.parse(data.value) : [];
+    },
+    initialData: () => {
+      try {
+        const saved = localStorage.getItem("jne_cached_categories");
+        return saved ? JSON.parse(saved) : undefined;
+      } catch (e) {
+        return undefined;
+      }
     },
   });
 

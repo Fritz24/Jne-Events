@@ -7,11 +7,13 @@ import {
   Plus, CalendarDays, Ticket, ShieldOff, ShoppingBag, Users,
   LayoutDashboard, BarChart3, Globe, Megaphone, Settings,
   ChevronDown, Menu, Sparkles,
-  MessageCircle, ArrowUpRight, Settings2, ScanLine, Wrench
+  MessageCircle, ArrowUpRight, Settings2, ScanLine, Wrench,
+  Wallet, DollarSign, TrendingUp, Banknote
 } from "lucide-react";
 import EventForm from "../components/admin/EventForm";
 import EventTable from "../components/admin/EventTable";
 import BookingManager from "../components/admin/BookingManager";
+import FinanceManager from "../components/admin/FinanceManager";
 // Actually, let's keep the import name but change the label in Admin.
 import ExtrasManager from "../components/admin/RefreshmentsManager";
 import CategoryDesigner from "../components/admin/CategoryDesigner";
@@ -38,6 +40,9 @@ const SIDEBAR_SECTIONS = [
   },
   {
     id: "bookings", label: "Bookings", icon: Ticket,
+  },
+  {
+    id: "finances", label: "Finances & Revenue", icon: Wallet,
   },
   {
     id: "scanner", label: "Scanner", icon: ScanLine,
@@ -96,8 +101,13 @@ export default function Admin() {
   const { data: bookingStats = {} } = useQuery({
     queryKey: ["booking-stats"],
     queryFn: async () => {
-      const { data: bookings } = await supabase.from('jne_bookings').select('status, user_id, attendee_name');
-      const { count: whatsappClicks } = await supabase.from('jne_analytics').select('*', { count: 'exact', head: true }).eq('type', 'whatsapp_click');
+      const { data: bookings } = await supabase
+        .from('jne_bookings')
+        .select('status, user_id, attendee_name, tier_price, payment_method');
+      const { count: whatsappClicks } = await supabase
+        .from('jne_analytics')
+        .select('*', { count: 'exact', head: true })
+        .eq('type', 'whatsapp_click');
 
       // Attempt to get total JNE Events users
       let totalUsersCount = 0;
@@ -113,17 +123,41 @@ export default function Admin() {
       }
 
       const uniqueUsers = new Set();
+      let totalGrossRevenue = 0;
+      let onlineRevenue = 0;
+      let cashRevenue = 0;
+
       bookings?.forEach(b => {
         if (b.user_id) uniqueUsers.add(b.user_id);
         else if (b.attendee_name) uniqueUsers.add(b.attendee_name.toLowerCase().trim());
+
+        if (b.status === 'confirmed' || b.status === 'checked_in') {
+          const price = Number(b.tier_price) || 0;
+          totalGrossRevenue += price;
+          const method = (b.payment_method || "MANUAL").toUpperCase();
+          const isOnline = method.includes("MTN") || method.includes("ORANGE") || method.includes("MOMO") || method.includes("CARD") || method === "ONLINE";
+          if (isOnline) {
+            onlineRevenue += price;
+          } else {
+            cashRevenue += price;
+          }
+        }
       });
+
+      // PayUnit 3% fee on online mobile money
+      const onlineFees = Math.round(onlineRevenue * 0.03);
+      const totalNetRevenue = totalGrossRevenue - onlineFees;
 
       return {
         totalBookings: bookings?.length || 0,
         uniqueUsers: uniqueUsers.size,
         confirmedBookings: bookings?.filter(b => b.status === 'confirmed' || b.status === 'checked_in').length || 0,
         whatsappClicks: whatsappClicks || 0,
-        totalUsers: totalUsersCount || uniqueUsers.size // Fallback to unique bookers if ecosystem count fails
+        totalUsers: totalUsersCount || uniqueUsers.size,
+        totalGrossRevenue,
+        totalNetRevenue,
+        onlineRevenue,
+        cashRevenue,
       };
     },
   });
@@ -351,6 +385,76 @@ export default function Admin() {
                 <StatCard label="Total Bookings" value={bookingStats.totalBookings} icon={Ticket} color="amber" />
                 <StatCard label="Rental Inquiries" value={rentalRequests.length} icon={Wrench} color="fuchsia" />
                 <StatCard label="Total Users" value={bookingStats.totalUsers} icon={Users} color="blue" />
+              </div>
+
+              {/* Financial Snapshot */}
+              <div className="rounded-2xl bg-[#0e0e14] border border-white/10 p-5 sm:p-6 shadow-xl">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-white/10">
+                  <div className="flex items-center gap-3">
+                    <div className="w-11 h-11 rounded-xl bg-[#181822] border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
+                      <Wallet className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-base font-bold text-white tracking-tight">Financial Situation & Revenue</h3>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 uppercase tracking-wide">
+                          Live Revenue
+                        </span>
+                      </div>
+                      <p className="text-white/40 text-xs mt-0.5">Real-time breakdown of ticket earnings and payment channels</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setActiveSection("finances")}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#181822] hover:bg-[#222230] border border-white/10 text-emerald-400 hover:text-emerald-300 text-xs font-semibold transition-all hover:translate-x-0.5 self-start sm:self-auto cursor-pointer"
+                  >
+                    <span>Full Finances & Ledger</span>
+                    <ArrowUpRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 pt-5">
+                  <div className="p-4 rounded-xl bg-[#161620] border border-white/10">
+                    <div className="text-[11px] text-white/50 uppercase font-semibold tracking-wider">Gross Ticket Sales</div>
+                    <div className="text-xl sm:text-2xl font-bold font-mono text-white mt-1.5">
+                      {(bookingStats.totalGrossRevenue || 0).toLocaleString()} <span className="text-xs font-sans text-white/50">XAF</span>
+                    </div>
+                    <div className="text-[10px] text-emerald-400 mt-2 flex items-center gap-1">
+                      <TrendingUp className="w-3 h-3" />
+                      <span>{bookingStats.confirmedBookings || 0} confirmed tickets</span>
+                    </div>
+                  </div>
+
+                  <div className="p-4 rounded-xl bg-[#161620] border border-white/10">
+                    <div className="text-[11px] text-emerald-400 uppercase font-semibold tracking-wider">Net Yield (After Gateway)</div>
+                    <div className="text-xl sm:text-2xl font-bold font-mono text-emerald-400 mt-1.5">
+                      {(bookingStats.totalNetRevenue || 0).toLocaleString()} <span className="text-xs font-sans text-emerald-400/70">XAF</span>
+                    </div>
+                    <div className="text-[10px] text-white/40 mt-2">
+                      Est. 3% PayUnit fee deducted
+                    </div>
+                  </div>
+
+                  <div className="p-4 rounded-xl bg-[#161620] border border-white/10">
+                    <div className="text-[11px] text-amber-400 uppercase font-semibold tracking-wider">Online MoMo (MTN/Orange)</div>
+                    <div className="text-xl sm:text-2xl font-bold font-mono text-amber-400 mt-1.5">
+                      {(bookingStats.onlineRevenue || 0).toLocaleString()} <span className="text-xs font-sans text-amber-400/70">XAF</span>
+                    </div>
+                    <div className="text-[10px] text-white/40 mt-2">
+                      Direct automated mobile money
+                    </div>
+                  </div>
+
+                  <div className="p-4 rounded-xl bg-[#161620] border border-white/10">
+                    <div className="text-[11px] text-sky-400 uppercase font-semibold tracking-wider">Door / Cash Sales</div>
+                    <div className="text-xl sm:text-2xl font-bold font-mono text-sky-400 mt-1.5">
+                      {(bookingStats.cashRevenue || 0).toLocaleString()} <span className="text-xs font-sans text-sky-400/70">XAF</span>
+                    </div>
+                    <div className="text-[10px] text-white/40 mt-2">
+                      Manual tickets & cash collections
+                    </div>
+                  </div>
+                </div>
               </div>
 
               {/* Quick Actions */}
@@ -600,6 +704,13 @@ export default function Admin() {
               <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-4 sm:p-6">
                 <BookingManager />
               </div>
+            </div>
+          )}
+
+          {/* Finances & Revenue */}
+          {activeSection === "finances" && (
+            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
+              <FinanceManager />
             </div>
           )}
 

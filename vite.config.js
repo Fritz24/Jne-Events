@@ -136,6 +136,15 @@ export default defineConfig(({ mode }) => {
             if (id.includes('@supabase')) {
               return 'vendor-supabase';
             }
+            if (id.includes('jspdf')) {
+              return 'vendor-jspdf';
+            }
+            if (id.includes('recharts') || id.includes('d3')) {
+              return 'vendor-charts';
+            }
+            if (id.includes('lucide-react')) {
+              return 'vendor-icons';
+            }
             if (id.includes('html2canvas') || id.includes('qrcode.react') || id.includes('date-fns')) {
               return 'vendor-utils';
             }

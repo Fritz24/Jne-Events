@@ -1,7 +1,7 @@
 import { useRef, useState, useEffect } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import html2canvas from "html2canvas";
-import { Download } from "lucide-react";
+import { Download, Image as ImageIcon, FileText, Check, Loader2 } from "lucide-react";
 import { useLocalized } from "@/lib/LanguageContext";
 import { formatLocalizedDate } from "@/lib/localize";
 
@@ -10,6 +10,7 @@ export default function VerticalTicket({ booking, event, attendeeName, tierLabel
   const wrapperRef = useRef(null);
   const actionsRef = useRef(null);
   const [downloading, setDownloading] = useState(false);
+  const [downloadType, setDownloadType] = useState(null); // "image" | "pdf"
   const { t, lang, getField, translate } = useLocalized();
 
   useEffect(() => {
@@ -41,64 +42,134 @@ export default function VerticalTicket({ booking, event, attendeeName, tierLabel
     };
   }, [attendeeName, tierLabel, ticketId]);
 
-  const downloadTicket = async () => {
-    if (!ticketRef.current || downloading) return;
-    setDownloading(true);
-    const renderContainer = document.createElement("div");
-    renderContainer.style.position = "absolute";
-    renderContainer.style.left = "-9999px";
-    renderContainer.style.top = "-9999px";
-    renderContainer.style.width = "340px";
-    renderContainer.style.height = "640px";
-    renderContainer.style.overflow = "hidden";
-    document.body.appendChild(renderContainer);
-    const clone = ticketRef.current.cloneNode(true);
-    clone.style.transform = "none";
-    clone.style.transformOrigin = "initial";
-    clone.style.width = "340px";
-    clone.style.height = "640px";
-    clone.style.position = "relative";
-    clone.style.margin = "0";
-    clone.style.boxShadow = "none";
-    renderContainer.appendChild(clone);
-    await new Promise(r => setTimeout(r, 400));
+  // Robust in-place capture without broken -9999px detached clone
+  const captureTicketCanvas = async () => {
+    const el = ticketRef.current;
+    if (!el) return null;
+
+    const savedTransform = el.style.transform;
+    const savedTransformOrigin = el.style.transformOrigin;
+
+    // Temporarily reset transform to full native resolution
+    el.style.transform = "none";
+    el.style.transformOrigin = "initial";
+
+    // Wait 2 animation frames + 150ms for browser reflow
+    await new Promise((resolve) => {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          setTimeout(resolve, 150);
+        });
+      });
+    });
+
     try {
-      const canvas = await html2canvas(clone, {
-        scale: 3,
+      const canvas = await html2canvas(el, {
+        scale: 2, // 680x1280 crisp mobile & desktop resolution
         useCORS: true,
-        backgroundColor: "#0d0d14",
+        allowTaint: false,
+        backgroundColor: "#0a0a12",
         logging: false,
         width: 340,
         height: 640,
         scrollX: 0,
         scrollY: 0,
-        windowWidth: 340,
-        windowHeight: 640,
       });
+      return canvas;
+    } finally {
+      el.style.transform = savedTransform;
+      el.style.transformOrigin = savedTransformOrigin;
+    }
+  };
+
+  const triggerDownload = (url, filename) => {
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
+
+  const downloadImage = async () => {
+    if (!ticketRef.current || downloading) return;
+    setDownloading(true);
+    setDownloadType("image");
+
+    const filename = `JNE-Ticket-${ticketId || "ticket"}.png`;
+
+    try {
+      const canvas = await captureTicketCanvas();
+      if (!canvas) throw new Error("Could not render ticket canvas");
+
+      canvas.toBlob(async (blob) => {
+        if (!blob) {
+          const dataUrl = canvas.toDataURL("image/png");
+          triggerDownload(dataUrl, filename);
+          setDownloading(false);
+          setDownloadType(null);
+          return;
+        }
+
+        // Check if Web Share API with files is available on mobile
+        const file = new File([blob], filename, { type: "image/png" });
+        if (
+          navigator.canShare &&
+          navigator.canShare({ files: [file] }) &&
+          /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
+        ) {
+          try {
+            await navigator.share({
+              title: "JNE Events Ticket",
+              text: `Ticket for ${event?.title || "JNE Event"} (${ticketId})`,
+              files: [file],
+            });
+            setDownloading(false);
+            setDownloadType(null);
+            return;
+          } catch (shareErr) {
+            if (shareErr.name === "AbortError") {
+              setDownloading(false);
+              setDownloadType(null);
+              return;
+            }
+          }
+        }
+
+        const blobUrl = URL.createObjectURL(blob);
+        triggerDownload(blobUrl, filename);
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 3000);
+        setDownloading(false);
+        setDownloadType(null);
+      }, "image/png");
+    } catch (err) {
+      console.error("Failed to download image ticket", err);
+      alert("Could not download ticket automatically. Please take a screenshot of your ticket with the QR code.");
+      setDownloading(false);
+      setDownloadType(null);
+    }
+  };
+
+  const downloadPDF = async () => {
+    if (!ticketRef.current || downloading) return;
+    setDownloading(true);
+    setDownloadType("pdf");
+
+    try {
+      const canvas = await captureTicketCanvas();
+      if (!canvas) throw new Error("Could not render ticket canvas");
+
       const dataUrl = canvas.toDataURL("image/png");
       const { jsPDF } = await import("jspdf");
       const pdf = new jsPDF({ orientation: "portrait", unit: "px", format: [340, 640] });
       pdf.addImage(dataUrl, "PNG", 0, 0, 340, 640, undefined, "FAST");
-      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-      if (isMobile) {
-        const blob = pdf.output("blob");
-        const blobUrl = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = blobUrl;
-        a.download = `JNE-Ticket-${ticketId || "ticket"}.pdf`;
-        a.target = "_blank";
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        setTimeout(() => { window.location.href = blobUrl; }, 150);
-      } else {
-        pdf.save(`JNE-Ticket-${ticketId || "ticket"}.pdf`);
-      }
+      pdf.save(`JNE-Ticket-${ticketId || "ticket"}.pdf`);
     } catch (err) {
       console.error("Failed to download PDF ticket", err);
+      alert("Could not generate PDF. Please use 'Save Image (PNG)' or take a screenshot.");
     } finally {
-      document.body.removeChild(renderContainer);
       setDownloading(false);
+      setDownloadType(null);
     }
   };
 
@@ -275,20 +346,53 @@ export default function VerticalTicket({ booking, event, attendeeName, tierLabel
       {/* Action buttons */}
       {showActions && (
         <div ref={actionsRef} className="w-full flex flex-col gap-2.5 mt-6 z-10">
+          {/* Option 1: Save Image (PNG) - best for mobile and instant camera roll */}
           <button
-            onClick={downloadTicket}
+            onClick={downloadImage}
             disabled={downloading}
-            className="w-full py-3.5 rounded-2xl text-sm font-bold flex items-center justify-center gap-2 transition-all disabled:opacity-70 text-[#0a0a12]"
+            className="w-full py-3.5 rounded-2xl text-sm font-bold flex items-center justify-center gap-2 transition-all disabled:opacity-70 text-[#0a0a12] cursor-pointer"
             style={{ background: "linear-gradient(135deg, #d4af37, #f5d96b, #b8940a)", boxShadow: "0 8px 24px rgba(212,175,55,0.3)" }}
           >
-            <Download className="w-4 h-4" />
-            {downloading ? t.ticketSaving || "Saving..." : t.ticketSave || "Save Ticket"}
+            {downloading && downloadType === "image" ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin text-[#0a0a12]" />
+                <span>Saving Ticket Image...</span>
+              </>
+            ) : (
+              <>
+                <ImageIcon className="w-4 h-4" />
+                <span>Save Ticket Image (PNG)</span>
+              </>
+            )}
           </button>
+
+          {/* Option 2: Download PDF */}
+          <button
+            onClick={downloadPDF}
+            disabled={downloading}
+            className="w-full py-3 rounded-2xl text-xs font-bold flex items-center justify-center gap-2 transition-all disabled:opacity-70 text-white/90 bg-white/10 hover:bg-white/15 border border-white/10 cursor-pointer"
+          >
+            {downloading && downloadType === "pdf" ? (
+              <>
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-white" />
+                <span>Generating PDF...</span>
+              </>
+            ) : (
+              <>
+                <FileText className="w-3.5 h-3.5 text-amber-400" />
+                <span>Download PDF Format</span>
+              </>
+            )}
+          </button>
+
+          <p className="text-[11px] text-white/40 text-center mt-1">
+            Tip: You can also take a screenshot of this ticket to show at the door.
+          </p>
 
           {showDone && onDone && (
             <button
               onClick={onDone}
-              className="w-full py-3 rounded-2xl text-sm font-semibold text-white/60 hover:text-white transition-all bg-white/5 border border-white/10 hover:bg-white/10"
+              className="w-full py-2.5 rounded-2xl text-xs font-semibold text-white/60 hover:text-white transition-all bg-white/5 border border-white/10 hover:bg-white/10 cursor-pointer mt-1"
             >
               {t.ticketDone || "Done"}
             </button>

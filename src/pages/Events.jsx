@@ -8,6 +8,7 @@ import { useAuth } from "@/lib/AuthContext";
 import { useLang } from "@/lib/LanguageContext";
 import SEO from "../components/common/SEO";
 import { useSearchParams } from "react-router-dom";
+import { getCachedEvents, saveCachedEvents } from "@/utils/eventsCache";
 
 export default function Events() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -47,8 +48,10 @@ export default function Events() {
         .select('*')
         .order('date', { ascending: true });
       if (error) throw error;
+      saveCachedEvents(data);
       return data || [];
     },
+    initialData: getCachedEvents,
   });
 
   const { data: bookings = [] } = useQuery({
@@ -68,8 +71,22 @@ export default function Events() {
     queryKey: ["event_categories"],
     queryFn: async () => {
       const { data } = await supabase.from('jne_settings').select('value').eq('key', 'event_categories').single();
-      return data?.value ? JSON.parse(data.value) : [];
-    }
+      const parsed = data?.value ? JSON.parse(data.value) : [];
+      if (parsed.length > 0) {
+        try {
+          localStorage.setItem("jne_cached_categories", JSON.stringify(parsed));
+        } catch (e) {}
+      }
+      return parsed;
+    },
+    initialData: () => {
+      try {
+        const saved = localStorage.getItem("jne_cached_categories");
+        return saved ? JSON.parse(saved) : undefined;
+      } catch (e) {
+        return undefined;
+      }
+    },
   });
 
   // Get unique genres and cities from events

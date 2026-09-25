@@ -11,18 +11,33 @@ export const AuthProvider = ({ children }) => {
   const isInitialLoadDone = React.useRef(false);
 
   useEffect(() => {
-    // 1. Initial session check
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        fetchUserProfile(session.user);
-      } else {
+    // Safety fallback: ensure initial loading state NEVER freezes the app longer than 2.5s
+    const safetyTimer = setTimeout(() => {
+      setIsLoadingAuth(false);
+      isInitialLoadDone.current = true;
+    }, 2500);
+
+    // 1. Initial session check with catch
+    supabase.auth.getSession()
+      .then(({ data: { session } }) => {
+        if (session) {
+          fetchUserProfile(session.user).finally(() => clearTimeout(safetyTimer));
+        } else {
+          setIsLoadingAuth(false);
+          isInitialLoadDone.current = true;
+          clearTimeout(safetyTimer);
+        }
+      })
+      .catch((err) => {
+        console.warn("Initial auth session check error:", err);
         setIsLoadingAuth(false);
         isInitialLoadDone.current = true;
-      }
-    });
+        clearTimeout(safetyTimer);
+      });
 
     // 2. Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      clearTimeout(safetyTimer);
       if (session) {
         fetchUserProfile(session.user);
       } else {
@@ -33,29 +48,28 @@ export const AuthProvider = ({ children }) => {
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      clearTimeout(safetyTimer);
+      subscription?.unsubscribe();
+    };
   }, []);
 
   const fetchUserProfile = async (authUser) => {
     try {
-      // Prevent throwing a full-page spinner if we're just doing a background token refresh on tab focus
       if (!isInitialLoadDone.current) {
         setIsLoadingAuth(true);
       }
 
-      // In the ecosystem, the central users table is 'users' and links via 'auth_id'
-      const { data: profile, error } = await supabase
+      // Add a 3.5s timeout so a slow ecosystem users query never freezes the app
+      const profilePromise = supabase
         .from('users')
         .select('*')
         .eq('auth_id', authUser.id)
         .single();
 
-      if (error && error.code !== 'PGRST116') {
-        console.error('Profile fetch error:', error);
-      }
+      const timeoutPromise = new Promise((resolve) => setTimeout(() => resolve({ data: null, error: null }), 3500));
+      const { data: profile } = await Promise.race([profilePromise, timeoutPromise]);
 
-      // Map ecosystem properties to app user object
-      // is_super_admin grants 'admin' role in JnE Events
       const isAdmin = profile?.is_super_admin === true || String(profile?.is_super_admin) === 'true';
       const assignedRole = isAdmin ? 'admin' : 'customer';
 
@@ -68,7 +82,9 @@ export const AuthProvider = ({ children }) => {
 
       setIsAuthenticated(true);
     } catch (err) {
-      console.error('Profile fetch failed:', err);
+      console.warn('Profile fetch failed, using fallback:', err);
+      setUser(authUser);
+      setIsAuthenticated(true);
     } finally {
       setIsLoadingAuth(false);
       isInitialLoadDone.current = true;

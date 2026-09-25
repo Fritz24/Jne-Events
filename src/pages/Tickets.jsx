@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { Calendar, ChevronRight, Clock, ExternalLink, Loader2, MapPin, Ticket, User, Search, Phone, Check, AlertCircle } from "lucide-react";
+import { Calendar, ChevronRight, Clock, ExternalLink, Loader2, MapPin, Ticket, User, Search, Phone, Check, AlertCircle, Download, X } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/AuthContext";
@@ -9,12 +9,14 @@ import { useLocalized } from "@/lib/LanguageContext";
 import SEO from "@/components/common/SEO";
 import { formatLocalizedDate } from "@/lib/localize";
 import { getLocalTickets, saveLocalTicket } from "@/lib/tickets";
+import VerticalTicket from "@/components/events/VerticalTicket";
 
 export default function Tickets() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { t, lang, getField, translate } = useLocalized();
   const [localTickets, setLocalTickets] = useState(() => getLocalTickets());
+  const [selectedTicket, setSelectedTicket] = useState(null);
 
   const [lookupQuery, setLookupQuery] = useState("");
   const [lookupLoading, setLookupLoading] = useState(false);
@@ -308,6 +310,7 @@ export default function Tickets() {
                       lang={lang}
                       t={t}
                       translate={translate}
+                      onSelectTicket={setSelectedTicket}
                     />
                   ))}
                 </div>
@@ -347,6 +350,7 @@ export default function Tickets() {
                             lang={lang}
                             t={t}
                             translate={translate}
+                            onSelectTicket={setSelectedTicket}
                           />
                         ))}
                       </div>
@@ -357,12 +361,42 @@ export default function Tickets() {
             </div>
           )}
         </div>
+
+        {/* Modal: View & Download Ticket */}
+        {selectedTicket && (
+          <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
+            <div className="relative w-full max-w-sm bg-[#0e0e14] border border-white/10 rounded-3xl p-5 shadow-2xl my-auto animate-in zoom-in-95 duration-200">
+              <div className="flex items-center justify-between pb-3 mb-4 border-b border-white/10">
+                <div className="flex items-center gap-2">
+                  <Ticket className="w-4 h-4 text-amber-400" />
+                  <h3 className="text-sm font-bold text-white">Your Official Ticket</h3>
+                </div>
+                <button
+                  onClick={() => setSelectedTicket(null)}
+                  className="p-1.5 rounded-lg text-white/40 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="flex justify-center">
+                <VerticalTicket
+                  booking={selectedTicket}
+                  event={selectedTicket.event || eventsById[selectedTicket.event_id]}
+                  showActions={true}
+                  showDone={true}
+                  onDone={() => setSelectedTicket(null)}
+                />
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </>
   );
 }
 
-function TicketRow({ ticket, navigate, getField, lang, t, translate }) {
+function TicketRow({ ticket, navigate, getField, lang, t, translate, onSelectTicket }) {
   const event = ticket.event;
   const dateValue = event?.date || ticket.created_date || ticket.saved_at;
   const isCheckedIn = ticket.status === 'checked_in';
@@ -485,6 +519,17 @@ function TicketRow({ ticket, navigate, getField, lang, t, translate }) {
                 <p className="text-white text-sm font-bold">{ticket.currency || event?.currency || 'XAF'} {Number(ticket.tier_price || 0).toLocaleString()}</p>
               </div>
             </div>
+
+            {onSelectTicket && (
+              <button
+                onClick={() => onSelectTicket(ticket)}
+                className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full text-xs font-bold text-[#0a0a12] transition-all shrink-0 cursor-pointer shadow-lg hover:brightness-110"
+                style={{ background: 'linear-gradient(135deg, #d4af37, #f5d96b, #b8940a)', boxShadow: '0 4px 16px rgba(212,175,55,0.25)' }}
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>View & Download</span>
+              </button>
+            )}
 
             <button
               onClick={() => event?.id && navigate(`/events/${event.id}`)}

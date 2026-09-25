@@ -6,9 +6,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { XCircle, UserCheck, Search, Trash2, Download, RefreshCw, Ticket, Plus } from "lucide-react";
+import { XCircle, UserCheck, Search, Trash2, Download, RefreshCw, Ticket, Plus, Banknote, Wallet } from "lucide-react";
 import { countUsedSlots, remainingSlots } from "@/utils/ticketCount";
 import TicketGenerator from "./TicketGenerator";
+import VerticalTicket from "../events/VerticalTicket";
 
 const STATUS_CONFIG = {
   pending: { label: "Pending", color: "bg-yellow-500/15 text-yellow-300" },
@@ -26,6 +27,7 @@ export default function BookingManager() {
   const [includePast, setIncludePast] = useState(false);
   const [verifyingId, setVerifyingId] = useState(null);
   const [showTicketModal, setShowTicketModal] = useState(false);
+  const [viewingTicketBooking, setViewingTicketBooking] = useState(null);
 
   const verifyPaymentStatus = async (booking) => {
     setVerifyingId(booking.id);
@@ -80,7 +82,20 @@ export default function BookingManager() {
         .select('*')
         .order('created_date', { ascending: false });
       if (error) throw error;
+      if (data && data.length > 0) {
+        try {
+          localStorage.setItem("jne_cached_admin_bookings", JSON.stringify(data));
+        } catch (e) {}
+      }
       return data || [];
+    },
+    initialData: () => {
+      try {
+        const saved = localStorage.getItem("jne_cached_admin_bookings");
+        return saved ? JSON.parse(saved) : undefined;
+      } catch (e) {
+        return undefined;
+      }
     },
   });
 
@@ -92,7 +107,25 @@ export default function BookingManager() {
         .eq('id', id);
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["bookings"] }),
+    // Instant optimistic update on 2G: updates UI and local cache in 0ms
+    onMutate: async ({ id, status }) => {
+      await qc.cancelQueries({ queryKey: ["bookings"] });
+      const previous = qc.getQueryData(["bookings"]);
+      if (previous) {
+        const updated = previous.map(b => b.id === id ? { ...b, status } : b);
+        qc.setQueryData(["bookings"], updated);
+        try {
+          localStorage.setItem("jne_cached_admin_bookings", JSON.stringify(updated));
+        } catch (e) {}
+      }
+      return { previous };
+    },
+    onError: (err, variables, context) => {
+      if (context?.previous) {
+        qc.setQueryData(["bookings"], context.previous);
+      }
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: ["bookings"] }),
   });
 
   const deleteBooking = useMutation({
@@ -109,7 +142,7 @@ export default function BookingManager() {
   const { data: eventsData = [] } = useQuery({
     queryKey: ["events"],
     queryFn: async () => {
-      const { data, error } = await supabase.from('jne_events').select('id, title, capacity, date');
+      const { data, error } = await supabase.from('jne_events').select('*');
       if (error) throw error;
       return data || [];
     },
@@ -178,12 +211,50 @@ export default function BookingManager() {
   const usedSlots = countUsedSlots(filterEvent !== "all" ? filtered : bookings);
   const remaining = filterEvent !== "all" ? remainingSlots(filtered, eventCapacity) : 0;
 
+  const totalGrossRevenue = bookings
+    .filter(b => b.status === "confirmed" || b.status === "checked_in")
+    .reduce((sum, b) => sum + (Number(b.tier_price) || 0), 0);
+
+  const filteredRevenue = filtered
+    .filter(b => b.status === "confirmed" || b.status === "checked_in")
+    .reduce((sum, b) => sum + (Number(b.tier_price) || 0), 0);
+
+  const paidCount = (filterEvent !== "all" ? filtered : bookings)
+    .filter(b => b.status === "confirmed" || b.status === "checked_in").length;
+
   if (isLoading) return (
     <div className="text-white/40 text-center py-10">Loading bookings...</div>
   );
 
   return (
     <div className="space-y-5">
+      {/* Revenue Summary Banner */}
+      <div className="rounded-xl bg-[#0e0e14] border border-white/10 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-[#181822] border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
+            <Banknote className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="text-[11px] text-emerald-400 font-semibold uppercase tracking-wider">
+              {filterEvent !== "all" ? `Ticket Revenue (${filterEvent})` : "Total Confirmed Ticket Revenue"}
+            </div>
+            <div className="text-xl sm:text-2xl font-bold font-mono text-white">
+              {(filterEvent !== "all" ? filteredRevenue : totalGrossRevenue).toLocaleString()} <span className="text-xs font-sans text-emerald-400">XAF</span>
+              {filterEvent !== "all" && (
+                <span className="text-xs text-white/40 font-normal font-sans ml-2.5">
+                  (All events: {totalGrossRevenue.toLocaleString()} XAF)
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 self-start sm:self-auto">
+          <div className="px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-300">
+            <span className="font-bold text-white font-mono">{paidCount}</span> paid tickets
+          </div>
+        </div>
+      </div>
+
       {/* Capacity Bar - Only show when a specific event is selected */}
       {filterEvent !== "all" && (
         <div className="rounded-xl bg-white/[0.03] border border-white/5 p-4 space-y-2">
@@ -329,6 +400,17 @@ export default function BookingManager() {
                     </td>
                     <td className="py-3 pr-4">
                       <div className="flex items-center justify-end gap-1">
+                        {(b.status === "confirmed" || b.status === "checked_in" || b.ticket_id) && (
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            title="View & Download Ticket Pass"
+                            onClick={() => setViewingTicketBooking(b)}
+                            className="w-7 h-7 text-amber-400/80 hover:text-amber-300 hover:bg-amber-500/10"
+                          >
+                            <Ticket className="w-3.5 h-3.5" />
+                          </Button>
+                        )}
                         {b.status !== "confirmed" && b.status !== "checked_in" && (
                           <Button
                             size="icon"
@@ -388,6 +470,55 @@ export default function BookingManager() {
           onClose={() => setShowTicketModal(false)}
           onSaved={() => qc.invalidateQueries({ queryKey: ["bookings"] })}
         />
+      )}
+
+      {viewingTicketBooking && (
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-[#0e0e16] border border-amber-500/30 rounded-2xl p-6 max-w-md w-full relative my-auto shadow-2xl flex flex-col items-center">
+            <div className="w-full flex items-center justify-between mb-4 border-b border-white/10 pb-3">
+              <div>
+                <h3 className="text-white font-bold text-base flex items-center gap-2">
+                  <Ticket className="w-4 h-4 text-amber-400" />
+                  Ticket Pass
+                </h3>
+                <p className="text-xs text-white/40">{viewingTicketBooking.attendee_name} • {viewingTicketBooking.ticket_id}</p>
+              </div>
+              <button
+                onClick={() => setViewingTicketBooking(null)}
+                className="text-white/40 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors"
+              >
+                <XCircle className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="w-full flex justify-center py-2">
+              <VerticalTicket
+                booking={viewingTicketBooking}
+                event={eventsData.find(e => e.id === viewingTicketBooking.event_id || e.title === viewingTicketBooking.event_title)}
+                attendeeName={viewingTicketBooking.attendee_name}
+                tierLabel={viewingTicketBooking.tier_label}
+                ticketId={viewingTicketBooking.ticket_id}
+                showActions={true}
+                showDone={false}
+              />
+            </div>
+
+            {viewingTicketBooking.phone && (
+              <div className="w-full mt-4 pt-3 border-t border-white/10 flex justify-center">
+                <a
+                  href={`https://wa.me/${viewingTicketBooking.phone.replace(/[^0-9]/g, "").length <= 9 ? "237" + viewingTicketBooking.phone.replace(/[^0-9]/g, "") : viewingTicketBooking.phone.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(
+                    `Hello ${viewingTicketBooking.attendee_name}, here is your ticket link for ${viewingTicketBooking.event_title}: https://jneevents.bookontransapp.com/tickets?id=${viewingTicketBooking.ticket_id}`
+                  )}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 w-full py-2.5 px-4 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 font-semibold text-xs transition-colors"
+                >
+                  <span>Send Ticket Link to Attendee via WhatsApp</span>
+                </a>
+              </div>
+            )}
+          </div>
+        </div>
       )}
     </div>
   );

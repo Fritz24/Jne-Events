@@ -1,7 +1,7 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
-import { ArrowLeft, Calendar, MapPin, Film, Music, AlertCircle, Info, Repeat } from "lucide-react";
+import { ArrowLeft, Calendar, MapPin, Film, Music, AlertCircle, Info, Repeat, RefreshCw } from "lucide-react";
 import { formatLocalizedDate } from "@/lib/localize";
 import { useLocalized } from "@/lib/LanguageContext";
 import { useAuth } from "@/lib/AuthContext";
@@ -10,16 +10,19 @@ import SEO from "@/components/common/SEO";
 import { remainingSlots } from "@/utils/ticketCount";
 import { logAnalyticsEvent } from "@/utils/analytics";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { getCachedEvents } from "@/utils/eventsCache";
 
 export default function EventDetails() {
   const { eventId } = useParams();
   const navigate = useNavigate();
+  const qc = useQueryClient();
   const { t, lang, getField, translate } = useLocalized();
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
 
-  // Fetch event details
-  const { data: event, isLoading, error } = useQuery({
+  // Fetch event details with instant cache fallback from events list
+  const { data: event, isLoading, error, refetch } = useQuery({
     queryKey: ["event", eventId],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -33,6 +36,11 @@ export default function EventDetails() {
       logAnalyticsEvent('event_details_view', eventId, data?.title);
       
       return data;
+    },
+    initialData: () => {
+      const cachedList = qc.getQueryData(["events"]) || getCachedEvents();
+      const match = cachedList?.find(e => e.id === eventId);
+      return match?.title ? match : undefined;
     },
   });
 
@@ -59,31 +67,51 @@ export default function EventDetails() {
     }
   });
 
-  if (isLoading) {
+  if (isLoading && !event) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-[#0a0a0f] to-[#1a0a2e] flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-violet-500/30 border-t-violet-500 rounded-full animate-spin"></div>
+      <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center">
+        <div className="w-8 h-8 border-3 border-amber-500/20 border-t-amber-400 rounded-full animate-spin"></div>
       </div>
     );
   }
 
-  if (error || !event) {
+  if ((error || !event) && !event) {
+    const isNetworkErr = error?.message?.toLowerCase().includes("fetch") || error?.message?.toLowerCase().includes("network");
     return (
-      <div className="min-h-screen bg-gradient-to-b from-[#0a0a0f] to-[#1a0a2e]">
-        <div className="max-w-4xl mx-auto px-4 py-8">
+      <div className="min-h-screen bg-gradient-to-b from-[#0a0a0f] to-[#120d1c] pt-20 pb-12">
+        <div className="max-w-md mx-auto px-4">
           <button
             onClick={() => navigate('/events')}
-            className="flex items-center gap-2 text-violet-400 hover:text-violet-300 mb-6 transition-colors"
+            className="flex items-center gap-2 text-violet-400 hover:text-violet-300 mb-8 transition-colors cursor-pointer"
           >
             <ArrowLeft className="w-4 h-4" />
-            {t.back || 'Back'}
+            {t.back || 'Back to Events'}
           </button>
-          <Alert className="border-red-500/20 bg-red-500/5">
-            <AlertCircle className="h-4 w-4 text-red-400" />
-            <AlertDescription className="text-red-200">
-              {error?.message || "Event not found"}
-            </AlertDescription>
-          </Alert>
+          
+          <div className="rounded-3xl bg-[#0e0e14] border border-white/10 p-6 sm:p-8 text-center shadow-2xl space-y-4">
+            <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center mx-auto text-amber-400">
+              <AlertCircle className="w-6 h-6" />
+            </div>
+            <div>
+              <h3 className="text-white font-bold text-lg">
+                {isNetworkErr ? "Connection Hiccup" : "Event Not Found"}
+              </h3>
+              <p className="text-xs text-white/50 mt-1.5 leading-relaxed">
+                {isNetworkErr
+                  ? "We couldn't reach the server just now due to a network glitch. Tap below to reload."
+                  : (error?.message || "This event may no longer be available.")}
+              </p>
+            </div>
+            <div className="pt-2">
+              <Button
+                onClick={() => refetch()}
+                className="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-[#0a0a12] font-bold shadow-lg shadow-amber-500/20"
+              >
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Retry Loading
+              </Button>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -211,7 +239,7 @@ export default function EventDetails() {
                   <div>
                     <p className="text-xs font-semibold text-white/30 mb-0.5">{t.dateTime || "Date & Time"}</p>
                     <p className="text-[15px] font-semibold text-white">
-                      {event.date ? formatLocalizedDate(event.date, "EEEE, MMMM d, yyyy · HH:mm", lang) : "TBA"}
+                      {event.date ? formatLocalizedDate(event.date, "EEEE, MMMM d, yyyy Â· HH:mm", lang) : "TBA"}
                     </p>
                   </div>
                 </div>
@@ -221,7 +249,7 @@ export default function EventDetails() {
                   <div>
                     <p className="text-xs font-semibold text-white/30 mb-0.5">{t.locationVenue || "Location & Venue"}</p>
                     <p className="text-[15px] font-semibold text-white">
-                      {event.venue ? `${getField(event, "venue")}${event.city ? ` · ${translate(event.city)}` : ""}` : "TBA"}
+                      {event.venue ? `${getField(event, "venue")}${event.city ? ` Â· ${translate(event.city)}` : ""}` : "TBA"}
                     </p>
                   </div>
                 </div>

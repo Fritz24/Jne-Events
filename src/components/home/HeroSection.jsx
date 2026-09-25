@@ -3,15 +3,20 @@ import { ArrowRight, Sparkles } from "lucide-react";
 import { motion } from "framer-motion";
 import { useLang } from "@/lib/LanguageContext";
 
+import { getOptimizedImageUrl } from "@/utils/imageOptimizer";
+
 export default function HeroSection() {
   const { t } = useLang();
+  const heroBg = getOptimizedImageUrl("https://images.unsplash.com/photo-1485846234645-a62644f84728?auto=format&fit=crop", 1200);
+
   return (
     <section className="relative overflow-hidden">
       {/* Background photo */}
-      <div className="absolute inset-0">
+      <div className="absolute inset-0 bg-[#0a0a0f]">
         <img
-          src="https://images.unsplash.com/photo-1485846234645-a62644f84728?q=80&w=2670&auto=format&fit=crop"
+          src={heroBg}
           alt="Outdoor cinema"
+          decoding="async"
           className="w-full h-full object-cover opacity-45"
         />
         <div className="absolute inset-0 bg-gradient-to-b from-[#0a0a0f]/60 via-[#0a0a0f]/40 to-[#0a0a0f]" />
