@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
+import { syncRecurringEvents } from "@/utils/recurringSync";
 import { Button } from "@/components/ui/button";
 import {
   Plus, CalendarDays, Ticket, ShieldOff, ShoppingBag, Users,
@@ -97,6 +98,17 @@ export default function Admin() {
       return data || [];
     },
   });
+
+  // Automatically sync and spawn any upcoming recurring event occurrences
+  useEffect(() => {
+    if (events.length > 0 && user?.role === "admin") {
+      syncRecurringEvents(events).then((spawned) => {
+        if (spawned > 0) {
+          queryClient.invalidateQueries({ queryKey: ["events"] });
+        }
+      });
+    }
+  }, [events, user?.role, queryClient]);
 
   const { data: bookingStats = {} } = useQuery({
     queryKey: ["booking-stats"],
