@@ -1,8 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
-import { syncRecurringEvents } from "@/utils/recurringSync";
 import { Button } from "@/components/ui/button";
 import {
   Plus, CalendarDays, Ticket, ShieldOff, ShoppingBag, Users,
@@ -99,17 +98,6 @@ export default function Admin() {
     },
   });
 
-  // Automatically sync and spawn any upcoming recurring event occurrences
-  useEffect(() => {
-    if (events.length > 0 && user?.role === "admin") {
-      syncRecurringEvents(events).then((spawned) => {
-        if (spawned > 0) {
-          queryClient.invalidateQueries({ queryKey: ["events"] });
-        }
-      });
-    }
-  }, [events, user?.role, queryClient]);
-
   const { data: bookingStats = {} } = useQuery({
     queryKey: ["booking-stats"],
     queryFn: async () => {
@@ -197,7 +185,21 @@ export default function Admin() {
       const { error } = await supabase.from('jne_events').delete().eq('id', id);
       if (error) throw error;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["events"] }),
+    onMutate: async (deletedId) => {
+      await queryClient.cancelQueries({ queryKey: ["events"] });
+      const previousEvents = queryClient.getQueryData(["events"]);
+      queryClient.setQueryData(["events"], (old = []) => old.filter(e => e.id !== deletedId));
+      return { previousEvents };
+    },
+    onError: (err, _id, context) => {
+      if (context?.previousEvents) {
+        queryClient.setQueryData(["events"], context.previousEvents);
+      }
+      alert(`Could not delete event: ${err.message || "Action failed"}`);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["events"] });
+    },
   });
 
   const handleEdit = (event) => {
@@ -687,6 +689,7 @@ export default function Admin() {
               </div>
               <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-6">
                 <EventForm
+                  key={editingEvent?.id || "new"}
                   event={editingEvent}
                   onSave={handleSaved}
                   onCancel={() => { setShowForm(false); setEditingEvent(null); setActiveSection("events_all"); }}

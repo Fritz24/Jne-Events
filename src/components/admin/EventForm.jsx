@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
-import { syncRecurringEvents } from "@/utils/recurringSync";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -677,15 +676,6 @@ export default function EventForm({ event, onSave, onCancel }) {
           .from('jne_events')
           .insert([data]);
         if (error) throw error;
-      }
-
-      if (data.is_recurring) {
-        try {
-          const { data: allEvents } = await supabase.from('jne_events').select('*');
-          if (allEvents) await syncRecurringEvents(allEvents);
-        } catch (syncErr) {
-          console.warn("[EventForm] Background recurring sync warning:", syncErr);
-        }
       }
 
       clearDraft();
