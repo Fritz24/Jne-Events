@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
-import { format } from "date-fns";
+import { format, subDays, isAfter, startOfMonth, startOfDay, endOfDay } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { XCircle, UserCheck, Search, Trash2, Download, RefreshCw, Ticket, Plus, Banknote, Wallet } from "lucide-react";
+import { XCircle, UserCheck, Search, Trash2, Download, RefreshCw, Ticket, Plus, Banknote, Wallet, Calendar, RotateCcw } from "lucide-react";
 import { countUsedSlots, remainingSlots } from "@/utils/ticketCount";
 import TicketGenerator from "./TicketGenerator";
 import VerticalTicket from "../events/VerticalTicket";
@@ -24,6 +24,10 @@ export default function BookingManager() {
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterEvent, setFilterEvent] = useState("all");
+  const [dateFilter, setDateFilter] = useState("all"); // "all", "today", "yesterday", "7", "30", "this_month", "custom"
+  const [dateType, setDateType] = useState("created_date"); // "created_date" or "event_date"
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
   const [includePast, setIncludePast] = useState(false);
   const [verifyingId, setVerifyingId] = useState(null);
   const [showTicketModal, setShowTicketModal] = useState(false);
@@ -171,32 +175,71 @@ export default function BookingManager() {
     }
     const matchPast = includePast || !isPast;
 
-    return matchSearch && matchStatus && matchEvent && matchPast;
+    // Date filtering:
+    let matchDate = true;
+    const targetDateStr = dateType === "event_date" ? eventObj?.date : b.created_date;
+
+    if (dateFilter !== "all" || startDate || endDate) {
+      if (!targetDateStr) {
+        matchDate = false;
+      } else {
+        const itemDate = new Date(targetDateStr);
+        const now = new Date();
+
+        if (dateFilter === "today") {
+          matchDate = itemDate.toDateString() === now.toDateString();
+        } else if (dateFilter === "yesterday") {
+          const yest = subDays(now, 1);
+          matchDate = itemDate.toDateString() === yest.toDateString();
+        } else if (dateFilter === "7") {
+          matchDate = isAfter(itemDate, subDays(now, 7));
+        } else if (dateFilter === "30") {
+          matchDate = isAfter(itemDate, subDays(now, 30));
+        } else if (dateFilter === "this_month") {
+          matchDate = isAfter(itemDate, startOfMonth(now));
+        } else if (dateFilter === "custom") {
+          if (startDate) {
+            const start = startOfDay(new Date(startDate + "T00:00:00"));
+            if (itemDate < start) matchDate = false;
+          }
+          if (endDate) {
+            const end = endOfDay(new Date(endDate + "T23:59:59"));
+            if (itemDate > end) matchDate = false;
+          }
+        }
+      }
+    }
+
+    return matchSearch && matchStatus && matchEvent && matchPast && matchDate;
   });
 
   const downloadCSV = () => {
     const rows = [
-      ["Attendee Name", "Phone Number", "Payment Method", "Ticket ID", "Event", "Tier", "Price", "Currency", "Status", "Failure Reason", "Date"],
-      ...filtered.map(b => [
-        b.attendee_name,
-        b.phone ?? "N/A",
-        b.payment_method ?? "Manual",
-        b.ticket_id,
-        b.event_title,
-        b.tier_label,
-        b.tier_price ?? "",
-        b.currency ?? "XAF",
-        b.status,
-        b.failure_reason ?? "",
-        b.created_date ? format(new Date(b.created_date), "yyyy-MM-dd HH:mm") : "",
-      ]),
+      ["Attendee Name", "Phone Number", "Payment Method", "Ticket ID", "Event", "Event Date", "Tier", "Price", "Currency", "Status", "Failure Reason", "Booking Date"],
+      ...filtered.map(b => {
+        const ev = eventsData.find(e => e.id === b.event_id || e.title === b.event_title);
+        return [
+          b.attendee_name,
+          b.phone ?? "N/A",
+          b.payment_method ?? "Manual",
+          b.ticket_id,
+          b.event_title,
+          ev?.date ? format(new Date(ev.date), "yyyy-MM-dd HH:mm") : "N/A",
+          b.tier_label,
+          b.tier_price ?? "",
+          b.currency ?? "XAF",
+          b.status,
+          b.failure_reason ?? "",
+          b.created_date ? format(new Date(b.created_date), "yyyy-MM-dd HH:mm") : "",
+        ];
+      }),
     ];
     const csv = rows.map(r => r.map(v => `"${String(v ?? "").replace(/"/g, '""')}"`).join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `bookings${filterEvent !== "all" ? `-${filterEvent.replace(/\s+/g, "-")}` : ""}.csv`;
+    a.download = `bookings${filterEvent !== "all" ? `-${filterEvent.replace(/\s+/g, "-")}` : ""}${dateFilter !== "all" ? `-${dateFilter}` : ""}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -337,18 +380,100 @@ export default function BookingManager() {
         </Button>
       </div>
 
-      {/* Include Past Events Toggle */}
-      <div className="flex items-center gap-2 text-sm text-white/55 pl-1">
-        <input
-          type="checkbox"
-          id="includePast"
-          checked={includePast}
-          onChange={(e) => setIncludePast(e.target.checked)}
-          className="w-4 h-4 rounded border border-white/20 bg-zinc-950 text-violet-600 focus:ring-violet-500 focus:ring-offset-0 focus:ring-1 cursor-pointer accent-violet-600"
-        />
-        <label htmlFor="includePast" className="cursor-pointer select-none text-xs font-semibold text-white/50 hover:text-white transition-colors">
-          Show bookings for past events
-        </label>
+      {/* Date Filter Bar */}
+      <div className="rounded-xl bg-white/[0.02] border border-white/5 p-3 flex flex-wrap items-center justify-between gap-3 text-xs">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <div className="flex items-center gap-1.5 text-white/50 font-medium">
+            <Calendar className="w-3.5 h-3.5 text-violet-400" />
+            <span>Date Filter:</span>
+          </div>
+
+          <Select value={dateFilter} onValueChange={(val) => {
+            setDateFilter(val);
+            if (val !== "custom") {
+              setStartDate("");
+              setEndDate("");
+            }
+          }}>
+            <SelectTrigger className="bg-white/5 border-white/10 text-white text-xs h-8 w-36 rounded-lg">
+              <SelectValue placeholder="All Dates" />
+            </SelectTrigger>
+            <SelectContent className="bg-[#14141c] border-white/10 text-white text-xs">
+              <SelectItem value="all">All Dates</SelectItem>
+              <SelectItem value="today">Today</SelectItem>
+              <SelectItem value="yesterday">Yesterday</SelectItem>
+              <SelectItem value="7">Last 7 Days</SelectItem>
+              <SelectItem value="30">Last 30 Days</SelectItem>
+              <SelectItem value="this_month">This Month</SelectItem>
+              <SelectItem value="custom">Custom Range...</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {/* Filter by Booking Date vs Event Date */}
+          <Select value={dateType} onValueChange={setDateType}>
+            <SelectTrigger className="bg-white/5 border-white/10 text-white/70 text-xs h-8 w-36 rounded-lg">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-[#14141c] border-white/10 text-white text-xs">
+              <SelectItem value="created_date">Booking Date</SelectItem>
+              <SelectItem value="event_date">Event Date</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {/* Custom Date Inputs */}
+          {dateFilter === "custom" && (
+            <div className="flex items-center gap-2 animate-in fade-in">
+              <div className="flex items-center gap-1 text-white/40">
+                <span>From</span>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="bg-white/5 border border-white/10 rounded-lg text-xs text-white px-2 py-1 focus:border-violet-500 focus:outline-none [color-scheme:dark]"
+                />
+              </div>
+              <div className="flex items-center gap-1 text-white/40">
+                <span>To</span>
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="bg-white/5 border border-white/10 rounded-lg text-xs text-white px-2 py-1 focus:border-violet-500 focus:outline-none [color-scheme:dark]"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Clear Date Filter Button */}
+          {(dateFilter !== "all" || startDate || endDate) && (
+            <button
+              type="button"
+              onClick={() => {
+                setDateFilter("all");
+                setStartDate("");
+                setEndDate("");
+              }}
+              className="inline-flex items-center gap-1 text-[11px] text-white/40 hover:text-red-400 transition-colors ml-1 cursor-pointer"
+            >
+              <RotateCcw className="w-3 h-3" />
+              Reset date
+            </button>
+          )}
+        </div>
+
+        {/* Include Past Events Toggle */}
+        <div className="flex items-center gap-2 text-white/55">
+          <input
+            type="checkbox"
+            id="includePast"
+            checked={includePast}
+            onChange={(e) => setIncludePast(e.target.checked)}
+            className="w-3.5 h-3.5 rounded border border-white/20 bg-zinc-950 text-violet-600 focus:ring-violet-500 focus:ring-offset-0 focus:ring-1 cursor-pointer accent-violet-600"
+          />
+          <label htmlFor="includePast" className="cursor-pointer select-none text-xs font-medium text-white/50 hover:text-white transition-colors">
+            Show bookings for past events
+          </label>
+        </div>
       </div>
 
       {/* Table */}
