@@ -34,14 +34,8 @@ export default function Home() {
   // 1. Events happening this weekend (Friday - Sunday)
   const weekendEvents = upcomingEvents.filter((e) => isEventThisWeekend(e.date));
 
-  // 2. Events marked as featured (or top upcoming highlights if none marked featured)
-  const weekendIds = new Set(weekendEvents.map((e) => e.id));
-  const nonWeekendUpcoming = upcomingEvents.filter((e) => !weekendIds.has(e.id));
-
-  const explicitlyFeatured = nonWeekendUpcoming.filter((e) => e.featured);
-  const featuredEvents = explicitlyFeatured.length > 0
-    ? explicitlyFeatured.slice(0, 3)
-    : nonWeekendUpcoming.slice(0, 3);
+  // 2. Events explicitly marked as featured by admin
+  const featuredEvents = upcomingEvents.filter((e) => e.featured);
 
   return (
     <div>
