@@ -9,7 +9,6 @@ import { useAuth } from "@/lib/AuthContext";
 import { migrateLocalFavoritesToSupabase } from "@/lib/favorites";
 import { LogOut, LayoutDashboard, LogIn } from "lucide-react";
 import SearchBar from "./common/SearchBar";
-import NetworkStatus from "./common/NetworkStatus";
 import { getCachedEvents, saveCachedEvents } from "@/utils/eventsCache";
 
 export default function Layout() {
@@ -253,8 +252,6 @@ export default function Layout() {
       <main className="pt-16">
         <Outlet />
       </main>
-
-      <NetworkStatus />
 
       <footer className="border-t border-white/5 mt-20 bg-white/[0.01]">
         <DynamicFooter t={t} lang={lang} toggleLang={toggleLang} />
