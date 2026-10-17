@@ -23,7 +23,7 @@ export default function Home() {
       saveCachedEvents(data);
       return data || [];
     },
-    initialData: getCachedEvents,
+    placeholderData: getCachedEvents,
   });
 
   const now = new Date();

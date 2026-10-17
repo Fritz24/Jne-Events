@@ -275,7 +275,7 @@ function DynamicFooter({ t, lang, toggleLang }) {
       saveCachedEvents(data);
       return data || [];
     },
-    initialData: getCachedEvents,
+    placeholderData: getCachedEvents,
   });
 
   const { data: categories = [] } = useQuery({
@@ -288,7 +288,7 @@ function DynamicFooter({ t, lang, toggleLang }) {
         .maybeSingle();
       return data?.value ? JSON.parse(data.value) : [];
     },
-    initialData: () => {
+    placeholderData: () => {
       try {
         const saved = localStorage.getItem("jne_cached_categories");
         return saved ? JSON.parse(saved) : undefined;

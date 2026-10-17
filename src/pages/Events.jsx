@@ -51,7 +51,7 @@ export default function Events() {
       saveCachedEvents(data);
       return data || [];
     },
-    initialData: getCachedEvents,
+    placeholderData: getCachedEvents,
   });
 
   const { data: bookings = [] } = useQuery({
@@ -79,7 +79,7 @@ export default function Events() {
       }
       return parsed;
     },
-    initialData: () => {
+    placeholderData: () => {
       try {
         const saved = localStorage.getItem("jne_cached_categories");
         return saved ? JSON.parse(saved) : undefined;

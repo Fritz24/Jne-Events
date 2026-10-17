@@ -37,12 +37,11 @@ export default function EventDetails() {
       
       return data;
     },
-    initialData: () => {
+    placeholderData: () => {
       const cachedList = qc.getQueryData(["events"]) || getCachedEvents();
       const match = cachedList?.find(e => e.id === eventId);
       return match?.title ? match : undefined;
     },
-    initialDataUpdatedAt: 0,
   });
 
   // Fetch bookings to calculate capacity

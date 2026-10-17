@@ -94,7 +94,7 @@ export default function BookingManager() {
       }
       return data || [];
     },
-    initialData: () => {
+    placeholderData: () => {
       try {
         const saved = localStorage.getItem("jne_cached_admin_bookings");
         return saved ? JSON.parse(saved) : undefined;
