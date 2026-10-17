@@ -198,7 +198,12 @@ export default function Admin() {
       alert(`Could not delete event: ${err.message || "Action failed"}`);
     },
     onSettled: () => {
+      try {
+        localStorage.removeItem("jne_cached_events_catalog_v2");
+        localStorage.removeItem("jne_cached_events_catalog");
+      } catch (e) {}
       queryClient.invalidateQueries({ queryKey: ["events"] });
+      queryClient.invalidateQueries({ queryKey: ["event"] });
     },
   });
 
@@ -212,7 +217,14 @@ export default function Admin() {
     setShowForm(false);
     setEditingEvent(null);
     setActiveSection("events_all");
+    try {
+      localStorage.removeItem("jne_cached_events_catalog_v2");
+      localStorage.removeItem("jne_cached_events_catalog");
+    } catch (e) {}
     queryClient.invalidateQueries({ queryKey: ["events"] });
+    queryClient.invalidateQueries({ queryKey: ["event"] });
+    queryClient.invalidateQueries({ queryKey: ["shop_items"] });
+    queryClient.invalidateQueries({ queryKey: ["shop_items_available"] });
   };
 
   const toggleSection = (id) => {

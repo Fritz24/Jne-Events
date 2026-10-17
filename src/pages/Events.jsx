@@ -159,7 +159,7 @@ export default function Events() {
         "offers": {
           "@type": "Offer",
           "url": window.location.href,
-          "price": event.price,
+          "price": event.ticket_tiers?.length ? Math.min(...event.ticket_tiers.map(t => Number(t.price) || 0)) : (Number(event.price) || 0),
           "priceCurrency": event.currency || "XAF",
           "availability": event.status === "sold_out" ? "https://schema.org/SoldOut" : "https://schema.org/InStock"
         },

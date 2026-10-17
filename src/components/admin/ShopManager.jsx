@@ -60,6 +60,7 @@ export default function ShopManager({ initialTab }) {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["shop_items"] });
+            queryClient.invalidateQueries({ queryKey: ["shop_items_available"] });
             setEditingItem(null);
             setIsAdding(false);
         }
@@ -75,6 +76,7 @@ export default function ShopManager({ initialTab }) {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["shop_items"] });
+            queryClient.invalidateQueries({ queryKey: ["shop_items_available"] });
         }
     });
 

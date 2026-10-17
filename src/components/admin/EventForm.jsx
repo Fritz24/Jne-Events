@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { format } from "date-fns";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
@@ -194,56 +194,75 @@ function buildInitialForm(event) {
 }
 
 function buildInitialTiers(event) {
-  return event?.ticket_tiers?.length
-    ? event.ticket_tiers.map(t => {
-      const incs = new Set(t.inclusions || []);
+  let rawTiers = event?.ticket_tiers;
+  if (typeof rawTiers === "string") {
+    try { rawTiers = JSON.parse(rawTiers); } catch {}
+  }
+
+  if (Array.isArray(rawTiers) && rawTiers.length > 0) {
+    return rawTiers.map(t => {
+      const incs = new Set(Array.isArray(t.inclusions) ? t.inclusions : []);
       if (t.headphones_included) incs.add("Headphones");
       if (t.seat_included) incs.add("Seat / Blanket");
       if (t.snack_included) incs.add("Popcorn / Snack");
       if (t.drink_included) incs.add("Drink");
 
       const { headphones_included, seat_included, snack_included, drink_included, ...rest } = t;
-      return { ...emptyTier(), ...rest, price: String(t.price), inclusions: Array.from(incs) };
-    })
-    : [emptyTier()];
+      const cleanPrice = t.price !== undefined && t.price !== null ? String(t.price) : "0";
+      return { ...emptyTier(), ...rest, price: cleanPrice, inclusions: Array.from(incs) };
+    });
+  }
+
+  // If no tiers exist but event has a price, default to 1 standard tier with that price
+  if (event?.price) {
+    return [{ ...emptyTier(), label: "Standard", price: String(event.price), inclusions: [] }];
+  }
+
+  return [emptyTier()];
 }
 
 export default function EventForm({ event, onSave, onCancel }) {
   const isEdit = !!event;
   const draftKey = isEdit ? `${DRAFT_KEY}_${event.id}` : DRAFT_KEY;
 
-  // Load from localStorage draft if available (only for the matching form)
+  // For new events, we restore drafts if present. For editing existing events, we always load fresh DB data.
   const [form, setForm] = useState(() => {
     const initial = buildInitialForm(event);
-    try {
-      const saved = localStorage.getItem(draftKey);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (parsed.form) {
-          return {
-            ...initial,
-            ...parsed.form,
-            recurrence_interval: parsed.form.recurrence_interval || initial.recurrence_interval || 1,
-            recurrence_unit: parsed.form.recurrence_unit || initial.recurrence_unit || "weeks",
-            recurrence_days: Array.isArray(parsed.form.recurrence_days) ? parsed.form.recurrence_days : initial.recurrence_days || ["0"],
-            recurrence_month_mode: parsed.form.recurrence_month_mode || initial.recurrence_month_mode || "same_date",
-            recurrence_lead_days: parsed.form.recurrence_lead_days || initial.recurrence_lead_days || 14,
-            recurrence_end_type: parsed.form.recurrence_end_type || initial.recurrence_end_type || "never",
-          };
+    if (!isEdit) {
+      try {
+        const saved = localStorage.getItem(draftKey);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed.form) {
+            return {
+              ...initial,
+              ...parsed.form,
+              recurrence_interval: parsed.form.recurrence_interval || initial.recurrence_interval || 1,
+              recurrence_unit: parsed.form.recurrence_unit || initial.recurrence_unit || "weeks",
+              recurrence_days: Array.isArray(parsed.form.recurrence_days) ? parsed.form.recurrence_days : initial.recurrence_days || ["0"],
+              recurrence_month_mode: parsed.form.recurrence_month_mode || initial.recurrence_month_mode || "same_date",
+              recurrence_lead_days: parsed.form.recurrence_lead_days || initial.recurrence_lead_days || 14,
+              recurrence_end_type: parsed.form.recurrence_end_type || initial.recurrence_end_type || "never",
+            };
+          }
         }
-      }
-    } catch { }
+      } catch { }
+    }
     return initial;
   });
 
   const [tiers, setTiers] = useState(() => {
-    try {
-      const saved = localStorage.getItem(draftKey);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        return parsed.tiers || buildInitialTiers(event);
-      }
-    } catch { }
+    if (!isEdit) {
+      try {
+        const saved = localStorage.getItem(draftKey);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed.tiers) && parsed.tiers.length > 0) {
+            return parsed.tiers;
+          }
+        }
+      } catch { }
+    }
     return buildInitialTiers(event);
   });
 
@@ -530,10 +549,30 @@ export default function EventForm({ event, onSave, onCancel }) {
     }
   }, [form.title, form.date, form.type, categories]);
 
-  // Auto-save draft to localStorage on every change
+  // Auto-save draft to localStorage on every change (only for brand new events)
   useEffect(() => {
-    localStorage.setItem(draftKey, JSON.stringify({ form, tiers }));
-  }, [form, tiers, draftKey]);
+    if (!isEdit) {
+      localStorage.setItem(draftKey, JSON.stringify({ form, tiers }));
+    }
+  }, [form, tiers, draftKey, isEdit]);
+
+  // Real-time calculated starting price derived from lowest ticket tier
+  const calculatedStartingPrice = useMemo(() => {
+    const validTiers = (tiers || [])
+      .filter(t => t && t.label && String(t.label).trim())
+      .map(t => {
+        const raw = t.price !== "" && t.price !== null && t.price !== undefined
+          ? String(t.price).replace(/[^0-9.]/g, "")
+          : "0";
+        const p = parseFloat(raw);
+        return isNaN(p) ? 0 : Math.max(0, p);
+      });
+    if (validTiers.length > 0) {
+      return Math.min(...validTiers);
+    }
+    const fp = parseFloat(String(form.price || 0).replace(/[^0-9.]/g, ""));
+    return isNaN(fp) ? 0 : Math.max(0, fp);
+  }, [tiers, form.price]);
 
   const handleChange = (field, value) => {
     setForm(prev => {
@@ -637,6 +676,27 @@ export default function EventForm({ event, onSave, onCancel }) {
         legacyPattern = `monthly_${form.recurrence_month_mode || "same_date"}`;
       }
 
+      // Sanitize and clean ticket tiers
+      const cleanedTiers = (tiers || [])
+        .filter(t => t && t.label && String(t.label).trim())
+        .map(t => {
+          const rawPrice = t.price !== "" && t.price !== null && t.price !== undefined
+            ? String(t.price).replace(/[^0-9.]/g, "")
+            : "0";
+          const parsedPrice = parseFloat(rawPrice);
+          return {
+            ...t,
+            label: String(t.label).trim(),
+            price: isNaN(parsedPrice) ? 0 : Math.max(0, parsedPrice),
+            inclusions: Array.isArray(t.inclusions) ? t.inclusions : [],
+          };
+        });
+
+      // Industry standard: event base price is always kept in sync with the minimum tier price
+      const baseStartingPrice = cleanedTiers.length > 0
+        ? Math.min(...cleanedTiers.map(t => t.price))
+        : (form.price !== "" && form.price !== null ? Math.max(0, parseFloat(String(form.price).replace(/[^0-9.]/g, "")) || 0) : 0);
+
       // Explicitly construct the exact payload recognized by Supabase jne_events table
       const data = {
         title: form.title || "",
@@ -648,7 +708,7 @@ export default function EventForm({ event, onSave, onCancel }) {
         venue_fr: form.venue_fr || null,
         city: form.city || null,
         venue_description: form.venue_description || null,
-        price: form.price !== "" && form.price !== null ? Number(form.price) : 0,
+        price: baseStartingPrice,
         currency: form.currency || "XAF",
         whatsapp_number: form.whatsapp_number || null,
         whatsapp_message: form.whatsapp_message || null,
@@ -660,23 +720,32 @@ export default function EventForm({ event, onSave, onCancel }) {
         image_url: form.image_url || null,
         is_recurring: !!form.is_recurring,
         recurrence_pattern: form.is_recurring ? legacyPattern : null,
-        ticket_tiers: tiers
-          .filter(t => t.label && t.price !== "" && t.price !== null && t.price !== undefined)
-          .map(t => ({ ...t, price: Number(t.price) })),
+        ticket_tiers: cleanedTiers,
       };
 
       if (isEdit) {
-        const { error } = await supabase
+        const { data: updatedRows, error } = await supabase
           .from('jne_events')
           .update(data)
-          .eq('id', event.id);
+          .eq('id', event.id)
+          .select();
         if (error) throw error;
+        if (!updatedRows || updatedRows.length === 0) {
+          throw new Error("Unable to save event. Database update returned 0 modified rows. Please check admin permissions.");
+        }
       } else {
-        const { error } = await supabase
+        const { data: insertedRows, error } = await supabase
           .from('jne_events')
-          .insert([data]);
+          .insert([data])
+          .select();
         if (error) throw error;
       }
+
+      // Immediately evict stale catalog caches so public pages and details update instantly
+      try {
+        localStorage.removeItem("jne_cached_events_catalog_v2");
+        localStorage.removeItem("jne_cached_events_catalog");
+      } catch (e) {}
 
       clearDraft();
       onSave();
@@ -905,10 +974,22 @@ export default function EventForm({ event, onSave, onCancel }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
         <div className="space-y-2">
           <Label className="text-white/70">Currency *</Label>
           <Input className={inputClass} value={form.currency} onChange={e => handleChange("currency", e.target.value)} placeholder="XAF" required />
+        </div>
+        <div className="space-y-2">
+          <Label className="text-white/70 flex items-center justify-between">
+            <span>Base Starting Price</span>
+            <span className="text-[10px] text-violet-400 font-normal">Auto-synced</span>
+          </Label>
+          <div className="h-10 px-3.5 rounded-md border border-white/10 bg-white/[0.04] flex items-center justify-between text-sm text-white font-mono">
+            <span className="font-bold text-emerald-400">
+              {calculatedStartingPrice === 0 ? "Free Entry (0)" : calculatedStartingPrice.toLocaleString()}
+            </span>
+            <span className="text-xs text-white/40">{form.currency || "XAF"}</span>
+          </div>
         </div>
         {isEdit && (
           <div className="space-y-2">
@@ -932,7 +1013,12 @@ export default function EventForm({ event, onSave, onCancel }) {
       {/* Ticket Tiers */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <Label className="text-white/70 text-base">Ticket Tiers</Label>
+          <div>
+            <Label className="text-white/70 text-base">Ticket Tiers</Label>
+            <p className="text-xs text-white/40">
+              Starting from: <strong className="text-emerald-400 font-mono">{calculatedStartingPrice === 0 ? "Free (0 XAF)" : `${calculatedStartingPrice.toLocaleString()} ${form.currency || "XAF"}`}</strong> (auto-derived from lowest tier)
+            </p>
+          </div>
           <Button type="button" size="sm" onClick={addTier} className="bg-violet-600/20 hover:bg-violet-600/40 text-violet-300 border border-violet-500/30">
             <Plus className="w-3.5 h-3.5 mr-1" /> Add Tier
           </Button>

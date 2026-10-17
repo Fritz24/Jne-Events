@@ -42,6 +42,7 @@ export default function EventDetails() {
       const match = cachedList?.find(e => e.id === eventId);
       return match?.title ? match : undefined;
     },
+    initialDataUpdatedAt: 0,
   });
 
   // Fetch bookings to calculate capacity

@@ -100,3 +100,20 @@ SELECT cron.schedule(
     '0 0 * * *',
     $$SELECT public.auto_update_event_statuses()$$
 );
+
+-- ====================================================================
+-- 4. INDUSTRY-STANDARD PRICE SYNC (Fix legacy events with price = 0)
+-- ====================================================================
+-- Automatically synchronizes the base starting price for all events with their lowest ticket tier
+UPDATE public.jne_events
+SET price = COALESCE(
+  (
+    SELECT MIN((elem->>'price')::numeric)
+    FROM jsonb_array_elements(ticket_tiers::jsonb) AS elem
+    WHERE elem->>'price' IS NOT NULL AND elem->>'price' != ''
+  ),
+  price,
+  0
+)
+WHERE ticket_tiers IS NOT NULL AND jsonb_array_length(ticket_tiers::jsonb) > 0;
+
