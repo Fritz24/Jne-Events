@@ -48,10 +48,52 @@ export default function FinanceManager() {
     },
   });
 
-  // List of distinct event titles
-  const eventTitles = useMemo(() => {
-    return [...new Set(bookings.map(b => b.event_title).filter(Boolean))];
-  }, [bookings]);
+  // Fetch all events for date mapping
+  const { data: eventsData = [] } = useQuery({
+    queryKey: ["events"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('jne_events')
+        .select('*')
+        .order('date', { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  // Map events to their exact dates so identically named events have distinct options
+  const eventOptions = useMemo(() => {
+    const map = new Map();
+    eventsData.forEach(e => {
+      let dateFormatted = "Date TBA";
+      let timeFormatted = "";
+      if (e.date) {
+        try {
+          const d = new Date(e.date);
+          dateFormatted = format(d, "d MMM yyyy");
+          timeFormatted = format(d, "HH:mm");
+        } catch (err) {}
+      }
+      const timePart = timeFormatted && timeFormatted !== "00:00" ? ` • ${timeFormatted}` : "";
+      map.set(e.id, {
+        id: e.id,
+        label: `${dateFormatted} — ${e.title}${timePart}`,
+        title: e.title,
+      });
+    });
+
+    bookings.forEach(b => {
+      if (b.event_id && !map.has(b.event_id)) {
+        map.set(b.event_id, {
+          id: b.event_id,
+          label: `${b.event_title || "Event"} (${b.event_id.slice(0, 6)})`,
+          title: b.event_title,
+        });
+      }
+    });
+
+    return Array.from(map.values());
+  }, [eventsData, bookings]);
 
   // Filtered bookings based on criteria
   const filteredBookings = useMemo(() => {
@@ -59,7 +101,10 @@ export default function FinanceManager() {
 
     return bookings.filter(b => {
       // Event filter
-      if (eventFilter !== "all" && b.event_title !== eventFilter) return false;
+      if (eventFilter !== "all") {
+        const match = b.event_id === eventFilter || (!b.event_id && b.event_title === eventFilter);
+        if (!match) return false;
+      }
 
       // Method filter
       if (methodFilter !== "all") {
@@ -256,13 +301,13 @@ export default function FinanceManager() {
 
           {/* Event Filter */}
           <Select value={eventFilter} onValueChange={setEventFilter}>
-            <SelectTrigger className="w-44 bg-white/5 border-white/10 text-white text-xs h-9 rounded-xl">
-              <SelectValue placeholder="All Events" />
+            <SelectTrigger className="w-56 bg-white/5 border-white/10 text-white text-xs h-9 rounded-xl text-left">
+              <SelectValue placeholder="All Events (All Dates)" />
             </SelectTrigger>
-            <SelectContent className="bg-[#14141c] border-white/10 text-white text-xs">
-              <SelectItem value="all">All Events</SelectItem>
-              {eventTitles.map(t => (
-                <SelectItem key={t} value={t}>{t}</SelectItem>
+            <SelectContent className="max-h-80 bg-[#14141c] border-white/10 text-white text-xs">
+              <SelectItem value="all">All Events (All Dates)</SelectItem>
+              {eventOptions.map(opt => (
+                <SelectItem key={opt.id} value={opt.id}>{opt.label}</SelectItem>
               ))}
             </SelectContent>
           </Select>

@@ -1,12 +1,12 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
-import { format, subDays, isAfter, startOfMonth, startOfDay, endOfDay } from "date-fns";
+import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { XCircle, UserCheck, Search, Trash2, Download, RefreshCw, Ticket, Plus, Banknote, Wallet, Calendar, RotateCcw } from "lucide-react";
+import { XCircle, UserCheck, Search, Trash2, Download, RefreshCw, Ticket, Banknote, Calendar } from "lucide-react";
 import { countUsedSlots, remainingSlots } from "@/utils/ticketCount";
 import TicketGenerator from "./TicketGenerator";
 import VerticalTicket from "../events/VerticalTicket";
@@ -24,12 +24,6 @@ export default function BookingManager() {
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterEvent, setFilterEvent] = useState("all");
-  const [dateMode, setDateMode] = useState("all"); // "all", "exact", "range"
-  const [exactDate, setExactDate] = useState(""); // "YYYY-MM-DD"
-  const [startDate, setStartDate] = useState(""); // "YYYY-MM-DD"
-  const [endDate, setEndDate] = useState(""); // "YYYY-MM-DD"
-  const [dateTarget, setDateTarget] = useState("event_date"); // "event_date", "booking_date", "either"
-  const [includePast, setIncludePast] = useState(false);
   const [verifyingId, setVerifyingId] = useState(null);
   const [showTicketModal, setShowTicketModal] = useState(false);
   const [viewingTicketBooking, setViewingTicketBooking] = useState(null);
@@ -157,78 +151,71 @@ export default function BookingManager() {
   });
 
   const resolveBookingEvent = (b) => {
-    if (!b?.event_id) return null;
-    return eventsData.find(e => e.id === b.event_id) || null;
+    if (!b) return null;
+    if (b.event_id) {
+      return eventsData.find(e => e.id === b.event_id) || null;
+    }
+    if (b.event_title) {
+      return eventsData.find(e => e.title === b.event_title) || null;
+    }
+    return null;
   };
 
-  const eventTitles = [...new Set(bookings.map(b => b.event_title).filter(Boolean))];
-
-  const uniqueEventDates = useMemo(() => {
-    const dates = new Map();
+  // Map events to their exact dates so recurring/identically named events
+  // (e.g. "Movie Night Under the Stars") can be filtered precisely by scheduled edition
+  const eventOptions = useMemo(() => {
+    const map = new Map();
     eventsData.forEach(e => {
+      let dateFormatted = "Date TBA";
+      let timeFormatted = "";
       if (e.date) {
         try {
-          const dStr = format(new Date(e.date), "yyyy-MM-dd");
-          const formatted = format(new Date(e.date), "EEE, MMM d, yyyy");
-          dates.set(dStr, { dateStr: dStr, label: `${formatted} — ${e.title}` });
-        } catch {}
+          const d = new Date(e.date);
+          dateFormatted = format(d, "d MMM yyyy");
+          timeFormatted = format(d, "HH:mm");
+        } catch (err) {}
+      }
+      const timePart = timeFormatted && timeFormatted !== "00:00" ? ` • ${timeFormatted}` : "";
+      map.set(e.id, {
+        id: e.id,
+        label: `${dateFormatted} — ${e.title}${timePart}`,
+        title: e.title,
+        date: e.date,
+        rawDate: e.date ? new Date(e.date).getTime() : 0,
+      });
+    });
+
+    // Also include any bookings with event_id not in eventsData
+    bookings.forEach(b => {
+      if (b.event_id && !map.has(b.event_id)) {
+        map.set(b.event_id, {
+          id: b.event_id,
+          label: `${b.event_title || "Event"} (${b.event_id.slice(0, 6)})`,
+          title: b.event_title,
+          date: null,
+          rawDate: 0,
+        });
       }
     });
-    return Array.from(dates.values()).sort((a, b) => b.dateStr.localeCompare(a.dateStr));
-  }, [eventsData]);
+
+    return Array.from(map.values()).sort((a, b) => b.rawDate - a.rawDate);
+  }, [eventsData, bookings]);
 
   const filtered = bookings.filter(b => {
     const matchSearch =
       b.attendee_name?.toLowerCase().includes(search.toLowerCase()) ||
       b.ticket_id?.toLowerCase().includes(search.toLowerCase()) ||
-      b.event_title?.toLowerCase().includes(search.toLowerCase());
+      b.event_title?.toLowerCase().includes(search.toLowerCase()) ||
+      (b.phone && b.phone.includes(search));
     const matchStatus = filterStatus === "all" || b.status === filterStatus;
-    const matchEvent = filterEvent === "all" || b.event_title === filterEvent;
 
-    // Check if the event's date is in the past, falling back to booking creation date
-    const eventObj = resolveBookingEvent(b);
-    let isPast = false;
-    if (eventObj?.date) {
-      isPast = new Date(eventObj.date) < new Date();
-    } else if (b.created_date) {
-      // Fallback: If the booking itself was created over 24 hours ago, consider it past
-      const oneDayAgo = new Date();
-      oneDayAgo.setDate(oneDayAgo.getDate() - 1);
-      isPast = new Date(b.created_date) < oneDayAgo;
-    }
-    const matchPast = includePast || !isPast;
+    const selectedOption = eventOptions.find(o => o.id === filterEvent);
+    const matchEvent =
+      filterEvent === "all" ||
+      b.event_id === filterEvent ||
+      (!b.event_id && selectedOption && b.event_title === selectedOption.title);
 
-    // Exact Date & Date Range Filtering:
-    let matchDate = true;
-    const eventDateStr = eventObj?.date ? format(new Date(eventObj.date), "yyyy-MM-dd") : null;
-    const bookingDateStr = b.created_date ? format(new Date(b.created_date), "yyyy-MM-dd") : null;
-
-    if (dateMode === "exact" && exactDate) {
-      if (dateTarget === "event_date") {
-        matchDate = eventDateStr === exactDate;
-      } else if (dateTarget === "booking_date") {
-        matchDate = bookingDateStr === exactDate;
-      } else {
-        matchDate = eventDateStr === exactDate || bookingDateStr === exactDate;
-      }
-    } else if (dateMode === "range" && (startDate || endDate)) {
-      const checkRange = (dStr) => {
-        if (!dStr) return false;
-        if (startDate && dStr < startDate) return false;
-        if (endDate && dStr > endDate) return false;
-        return true;
-      };
-
-      if (dateTarget === "event_date") {
-        matchDate = checkRange(eventDateStr);
-      } else if (dateTarget === "booking_date") {
-        matchDate = checkRange(bookingDateStr);
-      } else {
-        matchDate = checkRange(eventDateStr) || checkRange(bookingDateStr);
-      }
-    }
-
-    return matchSearch && matchStatus && matchEvent && matchPast && matchDate;
+    return matchSearch && matchStatus && matchEvent;
   });
 
   const downloadCSV = () => {
@@ -257,12 +244,11 @@ export default function BookingManager() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    const dateSuffix = dateMode === "exact" && exactDate
-      ? `-${exactDate}`
-      : dateMode === "range" && (startDate || endDate)
-      ? `-${startDate || "start"}-to-${endDate || "end"}`
-      : "";
-    a.download = `bookings${filterEvent !== "all" ? `-${filterEvent.replace(/\s+/g, "-")}` : ""}${dateSuffix}.csv`;
+    const selectedOpt = eventOptions.find(o => o.id === filterEvent);
+    const eventSlug = selectedOpt
+      ? `-${selectedOpt.label.replace(/[^a-zA-Z0-9_-]+/g, "-")}`
+      : (filterEvent !== "all" ? `-${filterEvent.replace(/[^a-zA-Z0-9_-]+/g, "-")}` : "");
+    a.download = `bookings${eventSlug}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -272,7 +258,11 @@ export default function BookingManager() {
     return acc;
   }, {});
 
-  const selectedEvent = filterEvent !== "all" ? eventsData.find(e => e.title === filterEvent) : null;
+  const selectedEventOption = filterEvent !== "all" ? eventOptions.find(o => o.id === filterEvent) : null;
+  const selectedEvent = filterEvent !== "all"
+    ? eventsData.find(e => e.id === filterEvent || e.title === filterEvent)
+    : null;
+  const selectedEventLabel = selectedEventOption?.label || selectedEvent?.title || filterEvent;
   const eventCapacity = selectedEvent?.capacity || 50;
   const usedSlots = countUsedSlots(filterEvent !== "all" ? filtered : bookings);
   const remaining = filterEvent !== "all" ? remainingSlots(filtered, eventCapacity) : 0;
@@ -302,7 +292,7 @@ export default function BookingManager() {
           </div>
           <div>
             <div className="text-[11px] text-emerald-400 font-semibold uppercase tracking-wider">
-              {filterEvent !== "all" ? `Ticket Revenue (${filterEvent})` : "Total Confirmed Ticket Revenue"}
+              {filterEvent !== "all" ? `Ticket Revenue (${selectedEventLabel})` : "Total Confirmed Ticket Revenue"}
             </div>
             <div className="text-xl sm:text-2xl font-bold font-mono text-white">
               {(filterEvent !== "all" ? filteredRevenue : totalGrossRevenue).toLocaleString()} <span className="text-xs font-sans text-emerald-400">XAF</span>
@@ -325,7 +315,7 @@ export default function BookingManager() {
       {filterEvent !== "all" && (
         <div className="rounded-xl bg-white/[0.03] border border-white/5 p-4 space-y-2">
           <div className="flex items-center justify-between text-sm">
-            <span className="text-white/60 font-medium">Ticket Capacity ({filterEvent})</span>
+            <span className="text-white/60 font-medium">Ticket Capacity ({selectedEventLabel})</span>
             <span className={`font-bold ${remaining === 0 ? "text-red-400" : "text-white"}`}>
               {usedSlots} / {eventCapacity} slots used
               {remaining === 0 && " · SOLD OUT 🎉"}
@@ -364,13 +354,15 @@ export default function BookingManager() {
           />
         </div>
         <Select value={filterEvent} onValueChange={setFilterEvent}>
-          <SelectTrigger className="bg-white/5 border-white/10 text-white w-full sm:w-48">
-            <SelectValue placeholder="All Events" />
+          <SelectTrigger className="bg-white/5 border-white/10 text-white w-full sm:w-80 md:w-96 text-left">
+            <SelectValue placeholder="All Events (All Dates)" />
           </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Events</SelectItem>
-            {eventTitles.map(title => (
-              <SelectItem key={title} value={title}>{title}</SelectItem>
+          <SelectContent className="max-h-80 bg-[#14141c] border-white/10 text-white">
+            <SelectItem value="all">All Events (All Dates)</SelectItem>
+            {eventOptions.map(opt => (
+              <SelectItem key={opt.id} value={opt.id}>
+                {opt.label}
+              </SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -403,248 +395,6 @@ export default function BookingManager() {
         </Button>
       </div>
 
-      {/* Date Filter Bar */}
-      <div className="rounded-2xl bg-[#0e0e14] border border-white/10 p-4 space-y-3 shadow-lg">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pb-3 border-b border-white/5">
-          {/* Mode Switcher Tabs */}
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="flex items-center gap-1.5 text-xs text-white/60 font-semibold mr-1">
-              <Calendar className="w-4 h-4 text-violet-400" />
-              <span>Filter by Date:</span>
-            </div>
-
-            <div className="inline-flex rounded-xl bg-white/5 p-1 border border-white/10 text-xs">
-              <button
-                type="button"
-                onClick={() => {
-                  setDateMode("all");
-                  setExactDate("");
-                  setStartDate("");
-                  setEndDate("");
-                }}
-                className={`px-3 py-1 rounded-lg font-medium transition-all cursor-pointer ${
-                  dateMode === "all"
-                    ? "bg-violet-600 text-white shadow-sm"
-                    : "text-white/60 hover:text-white"
-                }`}
-              >
-                All Dates
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setDateMode("exact");
-                  if (!exactDate) setExactDate(format(new Date(), "yyyy-MM-dd"));
-                }}
-                className={`px-3 py-1 rounded-lg font-medium transition-all cursor-pointer ${
-                  dateMode === "exact"
-                    ? "bg-violet-600 text-white shadow-sm"
-                    : "text-white/60 hover:text-white"
-                }`}
-              >
-                Exact Date
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setDateMode("range");
-                  if (!startDate && !endDate) {
-                    const now = new Date();
-                    setStartDate(format(subDays(now, 7), "yyyy-MM-dd"));
-                    setEndDate(format(now, "yyyy-MM-dd"));
-                  }
-                }}
-                className={`px-3 py-1 rounded-lg font-medium transition-all cursor-pointer ${
-                  dateMode === "range"
-                    ? "bg-violet-600 text-white shadow-sm"
-                    : "text-white/60 hover:text-white"
-                }`}
-              >
-                Date Range
-              </button>
-            </div>
-
-            {/* Target Selector */}
-            <div className="flex items-center gap-1.5 bg-white/5 border border-white/10 rounded-xl px-2.5 py-1 text-xs">
-              <span className="text-white/40">Apply to:</span>
-              <select
-                value={dateTarget}
-                onChange={(e) => setDateTarget(e.target.value)}
-                className="bg-transparent text-white font-medium outline-none cursor-pointer text-xs"
-              >
-                <option value="event_date" className="bg-[#14141c]">Event Date</option>
-                <option value="booking_date" className="bg-[#14141c]">Booking (Purchase) Date</option>
-                <option value="either" className="bg-[#14141c]">Either Event or Booking</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Right: Active match count & Clear button */}
-          <div className="flex items-center gap-3 text-xs">
-            {dateMode !== "all" && (
-              <span className="text-emerald-400 font-mono font-semibold">
-                {filtered.length} booking{filtered.length === 1 ? "" : "s"} match date
-              </span>
-            )}
-            {dateMode !== "all" && (
-              <button
-                type="button"
-                onClick={() => {
-                  setDateMode("all");
-                  setExactDate("");
-                  setStartDate("");
-                  setEndDate("");
-                }}
-                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 transition-colors cursor-pointer text-xs"
-              >
-                <RotateCcw className="w-3 h-3" />
-                Clear
-              </button>
-            )}
-
-            {/* Include Past Events Toggle */}
-            <div className="flex items-center gap-2 text-white/55 pl-2 border-l border-white/10">
-              <input
-                type="checkbox"
-                id="includePast"
-                checked={includePast}
-                onChange={(e) => setIncludePast(e.target.checked)}
-                className="w-3.5 h-3.5 rounded border border-white/20 bg-zinc-950 text-violet-600 focus:ring-violet-500 focus:ring-offset-0 focus:ring-1 cursor-pointer accent-violet-600"
-              />
-              <label htmlFor="includePast" className="cursor-pointer select-none text-xs font-medium text-white/50 hover:text-white transition-colors">
-                Show past events
-              </label>
-            </div>
-          </div>
-        </div>
-
-        {/* Exact Date Mode Controls */}
-        {dateMode === "exact" && (
-          <div className="flex flex-wrap items-center gap-3 pt-1 animate-in fade-in">
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-white/50 font-medium">Exact Date:</span>
-              <input
-                type="date"
-                value={exactDate}
-                onChange={(e) => setExactDate(e.target.value)}
-                className="bg-white/5 border border-white/15 rounded-xl text-xs text-white px-3 py-1.5 focus:border-violet-500 focus:outline-none [color-scheme:dark] shadow-inner font-mono"
-              />
-            </div>
-
-            {/* Quick helper buttons */}
-            <div className="flex items-center gap-1.5 text-xs">
-              <button
-                type="button"
-                onClick={() => setExactDate(format(new Date(), "yyyy-MM-dd"))}
-                className={`px-2.5 py-1.5 rounded-lg border text-xs transition-colors cursor-pointer ${
-                  exactDate === format(new Date(), "yyyy-MM-dd")
-                    ? "bg-violet-600/20 border-violet-500/40 text-violet-300"
-                    : "bg-white/5 hover:bg-white/10 text-white/70 border-white/5"
-                }`}
-              >
-                Today
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  const tmr = new Date();
-                  tmr.setDate(tmr.getDate() + 1);
-                  setExactDate(format(tmr, "yyyy-MM-dd"));
-                }}
-                className="px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/70 border border-white/5 text-xs transition-colors cursor-pointer"
-              >
-                Tomorrow
-              </button>
-            </div>
-
-            {/* Quick selector of scheduled event dates */}
-            {uniqueEventDates.length > 0 && (
-              <div className="flex items-center gap-2 text-xs">
-                <span className="text-white/40">or pick scheduled event:</span>
-                <select
-                  value={uniqueEventDates.some(d => d.dateStr === exactDate) ? exactDate : ""}
-                  onChange={(e) => {
-                    if (e.target.value) {
-                      setExactDate(e.target.value);
-                      setDateTarget("event_date");
-                    }
-                  }}
-                  className="bg-white/5 border border-white/10 rounded-xl text-xs text-violet-300 px-3 py-1.5 outline-none focus:border-violet-500 cursor-pointer"
-                >
-                  <option value="" className="bg-[#14141c]">-- Choose Event Date --</option>
-                  {uniqueEventDates.map(item => (
-                    <option key={item.dateStr} value={item.dateStr} className="bg-[#14141c]">
-                      {item.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Date Range Mode Controls */}
-        {dateMode === "range" && (
-          <div className="flex flex-wrap items-center gap-3 pt-1 animate-in fade-in">
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-white/50 font-medium">From:</span>
-              <input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="bg-white/5 border border-white/15 rounded-xl text-xs text-white px-3 py-1.5 focus:border-violet-500 focus:outline-none [color-scheme:dark] shadow-inner font-mono"
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-white/50 font-medium">To:</span>
-              <input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="bg-white/5 border border-white/15 rounded-xl text-xs text-white px-3 py-1.5 focus:border-violet-500 focus:outline-none [color-scheme:dark] shadow-inner font-mono"
-              />
-            </div>
-
-            {/* Range Presets */}
-            <div className="flex items-center gap-1.5 text-xs">
-              <button
-                type="button"
-                onClick={() => {
-                  const now = new Date();
-                  setStartDate(format(subDays(now, 7), "yyyy-MM-dd"));
-                  setEndDate(format(now, "yyyy-MM-dd"));
-                }}
-                className="px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/70 border border-white/5 text-xs transition-colors cursor-pointer"
-              >
-                Last 7 Days
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  const now = new Date();
-                  setStartDate(format(subDays(now, 30), "yyyy-MM-dd"));
-                  setEndDate(format(now, "yyyy-MM-dd"));
-                }}
-                className="px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/70 border border-white/5 text-xs transition-colors cursor-pointer"
-              >
-                Last 30 Days
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  const now = new Date();
-                  setStartDate(format(startOfMonth(now), "yyyy-MM-dd"));
-                  setEndDate(format(now, "yyyy-MM-dd"));
-                }}
-                className="px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/70 border border-white/5 text-xs transition-colors cursor-pointer"
-              >
-                This Month
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-
       {/* Table */}
       {filtered.length === 0 ? (
         <div className="text-center py-12 text-white/30">No bookings found.</div>
@@ -652,12 +402,12 @@ export default function BookingManager() {
         <div className="overflow-x-auto rounded-xl border border-white/5">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-white/5 text-left text-white/30">
+              <tr className="border-b border-white/5 text-left text-white/30 text-xs">
                 <th className="pb-3 pt-3 pl-4 font-medium">Attendee</th>
-                <th className="pb-3 pt-3 font-medium hidden sm:table-cell">Event</th>
+                <th className="pb-3 pt-3 font-medium hidden sm:table-cell">Event & Scheduled Date</th>
                 <th className="pb-3 pt-3 font-medium hidden md:table-cell">Tier</th>
                 <th className="pb-3 pt-3 font-medium hidden lg:table-cell">Ticket ID</th>
-                <th className="pb-3 pt-3 font-medium hidden md:table-cell">Date</th>
+                <th className="pb-3 pt-3 font-medium hidden md:table-cell">Exact Booking Date</th>
                 <th className="pb-3 pt-3 font-medium">Status</th>
                 <th className="pb-3 pt-3 pr-4 font-medium text-right">Actions</th>
               </tr>
@@ -665,26 +415,76 @@ export default function BookingManager() {
             <tbody className="divide-y divide-white/5">
               {filtered.map(b => {
                 const cfg = STATUS_CONFIG[b.status] || STATUS_CONFIG.pending;
+                const eventObj = resolveBookingEvent(b);
+                const eventDateFormatted = eventObj?.date
+                  ? format(new Date(eventObj.date), "EEE, d MMM yyyy • HH:mm")
+                  : (b.event_title ? "Date TBA" : "—");
+                const bookingDateFormatted = b.created_date
+                  ? format(new Date(b.created_date), "d MMM yyyy")
+                  : "—";
+                const bookingTimeFormatted = b.created_date
+                  ? format(new Date(b.created_date), "h:mm:ss a")
+                  : "";
+
                 return (
                   <tr key={b.id} className="hover:bg-white/[0.02] transition-colors">
-                    <td className="py-3 pl-4 text-white font-medium">
-                      <div>{b.attendee_name}</div>
-                      {b.phone && <div className="text-xs text-white/35 font-normal">{b.phone}</div>}
+                    <td className="py-3.5 pl-4 text-white font-medium align-top">
+                      <div className="font-semibold text-white text-sm">{b.attendee_name}</div>
+                      {b.phone && <div className="text-xs text-white/40 font-normal mt-0.5">{b.phone}</div>}
+
+                      {/* Mobile card info: Event scheduled edition & exact booking date display */}
+                      <div className="sm:hidden mt-2 space-y-1.5 pt-1.5 border-t border-white/5 text-xs font-normal">
+                        <div className="flex items-start gap-1.5 text-violet-300">
+                          <Calendar className="w-3.5 h-3.5 shrink-0 text-violet-400 mt-0.5" />
+                          <span className="font-medium text-white/90">
+                            {eventObj?.date ? format(new Date(eventObj.date), "d MMM yyyy") : "Date TBA"} — {b.event_title}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-xs font-mono">
+                          <span className="text-white/40">Booked:</span>
+                          <span className="text-emerald-400 font-medium">
+                            {b.created_date ? format(new Date(b.created_date), "d MMM yyyy, h:mm a") : "—"}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 text-[11px] text-white/50">
+                          <span className="text-white/70">{b.tier_label}</span>
+                          {b.payment_method && (
+                            <span className="text-[10px] text-violet-400 font-bold uppercase tracking-wider bg-violet-500/10 px-1.5 py-0.5 rounded border border-violet-500/20">
+                              {b.payment_method}
+                            </span>
+                          )}
+                          <span className="font-mono text-[10px] text-white/30 truncate">{b.ticket_id}</span>
+                        </div>
+                      </div>
                     </td>
-                    <td className="py-3 text-white/50 hidden sm:table-cell">{b.event_title}</td>
-                    <td className="py-3 text-white/50 hidden md:table-cell">
-                      <div>{b.tier_label}</div>
+
+                    <td className="py-3.5 text-white/80 hidden sm:table-cell align-top">
+                      <div className="font-medium text-white text-sm">{b.event_title}</div>
+                      <div className="text-xs text-violet-400 flex items-center gap-1 mt-0.5 font-normal">
+                        <Calendar className="w-3 h-3 text-violet-400/80 shrink-0" />
+                        <span>{eventDateFormatted}</span>
+                      </div>
+                    </td>
+
+                    <td className="py-3.5 text-white/60 hidden md:table-cell align-top text-xs">
+                      <div className="font-medium text-white/80">{b.tier_label}</div>
                       {b.payment_method && (
                         <div className="text-[10px] text-violet-400 font-bold uppercase tracking-wider mt-0.5">
                           {b.payment_method}
                         </div>
                       )}
                     </td>
-                    <td className="py-3 text-white/30 font-mono text-xs hidden lg:table-cell">{b.ticket_id}</td>
-                    <td className="py-3 text-white/40 hidden md:table-cell">
-                      {b.created_date ? format(new Date(b.created_date), "MMM d, h:mm a") : "—"}
+
+                    <td className="py-3.5 text-white/40 font-mono text-xs hidden lg:table-cell align-top">{b.ticket_id}</td>
+
+                    <td className="py-3.5 hidden md:table-cell align-top font-mono">
+                      <div className="text-white/90 text-xs font-medium">{bookingDateFormatted}</div>
+                      {bookingTimeFormatted && (
+                        <div className="text-[11px] text-white/40 mt-0.5">{bookingTimeFormatted}</div>
+                      )}
                     </td>
-                    <td className="py-3">
+
+                    <td className="py-3.5 align-top">
                       <Badge className={`${cfg.color} text-xs`}>{cfg.label}</Badge>
                       {b.failure_reason && b.status !== "confirmed" && b.status !== "checked_in" && (
                         <div className="text-[10px] text-red-400 mt-1 max-w-[140px] leading-tight break-words font-normal" title={b.failure_reason}>
@@ -692,7 +492,8 @@ export default function BookingManager() {
                         </div>
                       )}
                     </td>
-                    <td className="py-3 pr-4">
+
+                    <td className="py-3.5 pr-4 align-top">
                       <div className="flex items-center justify-end gap-1">
                         {(b.status === "confirmed" || b.status === "checked_in" || b.ticket_id) && (
                           <Button
