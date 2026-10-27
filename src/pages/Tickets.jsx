@@ -143,7 +143,7 @@ export default function Tickets() {
     return deduped
       .map((ticket) => ({
         ...ticket,
-        event: ticket.event_snapshot || eventsById[ticket.event_id] || null,
+        event: (ticket.event_id && eventsById[ticket.event_id]) ? eventsById[ticket.event_id] : null,
       }))
       .sort((a, b) => {
         const aTime = new Date(a.created_date || a.saved_at || 0).getTime();
@@ -382,7 +382,7 @@ export default function Tickets() {
               <div className="flex justify-center">
                 <VerticalTicket
                   booking={selectedTicket}
-                  event={selectedTicket.event || eventsById[selectedTicket.event_id]}
+                  event={(selectedTicket?.event_id && eventsById[selectedTicket.event_id]) ? eventsById[selectedTicket.event_id] : null}
                   showActions={true}
                   showDone={true}
                   onDone={() => setSelectedTicket(null)}

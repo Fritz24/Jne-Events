@@ -147,11 +147,19 @@ export default function BookingManager() {
   const { data: eventsData = [] } = useQuery({
     queryKey: ["events"],
     queryFn: async () => {
-      const { data, error } = await supabase.from('jne_events').select('*');
+      const { data, error } = await supabase
+        .from('jne_events')
+        .select('*')
+        .order('date', { ascending: false });
       if (error) throw error;
       return data || [];
     },
   });
+
+  const resolveBookingEvent = (b) => {
+    if (!b?.event_id) return null;
+    return eventsData.find(e => e.id === b.event_id) || null;
+  };
 
   const eventTitles = [...new Set(bookings.map(b => b.event_title).filter(Boolean))];
 
@@ -178,7 +186,7 @@ export default function BookingManager() {
     const matchEvent = filterEvent === "all" || b.event_title === filterEvent;
 
     // Check if the event's date is in the past, falling back to booking creation date
-    const eventObj = eventsData.find(e => e.id === b.event_id || e.title === b.event_title);
+    const eventObj = resolveBookingEvent(b);
     let isPast = false;
     if (eventObj?.date) {
       isPast = new Date(eventObj.date) < new Date();
@@ -227,7 +235,7 @@ export default function BookingManager() {
     const rows = [
       ["Attendee Name", "Phone Number", "Payment Method", "Ticket ID", "Event", "Event Date", "Tier", "Price", "Currency", "Status", "Failure Reason", "Booking Date"],
       ...filtered.map(b => {
-        const ev = eventsData.find(e => e.id === b.event_id || e.title === b.event_title);
+        const ev = resolveBookingEvent(b);
         return [
           b.attendee_name,
           b.phone ?? "N/A",
@@ -780,7 +788,7 @@ export default function BookingManager() {
             <div className="w-full flex justify-center py-2">
               <VerticalTicket
                 booking={viewingTicketBooking}
-                event={eventsData.find(e => e.id === viewingTicketBooking.event_id || e.title === viewingTicketBooking.event_title)}
+                event={resolveBookingEvent(viewingTicketBooking)}
                 attendeeName={viewingTicketBooking.attendee_name}
                 tierLabel={viewingTicketBooking.tier_label}
                 ticketId={viewingTicketBooking.ticket_id}

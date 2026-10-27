@@ -173,9 +173,10 @@ export default function VerticalTicket({ booking, event, attendeeName, tierLabel
     }
   };
 
-  const eventDate = event?.date ? new Date(event.date) : null;
-  const dateStr = eventDate ? formatLocalizedDate(event.date, "EEE, MMM d yyyy", lang) : "TBA";
-  const timeStr = eventDate ? formatLocalizedDate(event.date, "HH:mm", lang) : "TBA";
+  const effectiveEvent = event || booking?.event || null;
+  const eventDate = effectiveEvent?.date ? new Date(effectiveEvent.date) : null;
+  const dateStr = eventDate ? formatLocalizedDate(effectiveEvent.date, "EEE, MMM d yyyy", lang) : "TBA";
+  const timeStr = eventDate ? formatLocalizedDate(effectiveEvent.date, "HH:mm", lang) : "TBA";
   const displayAttendee = attendeeName || booking?.attendee_name || "Guest";
   const displayTier = tierLabel || booking?.tier_label || "Standard";
   const displayId = ticketId || booking?.ticket_id || "JNE-PREVIEW-TICKET";
@@ -212,9 +213,9 @@ export default function VerticalTicket({ booking, event, attendeeName, tierLabel
 
           {/* === TOP: Event Poster Section === */}
           <div className="absolute left-[23px] right-0 top-0 h-[230px] overflow-hidden">
-            {event?.image_url ? (
+            {effectiveEvent?.image_url ? (
               <img
-                src={event.image_url}
+                src={effectiveEvent.image_url}
                 alt=""
                 crossOrigin="anonymous"
                 className="w-full h-full object-cover"
@@ -251,7 +252,7 @@ export default function VerticalTicket({ booking, event, attendeeName, tierLabel
 
             {/* Event Title */}
             <h2 className="text-white font-black text-[18px] leading-tight tracking-tight mb-3" style={{ textShadow: "0 2px 8px rgba(0,0,0,0.8)" }}>
-              {event ? getField(event, "title") : (booking?.event_title ? translate(booking.event_title) : "Special Event")}
+              {effectiveEvent ? getField(effectiveEvent, "title") : (booking?.event_title ? translate(booking.event_title) : "Special Event")}
             </h2>
 
             {/* Tier Badge */}
@@ -275,7 +276,7 @@ export default function VerticalTicket({ booking, event, attendeeName, tierLabel
               <div className="col-span-2">
                 <p className="text-[8px] font-bold tracking-widest uppercase mb-0.5" style={{ color: "rgba(212,175,55,0.5)" }}>{t.location || "Venue"}</p>
                 <p className="text-white text-[11px] font-bold leading-tight">
-                  {event ? getField(event, "venue") : translate(booking?.venue || "TBA")}{event?.city ? `, ${translate(event.city)}` : ""}
+                  {effectiveEvent ? getField(effectiveEvent, "venue") : translate(booking?.venue || "TBA")}{effectiveEvent?.city ? `, ${translate(effectiveEvent.city)}` : ""}
                 </p>
               </div>
             </div>

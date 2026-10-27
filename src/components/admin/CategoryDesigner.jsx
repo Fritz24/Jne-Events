@@ -92,8 +92,10 @@ export default function CategoryDesigner() {
                 <div className="bg-white/5 border border-white/10 rounded-2xl p-4 animate-in zoom-in-95">
                     <form onSubmit={(e) => {
                         e.preventDefault();
-                        const label = new FormData(e.target).get('label');
-                        const id = label.toLowerCase().replace(/\s+/g, '_');
+                        const rawLabel = new FormData(e.target).get('label') || '';
+                        const label = rawLabel.trim();
+                        if (!label) return;
+                        const id = label.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
                         if (categories.some(c => c.id === id)) return alert('Category already exists');
                         updateCategories.mutate([...categories, { id, label }]);
                         setIsAdding(false);

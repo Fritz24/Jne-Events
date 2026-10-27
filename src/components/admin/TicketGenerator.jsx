@@ -17,8 +17,11 @@ export default function TicketGenerator({ event, events = [], onClose, onSaved }
   const ticketRef = useRef(null);
   const wrapperRef = useRef(null);
 
-  // If event is not provided directly, select from events list
-  const [selectedEventId, setSelectedEventId] = useState(event?.id || events[0]?.id || "");
+  // If event is not provided directly, select from events list, preferring upcoming events
+  const defaultEventId = event?.id ||
+    events.find(e => e.status === "upcoming" || new Date(e.date) >= new Date())?.id ||
+    events[0]?.id || "";
+  const [selectedEventId, setSelectedEventId] = useState(defaultEventId);
   const currentEvent = event || events.find(e => e.id === selectedEventId) || events[0] || {};
 
   const [attendeeName, setAttendeeName] = useState("Guest");
@@ -261,7 +264,7 @@ export default function TicketGenerator({ event, events = [], onClose, onSaved }
                 <SelectContent className="bg-[#14141c] border-white/10 text-white">
                   {events.map(ev => (
                     <SelectItem key={ev.id} value={ev.id}>
-                      {ev.title} ({ev.date ? format(new Date(ev.date), "MMM d") : "TBA"})
+                      {ev.title} ({ev.date ? format(new Date(ev.date), "EEE, MMM d, yyyy") : "TBA"})
                     </SelectItem>
                   ))}
                 </SelectContent>

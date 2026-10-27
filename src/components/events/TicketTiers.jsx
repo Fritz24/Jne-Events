@@ -40,17 +40,29 @@ export default function TicketTiers({ event, compact = false, showMobileMoney = 
 
   // Dynamic Add-ons from DB
   const { data: dynamicAddons = [] } = useQuery({
-    queryKey: ["shop_items_available"],
+    queryKey: ["shop_items_available", event?.id, event?.type],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('jne_shop_items')
         .select('*')
         .eq('available', true);
       if (error) throw error;
-      return data
+
+      const norm = (str) => (str || "").toLowerCase().trim().replace(/_+$/, "").replace(/[^a-z0-9]/g, "");
+      const evTypeNorm = norm(event?.type);
+
+      return (data || [])
         .filter(item => {
           if (!item.applicable_event_types || item.applicable_event_types.length === 0) return true;
-          return item.applicable_event_types.includes(event?.type);
+          return item.applicable_event_types.some(t => {
+            const tNorm = norm(t);
+            return (
+              tNorm === evTypeNorm ||
+              t === event?.type ||
+              (tNorm.includes("movie") && (evTypeNorm.includes("movie") || (event?.title || "").toLowerCase().includes("movie"))) ||
+              (tNorm.includes("music") && (evTypeNorm.includes("music") || (event?.title || "").toLowerCase().includes("music")))
+            );
+          });
         })
         .map(item => ({
           id: item.id,
